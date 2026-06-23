@@ -9,7 +9,7 @@ import type {
   HealthResponse,
   LibraryStats,
   LidarrOptions,
-  MixResponse,
+  MixesResponse,
   RadioResponse,
   Track,
 } from "@resonarr/shared";
@@ -70,7 +70,7 @@ export async function getRadio(seedTrackId: string): Promise<RadioResponse> {
   );
 }
 
-export async function getMixes(): Promise<MixResponse> {
+export async function getMixes(): Promise<MixesResponse> {
   return asJson(await fetch("/api/mixes"));
 }
 

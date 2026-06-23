@@ -52,10 +52,16 @@ export interface AdventureResponse {
   path: Track[];
 }
 
-export interface MixResponse {
-  /** Recently-played tracks the mix was seeded from. */
-  seeds: Track[];
+export interface MixCard {
+  /** Stable id (the seed track's id). */
+  id: string;
+  title: string;
+  seed: Track;
   tracks: Track[];
+}
+
+export interface MixesResponse {
+  mixes: MixCard[];
 }
 
 export interface LibraryStats {

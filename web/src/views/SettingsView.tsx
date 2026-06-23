@@ -56,9 +56,15 @@ export function SettingsView() {
   if (!form) return <p style={{ color: colors.muted }}>Loading settings…</p>;
 
   return (
-    <section style={{ display: "grid", gap: 18, maxWidth: 460 }}>
-      <h2 style={{ fontSize: "1rem", margin: 0 }}>Settings</h2>
+    <section style={{ display: "grid", gap: 18, maxWidth: 560 }}>
+      <div>
+        <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>Settings</h1>
+        <div style={{ fontSize: 13, color: colors.muted, marginTop: 3 }}>
+          Your library, your Lidarr, your rules for what Resonarr recommends.
+        </div>
+      </div>
 
+      <Card title="Discovery">
       <Field label="LLM provider (Sonic Sage)">
         <select
           style={inputStyle}
@@ -88,13 +94,11 @@ export function SettingsView() {
         />
         Bias recommendations toward artists I own (default)
       </label>
+      </Card>
 
-      <hr style={{ border: "none", borderTop: `1px solid ${colors.border}` }} />
-      <h3 style={{ fontSize: "0.9rem", margin: 0, color: colors.muted }}>
-        Lidarr request target
-      </h3>
+      <Card title="Lidarr request target">
       {lidarrError && (
-        <p style={{ color: colors.red, marginTop: -8 }}>
+        <p style={{ color: colors.red, margin: 0 }}>
           Couldn’t load Lidarr options: {lidarrError}
         </p>
       )}
@@ -156,9 +160,9 @@ export function SettingsView() {
           ))}
         </select>
       </Field>
+      </Card>
 
-      <hr style={{ border: "none", borderTop: `1px solid ${colors.border}` }} />
-
+      <Card title="Playlists">
       <Field label="Playlist name prefix">
         <input
           style={inputStyle}
@@ -166,6 +170,7 @@ export function SettingsView() {
           onChange={(e) => patch("playlistPrefix", e.target.value)}
         />
       </Field>
+      </Card>
 
       <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
         <button
@@ -196,6 +201,31 @@ export function SettingsView() {
         )}
       </div>
     </section>
+  );
+}
+
+function Card({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div
+      style={{
+        background: colors.sidebar,
+        border: `1px solid ${colors.border}`,
+        borderRadius: 10,
+        overflow: "hidden",
+      }}
+    >
+      <div
+        style={{
+          padding: "13px 16px",
+          borderBottom: `1px solid ${colors.border}`,
+          fontSize: 14,
+          fontWeight: 600,
+        }}
+      >
+        {title}
+      </div>
+      <div style={{ padding: 16, display: "grid", gap: 14 }}>{children}</div>
+    </div>
   );
 }
 

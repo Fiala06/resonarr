@@ -3,7 +3,7 @@ import type {
   AdventureRequest,
   AdventureResponse,
   LibraryStats,
-  MixResponse,
+  MixesResponse,
   RadioRequest,
   RadioResponse,
   Track,
@@ -54,7 +54,7 @@ export function registerDiscoveryRoutes(app: FastifyInstance): void {
   });
 
   // Mixes: seeded from recent listening, expanded by similarity.
-  app.get("/api/mixes", async (_req, reply): Promise<MixResponse> => {
+  app.get("/api/mixes", async (_req, reply): Promise<MixesResponse> => {
     if (!services.plex) {
       return reply.code(503).send({ error: "Plex is not configured" }) as never;
     }

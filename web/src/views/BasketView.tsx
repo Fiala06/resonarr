@@ -84,12 +84,12 @@ export function BasketView() {
   const pendingCount = items.filter((i) => i.status === "pending").length;
 
   return (
-    <section style={{ display: "grid", gap: 16, maxWidth: 560 }}>
+    <section style={{ display: "grid", gap: 16, maxWidth: 620 }}>
       <div>
-        <h2 style={{ fontSize: "1rem", margin: "0 0 4px" }}>Request basket</h2>
-        <p style={{ color: colors.muted, margin: 0, fontSize: "0.9rem" }}>
-          Music you don’t own. Each item is verified against Lidarr before it’s
-          added, then bulk-requested (artist-first, with search).
+        <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>Basket</h1>
+        <p style={{ color: colors.muted, margin: "3px 0 0", fontSize: 13 }}>
+          Everything recommended that you don’t own yet. Verified against Lidarr,
+          sent artist-first with search, tracked here until it lands.
         </p>
       </div>
 
@@ -195,10 +195,31 @@ export function BasketView() {
                   color: STATUS_COLOR[it.status],
                   fontSize: "0.8rem",
                   textTransform: "uppercase",
+                  letterSpacing: "0.5px",
                 }}
               >
                 {it.status}
               </span>
+              {it.status === "failed" && (
+                <button
+                  onClick={async () => {
+                    setItems(await requestBasket([it.id]));
+                  }}
+                  style={{
+                    font: "inherit",
+                    fontSize: "0.75rem",
+                    fontWeight: 600,
+                    background: "transparent",
+                    color: colors.accentLight,
+                    border: `1px solid ${colors.accent}`,
+                    borderRadius: 5,
+                    padding: "4px 11px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Retry
+                </button>
+              )}
               <button
                 onClick={() => remove(it.id)}
                 title="Remove"

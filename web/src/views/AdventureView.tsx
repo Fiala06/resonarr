@@ -30,8 +30,8 @@ export function AdventureView() {
   return (
     <section style={{ display: "grid", gap: 16, maxWidth: 560 }}>
       <div>
-        <h2 style={{ fontSize: "1rem", margin: "0 0 4px" }}>Sonic Adventure</h2>
-        <p style={{ color: colors.muted, margin: 0, fontSize: "0.9rem" }}>
+        <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>Adventure</h1>
+        <p style={{ color: colors.muted, margin: "3px 0 0", fontSize: 13 }}>
           A sonic path between two tracks — it eases from the start into the
           destination.
         </p>
