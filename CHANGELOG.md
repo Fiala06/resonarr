@@ -31,6 +31,10 @@ this project uses phased pre-1.0 development (see [docs/ROADMAP.md](docs/ROADMAP
   `docker-compose.yml` with a `/config` volume for SQLite (Phase 1+).
 - Repo hygiene: `.gitignore`, `.gitattributes` (LF normalization),
   `.dockerignore`.
+- **CI**: GitHub Actions workflow publishing the Docker image to
+  `ghcr.io/fiala06/resonarr` on every push to `main`.
+- **Unraid deploy guide**: `docs/DEPLOY-UNRAID.md` (GHCR pull, container env
+  vars, `/config` volume, in-container spike verification).
 
 #### Verified
 - `npm install`, `npm run typecheck` (clean across all workspaces), server boot,
