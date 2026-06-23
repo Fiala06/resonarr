@@ -1,98 +1,60 @@
-import { useState } from "react";
-import { StatusView } from "./views/StatusView";
-import { SettingsView } from "./views/SettingsView";
-import { RadioView } from "./views/RadioView";
-import { BasketView } from "./views/BasketView";
+import { useCallback, useEffect, useState } from "react";
+import type { LibraryStats } from "@resonarr/shared";
+import { Sidebar } from "./components/Sidebar";
+import type { Tab } from "./components/Sidebar";
 import { SageView } from "./views/SageView";
+import { RadioView } from "./views/RadioView";
 import { MixesView } from "./views/MixesView";
 import { AdventureView } from "./views/AdventureView";
-import { colors } from "./theme";
-
-type Tab =
-  | "sage"
-  | "radio"
-  | "mixes"
-  | "adventure"
-  | "basket"
-  | "status"
-  | "settings";
+import { BasketView } from "./views/BasketView";
+import { SettingsView } from "./views/SettingsView";
+import { getBasket, getHealth, getLibraryStats } from "./api";
 
 export function App() {
   const [tab, setTab] = useState<Tab>("sage");
+  const [lidarrOk, setLidarrOk] = useState<boolean | null>(null);
+  const [stats, setStats] = useState<LibraryStats | null>(null);
+  const [basketCount, setBasketCount] = useState(0);
+
+  const refreshBasket = useCallback(() => {
+    getBasket()
+      .then((items) => setBasketCount(items.length))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    getHealth()
+      .then((h) => setLidarrOk(h.lidarr.configured && h.lidarr.ok))
+      .catch(() => setLidarrOk(false));
+    getLibraryStats()
+      .then(setStats)
+      .catch(() => {});
+  }, []);
+
+  // Keep the basket badge fresh as you move around the app.
+  useEffect(() => {
+    refreshBasket();
+  }, [tab, refreshBasket]);
 
   return (
-    <div style={{ maxWidth: 720, margin: "3rem auto", padding: "0 1rem" }}>
-      <header>
-        <h1 style={{ marginBottom: 4 }}>Resonarr</h1>
-        <p style={{ color: colors.muted, marginTop: 0 }}>
-          Library-first music discovery
-        </p>
-        <nav style={{ display: "flex", gap: 6, marginTop: 16 }}>
-          <TabButton active={tab === "sage"} onClick={() => setTab("sage")}>
-            Sonic Sage
-          </TabButton>
-          <TabButton active={tab === "radio"} onClick={() => setTab("radio")}>
-            Radio
-          </TabButton>
-          <TabButton active={tab === "mixes"} onClick={() => setTab("mixes")}>
-            Mixes
-          </TabButton>
-          <TabButton
-            active={tab === "adventure"}
-            onClick={() => setTab("adventure")}
-          >
-            Adventure
-          </TabButton>
-          <TabButton active={tab === "basket"} onClick={() => setTab("basket")}>
-            Basket
-          </TabButton>
-          <TabButton active={tab === "status"} onClick={() => setTab("status")}>
-            Status
-          </TabButton>
-          <TabButton
-            active={tab === "settings"}
-            onClick={() => setTab("settings")}
-          >
-            Settings
-          </TabButton>
-        </nav>
-      </header>
-
-      <main style={{ marginTop: "1.5rem" }}>
-        {tab === "sage" && <SageView />}
-        {tab === "radio" && <RadioView />}
-        {tab === "mixes" && <MixesView />}
-        {tab === "adventure" && <AdventureView />}
-        {tab === "basket" && <BasketView />}
-        {tab === "status" && <StatusView />}
-        {tab === "settings" && <SettingsView />}
-      </main>
+    <div style={{ height: "100%", display: "flex", overflow: "hidden" }}>
+      <Sidebar
+        active={tab}
+        onNavigate={setTab}
+        basketCount={basketCount}
+        stats={stats}
+        lidarrOk={lidarrOk}
+      />
+      <div style={{ flex: 1, minWidth: 0, overflowY: "auto" }}>
+        <div style={{ padding: "28px 34px 48px", maxWidth: 860 }}>
+          {tab === "sage" && <SageView />}
+          {tab === "radio" && <RadioView />}
+          {tab === "mixes" && <MixesView />}
+          {tab === "adventure" && <AdventureView />}
+          {tab === "basket" && <BasketView />}
+          {tab === "settings" && <SettingsView />}
+        </div>
+      </div>
     </div>
-  );
-}
-
-function TabButton({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: string;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        background: active ? colors.panel : "transparent",
-        color: active ? colors.text : colors.muted,
-        border: `1px solid ${active ? colors.border : "transparent"}`,
-        borderRadius: 6,
-        padding: "6px 14px",
-        cursor: "pointer",
-      }}
-    >
-      {children}
-    </button>
   );
 }

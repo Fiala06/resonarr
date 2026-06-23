@@ -6,13 +6,12 @@ import {
   getSettings,
   runSage,
 } from "../api";
-import { TrackRow } from "../components/TrackRow";
 import { colors } from "../theme";
 
 export function SageView() {
   const [prompt, setPrompt] = useState("");
   const [bias, setBias] = useState(false);
-  const [provider, setProvider] = useState<string>("");
+  const [provider, setProvider] = useState("");
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<DiscoveryResult | null>(null);
@@ -21,9 +20,8 @@ export function SageView() {
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
 
-  const [selectedMisses, setSelectedMisses] = useState<Set<number>>(new Set());
-  const [adding, setAdding] = useState(false);
-  const [addMsg, setAddMsg] = useState<string | null>(null);
+  const [added, setAdded] = useState<Set<number>>(new Set());
+  const [addingAll, setAddingAll] = useState(false);
 
   useEffect(() => {
     getSettings()
@@ -41,12 +39,11 @@ export function SageView() {
     setError(null);
     setResult(null);
     setSaveMsg(null);
-    setAddMsg(null);
+    setAdded(new Set());
     try {
       const res = await runSage(p, bias);
       setResult(res);
       setName(`${p.slice(0, 40)} (Sage)`);
-      setSelectedMisses(new Set(res.misses.map((_, i) => i)));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -63,7 +60,7 @@ export function SageView() {
         name.trim() || "Sage",
         result.matches.map((t) => t.id),
       );
-      setSaveMsg(`Created "${res.name}" (${res.trackCount} tracks) ✓`);
+      setSaveMsg(`Saved "${res.name}" (${res.trackCount} tracks) ✓`);
     } catch (e) {
       setSaveMsg(`Save failed: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
@@ -71,89 +68,77 @@ export function SageView() {
     }
   }
 
-  function toggleMiss(i: number) {
-    setSelectedMisses((prev) => {
-      const next = new Set(prev);
-      if (next.has(i)) next.delete(i);
-      else next.add(i);
-      return next;
-    });
+  async function addMiss(i: number) {
+    if (!result) return;
+    const m = result.misses[i];
+    if (!m) return;
+    try {
+      await bulkAddBasket([
+        { artist: m.artist, album: m.album, source: "sonic-sage" },
+      ]);
+      setAdded((prev) => new Set(prev).add(i));
+    } catch {
+      /* ignore — surfaced via the all-add path otherwise */
+    }
   }
 
-  async function addMisses() {
+  async function addAll() {
     if (!result) return;
-    const items = [...selectedMisses].map((i) => result.misses[i]).filter(Boolean);
-    if (items.length === 0) return;
-    setAdding(true);
-    setAddMsg(null);
+    setAddingAll(true);
     try {
-      const res = await bulkAddBasket(
-        items.map((m) => ({
-          artist: m!.artist,
-          album: m!.album,
+      const remaining = result.misses
+        .map((m, i) => ({ m, i }))
+        .filter(({ i }) => !added.has(i));
+      await bulkAddBasket(
+        remaining.map(({ m }) => ({
+          artist: m.artist,
+          album: m.album,
           source: "sonic-sage" as const,
         })),
       );
-      setAddMsg(
-        `Added ${res.added.length} to basket${res.failed.length ? `, ${res.failed.length} unmatched` : ""} ✓`,
-      );
-    } catch (e) {
-      setAddMsg(`Add failed: ${e instanceof Error ? e.message : String(e)}`);
+      setAdded(new Set(result.misses.map((_, i) => i)));
+    } catch {
+      /* ignore */
     } finally {
-      setAdding(false);
+      setAddingAll(false);
     }
   }
 
   return (
-    <section style={{ display: "grid", gap: 16, maxWidth: 600 }}>
+    <section style={{ display: "grid", gap: 18 }}>
       <div>
-        <h2 style={{ fontSize: "1rem", margin: "0 0 4px" }}>Sonic Sage</h2>
-        <p style={{ color: colors.muted, margin: 0, fontSize: "0.9rem" }}>
-          Describe what you want. {provider && <>Using <strong>{provider}</strong>. </>}
-          Tracks you own become a playlist; the rest go to the basket.
-        </p>
+        <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>Sonic Sage</h1>
+        <div style={{ fontSize: 13, color: colors.muted, marginTop: 3 }}>
+          Discovery that reaches past your shelves.{" "}
+          {provider && (
+            <>
+              Using <strong>{provider}</strong>.{" "}
+            </>
+          )}
+          Plays what you own, and turns the gaps into Lidarr requests.
+        </div>
       </div>
 
       <textarea
         value={prompt}
         onChange={(e) => setPrompt(e.target.value)}
-        placeholder="e.g. mellow late-night indie for focus, or 90s alt-rock deep cuts like my Pearl Jam"
+        placeholder="Describe a vibe — e.g. mellow late-night indie for focus, or 90s alt-rock deep cuts like my Pearl Jam"
         rows={3}
         style={{
           background: colors.panel,
           color: colors.text,
           border: `1px solid ${colors.border}`,
-          borderRadius: 6,
-          padding: "10px 12px",
+          borderRadius: 8,
+          padding: "12px 14px",
           resize: "vertical",
-          fontFamily: "inherit",
         }}
       />
-
       <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
-        <button
-          onClick={generate}
-          disabled={generating}
-          style={{
-            background: colors.accent,
-            color: "white",
-            border: "none",
-            borderRadius: 6,
-            padding: "9px 18px",
-            cursor: generating ? "default" : "pointer",
-            opacity: generating ? 0.7 : 1,
-          }}
-        >
+        <button onClick={generate} disabled={generating} style={primaryBtn(generating)}>
           {generating ? "Thinking…" : "Generate"}
         </button>
-        <label
-          style={{ display: "flex", gap: 6, alignItems: "center", color: colors.muted }}
-        >
-          <input
-            type="checkbox"
-            checked={bias}
-            onChange={(e) => setBias(e.target.checked)}
-          />
+        <label style={{ display: "flex", gap: 6, alignItems: "center", color: colors.muted }}>
+          <input type="checkbox" checked={bias} onChange={(e) => setBias(e.target.checked)} />
           Bias toward artists I own
         </label>
       </div>
@@ -162,121 +147,90 @@ export function SageView() {
 
       {result && (
         <>
-          {/* Matches -> playlist */}
-          <div style={{ display: "grid", gap: 8 }}>
-            <h3 style={{ fontSize: "0.95rem", margin: 0 }}>
-              In your library ({result.matches.length})
-            </h3>
+          {/* In library */}
+          <div style={{ display: "grid", gap: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ fontSize: 13, fontWeight: 600 }}>
+                From your library{" "}
+                <span style={{ color: colors.green }}>· {result.matches.length} ready</span>
+              </div>
+            </div>
             {result.matches.length === 0 ? (
-              <p style={{ color: colors.muted, margin: 0 }}>No owned matches.</p>
+              <p style={{ color: colors.muted, margin: 0, fontSize: 13 }}>No owned matches.</p>
             ) : (
               <>
                 <div style={{ display: "flex", gap: 8 }}>
-                  <input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Playlist name"
-                    style={fieldStyle}
-                  />
-                  <button
-                    onClick={savePlaylist}
-                    disabled={saving}
-                    style={{ ...primaryBtn, whiteSpace: "nowrap" }}
-                  >
-                    {saving ? "Saving…" : `Save (${result.matches.length})`}
+                  <input value={name} onChange={(e) => setName(e.target.value)} style={field} />
+                  <button onClick={savePlaylist} disabled={saving} style={{ ...primaryBtn(saving), whiteSpace: "nowrap" }}>
+                    {saving ? "Saving…" : `Save playlist (${result.matches.length})`}
                   </button>
                 </div>
                 {saveMsg && (
-                  <span
-                    style={{
-                      color: saveMsg.startsWith("Save failed")
-                        ? colors.red
-                        : colors.green,
-                      fontSize: "0.85rem",
-                    }}
-                  >
+                  <span style={{ color: saveMsg.startsWith("Save failed") ? colors.red : colors.green, fontSize: 13 }}>
                     {saveMsg}
                   </span>
                 )}
-                <div style={{ display: "grid", gap: 6 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   {result.matches.map((t) => (
-                    <TrackRow key={t.id} track={t} />
+                    <div key={t.id} style={ownedRow}>
+                      <div style={art} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 14 }}>{t.title}</div>
+                        <div style={sub}>{t.artist}{t.album ? ` — ${t.album}` : ""}</div>
+                      </div>
+                      <span style={{ fontSize: 11, color: colors.green }}>✓ In library</span>
+                    </div>
                   ))}
                 </div>
               </>
             )}
           </div>
 
-          {/* Misses -> basket */}
-          <div style={{ display: "grid", gap: 8 }}>
-            <h3 style={{ fontSize: "0.95rem", margin: 0 }}>
-              Not owned ({result.misses.length})
-            </h3>
-            {result.misses.length === 0 ? (
-              <p style={{ color: colors.muted, margin: 0 }}>
-                You own everything suggested. Nice.
-              </p>
-            ) : (
-              <>
-                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                  <button
-                    onClick={addMisses}
-                    disabled={adding || selectedMisses.size === 0}
-                    style={{
-                      ...primaryBtn,
-                      opacity: selectedMisses.size === 0 ? 0.5 : 1,
-                    }}
-                  >
-                    {adding
-                      ? "Adding…"
-                      : `Add ${selectedMisses.size} to basket`}
-                  </button>
-                  {addMsg && (
-                    <span style={{ color: colors.muted, fontSize: "0.85rem" }}>
-                      {addMsg}
-                    </span>
-                  )}
+          {/* Not in library */}
+          {result.misses.length > 0 && (
+            <div style={{ display: "grid", gap: 10 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <div style={{ fontSize: 13, fontWeight: 600 }}>
+                  Not in your library <span style={{ color: colors.muted }}>· {result.misses.length}</span>
                 </div>
-                <div style={{ display: "grid", gap: 6 }}>
-                  {result.misses.map((m, i) => (
-                    <label
-                      key={`${m.artist}-${m.title}-${i}`}
-                      style={{
-                        display: "flex",
-                        gap: 10,
-                        alignItems: "center",
-                        padding: "8px 10px",
-                        borderRadius: 6,
-                        background: colors.panel,
-                        border: `1px solid ${colors.border}`,
-                        cursor: "pointer",
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedMisses.has(i)}
-                        onChange={() => toggleMiss(i)}
-                      />
-                      <span style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12, color: colors.muted }}>
+                  — one click sends these to Lidarr; tracked in your Basket, never dropped.
+                </div>
+                <button onClick={addAll} disabled={addingAll} style={{ ...ghostBtn, marginLeft: "auto" }}>
+                  {addingAll ? "Adding…" : "Add all"}
+                </button>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {result.misses.map((m, i) => (
+                  <div key={`${m.artist}-${m.title}-${i}`} style={missRow}>
+                    <div style={{ ...art, background: "#1f2330" }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 14 }}>
                         {m.title ? `${m.title} — ` : ""}
                         {m.artist}
-                        {m.album ? (
-                          <span style={{ color: colors.muted }}> [{m.album}]</span>
-                        ) : null}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
+                      </div>
+                      {m.album && <div style={sub}>{m.album}</div>}
+                    </div>
+                    {added.has(i) ? (
+                      <span style={{ fontSize: 11, color: colors.green }}>✓ in basket</span>
+                    ) : (
+                      <>
+                        <span style={{ fontSize: 11, color: colors.gold }}>not owned</span>
+                        <button onClick={() => addMiss(i)} style={requestBtn}>Request</button>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </>
       )}
     </section>
   );
 }
 
-const fieldStyle = {
+const field = {
   flex: 1,
   minWidth: 0,
   background: colors.panel,
@@ -285,12 +239,54 @@ const fieldStyle = {
   borderRadius: 6,
   padding: "9px 12px",
 };
-
-const primaryBtn = {
-  background: colors.accent,
-  color: "white",
-  border: "none",
+const art = {
+  width: 32,
+  height: 32,
+  borderRadius: 4,
+  background: colors.panel2,
+  flex: "none" as const,
+};
+const sub = { fontSize: 12, color: colors.muted };
+const ownedRow = {
+  display: "flex",
+  alignItems: "center",
+  gap: 11,
+  padding: "9px 11px",
   borderRadius: 6,
-  padding: "9px 16px",
+  background: colors.panel,
+  border: `1px solid ${colors.border}`,
+};
+const missRow = { ...ownedRow, border: `1px dashed #3a3550` };
+const requestBtn = {
+  font: "inherit",
+  fontSize: 12,
+  fontWeight: 600,
+  background: "transparent",
+  color: colors.accentLight,
+  border: `1px solid ${colors.accent}`,
+  borderRadius: 5,
+  padding: "6px 13px",
   cursor: "pointer",
 };
+const ghostBtn = {
+  font: "inherit",
+  fontSize: 12,
+  fontWeight: 600,
+  background: "transparent",
+  color: colors.accentLight,
+  border: `1px solid ${colors.border}`,
+  borderRadius: 5,
+  padding: "6px 12px",
+  cursor: "pointer",
+};
+function primaryBtn(disabled: boolean) {
+  return {
+    background: colors.accent,
+    color: "white",
+    border: "none",
+    borderRadius: 6,
+    padding: "9px 18px",
+    cursor: disabled ? "default" : "pointer",
+    opacity: disabled ? 0.7 : 1,
+  };
+}

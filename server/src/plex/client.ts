@@ -97,6 +97,28 @@ export class PlexClient {
     return { key: music.key, title: music.title };
   }
 
+  /** Total track / album / artist counts for a section. */
+  async getLibraryStats(
+    sectionKey: string,
+  ): Promise<{ tracks: number; albums: number; artists: number }> {
+    const count = async (type: number): Promise<number> => {
+      const data = await this.request<{
+        MediaContainer: { totalSize?: number; size?: number };
+      }>(`/library/sections/${sectionKey}/all`, {
+        type,
+        "X-Plex-Container-Size": 0,
+        "X-Plex-Container-Start": 0,
+      });
+      return data.MediaContainer.totalSize ?? data.MediaContainer.size ?? 0;
+    };
+    const [tracks, albums, artists] = await Promise.all([
+      count(TRACK_TYPE),
+      count(9), // album
+      count(8), // artist
+    ]);
+    return { tracks, albums, artists };
+  }
+
   /** Artist names in a section (type 8) — used to bias LLM suggestions. */
   async getArtistNames(sectionKey: string, limit = 200): Promise<string[]> {
     const data = await this.request<PlexContainer<PlexMetadata>>(

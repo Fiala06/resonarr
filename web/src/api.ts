@@ -7,6 +7,7 @@ import type {
   CreatePlaylistResponse,
   DiscoveryResult,
   HealthResponse,
+  LibraryStats,
   LidarrOptions,
   MixResponse,
   RadioResponse,
@@ -29,6 +30,10 @@ async function asJson<T>(res: Response): Promise<T> {
 
 export async function getHealth(): Promise<HealthResponse> {
   return asJson(await fetch("/api/health"));
+}
+
+export async function getLibraryStats(): Promise<LibraryStats> {
+  return asJson(await fetch("/api/library/stats"));
 }
 
 export async function getSettings(): Promise<AppSettings> {

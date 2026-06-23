@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import type {
   AdventureRequest,
   AdventureResponse,
+  LibraryStats,
   MixResponse,
   RadioRequest,
   RadioResponse,
@@ -42,6 +43,15 @@ export function registerDiscoveryRoutes(app: FastifyInstance): void {
       return { tracks };
     },
   );
+
+  // Library counts for the sidebar.
+  app.get("/api/library/stats", async (_req, reply): Promise<LibraryStats> => {
+    if (!services.plex) {
+      return reply.code(503).send({ error: "Plex is not configured" }) as never;
+    }
+    const section = await services.plex.getMusicSection();
+    return services.plex.getLibraryStats(section.key);
+  });
 
   // Mixes: seeded from recent listening, expanded by similarity.
   app.get("/api/mixes", async (_req, reply): Promise<MixResponse> => {

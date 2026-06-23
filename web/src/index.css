@@ -6,16 +6,38 @@
   box-sizing: border-box;
 }
 
+html,
+body {
+  height: 100%;
+}
+
 body {
   margin: 0;
   background: #0f1115;
   color: #e8e8ea;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+#root {
+  height: 100%;
 }
 
 input,
 select,
-button {
+button,
+textarea {
   font-family: inherit;
   font-size: 0.95rem;
+}
+
+::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+::-webkit-scrollbar-thumb {
+  background: #2a2e37;
+  border-radius: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
 }

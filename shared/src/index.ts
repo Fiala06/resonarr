@@ -58,6 +58,12 @@ export interface MixResponse {
   tracks: Track[];
 }
 
+export interface LibraryStats {
+  tracks: number;
+  albums: number;
+  artists: number;
+}
+
 export interface SageRequest {
   prompt: string;
   /** Bias recommendations toward artists already owned. */
