@@ -11,7 +11,11 @@ export function registerSageRoutes(app: FastifyInstance): void {
         return reply.code(400).send({ error: "prompt is required" }) as never;
       }
       try {
-        return await runSage(prompt, req.body?.ownArtistBias ?? false);
+        return await runSage(
+          prompt,
+          req.body?.ownArtistBias ?? false,
+          req.body?.count,
+        );
       } catch (err) {
         return reply.code(502).send({
           error: err instanceof Error ? err.message : String(err),

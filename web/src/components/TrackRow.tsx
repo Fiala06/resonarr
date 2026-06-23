@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { Track } from "@resonarr/shared";
+import { Art } from "./Art";
 import { colors } from "../theme";
 
 // Reusable track row. (Phase 2 lives in-repo; this is a prime candidate to move
@@ -27,6 +28,7 @@ export function TrackRow({
         background: colors.panel,
       }}
     >
+      <Art thumb={track.thumb} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div
           style={{

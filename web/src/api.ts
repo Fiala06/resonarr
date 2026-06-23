@@ -60,12 +60,15 @@ export async function searchTracks(q: string): Promise<Track[]> {
   return asJson(await fetch(`/api/search/tracks?q=${encodeURIComponent(q)}`));
 }
 
-export async function getRadio(seedTrackId: string): Promise<RadioResponse> {
+export async function getRadio(
+  seedTrackId: string,
+  limit?: number,
+): Promise<RadioResponse> {
   return asJson(
     await fetch("/api/radio", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ seedTrackId }),
+      body: JSON.stringify({ seedTrackId, limit }),
     }),
   );
 }
@@ -147,12 +150,13 @@ export async function bulkAddBasket(
 export async function runSage(
   prompt: string,
   ownArtistBias: boolean,
+  count: number,
 ): Promise<DiscoveryResult> {
   return asJson(
     await fetch("/api/sage", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt, ownArtistBias }),
+      body: JSON.stringify({ prompt, ownArtistBias, count }),
     }),
   );
 }

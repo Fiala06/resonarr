@@ -28,6 +28,8 @@ interface PlexMetadata {
   parentTitle?: string; // album
   duration?: number;
   thumb?: string;
+  parentThumb?: string; // album art
+  grandparentThumb?: string; // artist art
   type?: string;
 }
 
@@ -188,6 +190,20 @@ export class PlexClient {
     return (trackHub?.Metadata ?? []).map(toTrack);
   }
 
+  /** Fetch raw image bytes for a Plex art path (proxied to the browser). */
+  async fetchArt(path: string): Promise<{ contentType: string; body: Buffer }> {
+    const url = new URL(path, this.cfg.url);
+    const res = await fetch(url, {
+      headers: { "X-Plex-Token": this.cfg.token },
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
+    if (!res.ok) throw new Error(`Plex art ${res.status} for ${url.pathname}`);
+    return {
+      contentType: res.headers.get("content-type") ?? "image/jpeg",
+      body: Buffer.from(await res.arrayBuffer()),
+    };
+  }
+
   /** Fetch a single track by ratingKey. */
   async getTrack(ratingKey: string): Promise<Track> {
     const data = await this.request<PlexContainer<PlexMetadata>>(
@@ -243,6 +259,6 @@ function toTrack(m: PlexMetadata): Track {
     artist: m.grandparentTitle ?? "",
     album: m.parentTitle ?? "",
     durationMs: m.duration,
-    thumb: m.thumb,
+    thumb: m.thumb ?? m.parentThumb ?? m.grandparentThumb,
   };
 }

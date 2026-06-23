@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { Track } from "@resonarr/shared";
 import { getRadio, searchTracks } from "../api";
 import { SavePlaylistBar } from "../components/SavePlaylistBar";
+import { Art } from "../components/Art";
 import { Logo } from "../components/Logo";
 import { colors } from "../theme";
 
@@ -12,6 +13,7 @@ export function RadioView() {
 
   const [seed, setSeed] = useState<Track | null>(null);
   const [neighbors, setNeighbors] = useState<Track[]>([]);
+  const [limit, setLimit] = useState(25);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,21 +33,30 @@ export function RadioView() {
     return () => clearTimeout(h);
   }, [query]);
 
-  async function pickSeed(t: Track) {
-    setSeed(t);
-    setQuery("");
-    setResults([]);
-    setNeighbors([]);
+  async function loadRadio(t: Track, lim: number) {
     setError(null);
     setLoading(true);
     try {
-      const res = await getRadio(t.id);
+      const res = await getRadio(t.id, lim);
       setNeighbors(res.tracks);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
     }
+  }
+
+  function pickSeed(t: Track) {
+    setSeed(t);
+    setQuery("");
+    setResults([]);
+    setNeighbors([]);
+    void loadRadio(t, limit);
+  }
+
+  function changeLimit(n: number) {
+    setLimit(n);
+    if (seed) void loadRadio(seed, n);
   }
 
   function matchFor(i: number, n: number) {
@@ -76,7 +87,7 @@ export function RadioView() {
             <div style={{ display: "grid", gap: 6 }}>
               {results.map((t) => (
                 <div key={t.id} onClick={() => pickSeed(t)} style={{ ...rowStyle, cursor: "pointer" }}>
-                  <div style={art} />
+                  <Art thumb={t.thumb} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 14 }}>{t.title}</div>
                     <div style={sub}>{t.artist}{t.album ? ` — ${t.album}` : ""}</div>
@@ -117,14 +128,28 @@ export function RadioView() {
 
           {neighbors.length > 0 && (
             <>
-              <div style={{ fontSize: 13, fontWeight: 600 }}>
-                Sonically similar in your library <span style={{ color: colors.muted }}>· {neighbors.length}</span>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ fontSize: 13, fontWeight: 600 }}>
+                  Sonically similar in your library <span style={{ color: colors.muted }}>· {neighbors.length}</span>
+                </div>
+                <label style={{ display: "flex", gap: 6, alignItems: "center", color: colors.muted, fontSize: 13 }}>
+                  Songs
+                  <select
+                    value={limit}
+                    onChange={(e) => changeLimit(Number(e.target.value))}
+                    style={{ background: colors.panel, color: colors.text, border: `1px solid ${colors.border}`, borderRadius: 6, padding: "5px 8px" }}
+                  >
+                    {[10, 25, 50, 75, 100].map((n) => (
+                      <option key={n} value={n}>{n}</option>
+                    ))}
+                  </select>
+                </label>
               </div>
               <SavePlaylistBar defaultName={`${seed.title} Radio`} trackIds={[seed.id, ...neighbors.map((t) => t.id)]} />
               <div style={{ display: "grid", gap: 6 }}>
                 {neighbors.map((t, i) => (
                   <div key={t.id} style={rowStyle}>
-                    <div style={art} />
+                    <Art thumb={t.thumb} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 14 }}>{t.title}</div>
                       <div style={sub}>{t.artist}{t.album ? ` — ${t.album}` : ""}</div>
@@ -148,7 +173,6 @@ const fieldStyle = {
   borderRadius: 6,
   padding: "10px 12px",
 };
-const art = { width: 32, height: 32, borderRadius: 4, background: colors.panel2, flex: "none" as const };
 const sub = { fontSize: 12, color: colors.muted };
 const rowStyle = {
   display: "flex",

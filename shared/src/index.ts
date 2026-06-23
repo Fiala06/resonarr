@@ -74,6 +74,8 @@ export interface SageRequest {
   prompt: string;
   /** Bias recommendations toward artists already owned. */
   ownArtistBias?: boolean;
+  /** How many tracks to ask the LLM for (clamped server-side). */
+  count?: number;
 }
 
 /** Result of any discovery run: owned matches plus unowned misses. */

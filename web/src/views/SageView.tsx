@@ -6,11 +6,13 @@ import {
   getSettings,
   runSage,
 } from "../api";
+import { Art } from "../components/Art";
 import { colors } from "../theme";
 
 export function SageView() {
   const [prompt, setPrompt] = useState("");
   const [bias, setBias] = useState(false);
+  const [count, setCount] = useState(25);
   const [provider, setProvider] = useState("");
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +43,7 @@ export function SageView() {
     setSaveMsg(null);
     setAdded(new Set());
     try {
-      const res = await runSage(p, bias);
+      const res = await runSage(p, bias, count);
       setResult(res);
       setName(`${p.slice(0, 40)} (Sage)`);
     } catch (e) {
@@ -138,6 +140,26 @@ export function SageView() {
           {generating ? "Thinking…" : "Generate"}
         </button>
         <label style={{ display: "flex", gap: 6, alignItems: "center", color: colors.muted }}>
+          Songs
+          <select
+            value={count}
+            onChange={(e) => setCount(Number(e.target.value))}
+            style={{
+              background: colors.panel,
+              color: colors.text,
+              border: `1px solid ${colors.border}`,
+              borderRadius: 6,
+              padding: "6px 8px",
+            }}
+          >
+            {[10, 25, 50, 75, 100].map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label style={{ display: "flex", gap: 6, alignItems: "center", color: colors.muted }}>
           <input type="checkbox" checked={bias} onChange={(e) => setBias(e.target.checked)} />
           Bias toward artists I own
         </label>
@@ -173,7 +195,7 @@ export function SageView() {
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   {result.matches.map((t) => (
                     <div key={t.id} style={ownedRow}>
-                      <div style={art} />
+                      <Art thumb={t.thumb} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 14 }}>{t.title}</div>
                         <div style={sub}>{t.artist}{t.album ? ` — ${t.album}` : ""}</div>

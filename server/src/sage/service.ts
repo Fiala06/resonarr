@@ -4,8 +4,6 @@ import { getProvider } from "../llm/index.ts";
 import { tracksMatch } from "../matching/match.ts";
 import type { PlexClient } from "../plex/client.ts";
 
-const SUGGESTION_COUNT = 25;
-
 /**
  * Sonic Sage: natural-language prompt -> LLM suggestions -> match against the
  * Plex library. Owned matches become a playlist; misses are returned for the
@@ -14,7 +12,9 @@ const SUGGESTION_COUNT = 25;
 export async function runSage(
   prompt: string,
   ownArtistBias: boolean,
+  count = 25,
 ): Promise<DiscoveryResult> {
+  const suggestionCount = Math.max(5, Math.min(100, Math.round(count)));
   const plex = services.plex;
   if (!plex) throw new Error("Plex is not configured");
 
@@ -27,7 +27,7 @@ export async function runSage(
   }
 
   const suggestions = await provider.suggest(prompt, {
-    count: SUGGESTION_COUNT,
+    count: suggestionCount,
     ownedArtists,
   });
 

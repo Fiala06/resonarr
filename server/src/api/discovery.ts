@@ -44,6 +44,29 @@ export function registerDiscoveryRoutes(app: FastifyInstance): void {
     },
   );
 
+  // Cover-art proxy: fetch Plex images with the server-side token so the
+  // browser never needs it. Restricted to Plex art paths.
+  app.get<{ Querystring: { path?: string } }>(
+    "/api/art",
+    async (req, reply) => {
+      const path = req.query.path ?? "";
+      if (!path.startsWith("/library/") && !path.startsWith("/photo/")) {
+        return reply.code(400).send({ error: "invalid art path" });
+      }
+      if (!services.plex) {
+        return reply.code(503).send({ error: "Plex is not configured" });
+      }
+      try {
+        const { contentType, body } = await services.plex.fetchArt(path);
+        reply.header("content-type", contentType);
+        reply.header("cache-control", "public, max-age=86400");
+        return reply.send(body);
+      } catch {
+        return reply.code(404).send();
+      }
+    },
+  );
+
   // Library counts for the sidebar.
   app.get("/api/library/stats", async (_req, reply): Promise<LibraryStats> => {
     if (!services.plex) {
