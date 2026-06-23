@@ -49,7 +49,10 @@ this project uses phased pre-1.0 development (see [docs/ROADMAP.md](docs/ROADMAP
 
 #### Verified
 - `npm install`, `npm run typecheck` (clean across all workspaces), server boot,
-  and `/api/health` (200) on Node 24 LTS. Live spikes against real Plex/Lidarr
-  pending user credentials.
+  and `/api/health` (200) on Node 24 LTS.
+- **Phase 0 gate PASSED on real hardware**: deployed to Unraid via the GHCR
+  image; `/api/health` green for Plex (Music section) and Lidarr (v3.1.0); the
+  Plex sonic `nearest` spike returned coherent sonically-similar tracks on the
+  live library. The sonic premise is proven end-to-end.
 
 [Unreleased]: https://github.com/Fiala06/resonarr/commits/main
