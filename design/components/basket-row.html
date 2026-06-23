@@ -1,0 +1,50 @@
+<!-- @dsCard group="Components" name="Basket item" subtitle="Request states: pending / requested / failed" -->
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body {
+        margin: 0;
+        background: #0f1115;
+        color: #e8e8ea;
+        font-family: system-ui, -apple-system, sans-serif;
+        padding: 24px;
+        max-width: 520px;
+      }
+      .stack { display: grid; gap: 6px; }
+      .row {
+        display: flex; align-items: center; gap: 10px;
+        padding: 8px 10px; border-radius: 6px;
+        background: #1a1d24; border: 1px solid #2a2e37;
+      }
+      .box { width: 14px; height: 14px; border: 1px solid #2a2e37; border-radius: 3px; }
+      .main { flex: 1; }
+      .sub { color: #9aa0a6; font-size: 12px; }
+      .status { font-size: 12px; text-transform: uppercase; }
+      .pending { color: #9aa0a6; }
+      .requested { color: #51cf66; }
+      .failed { color: #ff6b6b; }
+      .x { color: #9aa0a6; font-size: 18px; }
+    </style>
+  </head>
+  <body>
+    <div class="stack">
+      <div class="row">
+        <div class="box"></div>
+        <div class="main">Men I Trust<div class="sub">artist · manual</div></div>
+        <span class="status pending">pending</span><span class="x">×</span>
+      </div>
+      <div class="row">
+        <div class="box"></div>
+        <div class="main">Norah Jones<div class="sub">artist · manual</div></div>
+        <span class="status requested">requested</span><span class="x">×</span>
+      </div>
+      <div class="row">
+        <div class="box"></div>
+        <div class="main">Some Artist<div class="sub">artist · sonic-sage</div></div>
+        <span class="status failed">failed</span><span class="x">×</span>
+      </div>
+    </div>
+  </body>
+</html>

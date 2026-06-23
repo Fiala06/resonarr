@@ -1,0 +1,27 @@
+<!-- @dsCard group="Components" name="Buttons" subtitle="Primary / ghost / disabled" -->
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body {
+        margin: 0;
+        background: #0f1115;
+        font-family: system-ui, -apple-system, sans-serif;
+        padding: 28px;
+      }
+      .row { display: flex; gap: 12px; align-items: center; }
+      button { font: inherit; font-size: 15px; border-radius: 6px; padding: 9px 18px; cursor: pointer; }
+      .primary { background: #7c5cff; color: #fff; border: none; }
+      .ghost { background: transparent; color: #e8e8ea; border: 1px solid #2a2e37; }
+      .disabled { background: #7c5cff; color: #fff; border: none; opacity: 0.5; cursor: default; }
+    </style>
+  </head>
+  <body>
+    <div class="row">
+      <button class="primary">Save (12)</button>
+      <button class="ghost">Request all pending</button>
+      <button class="disabled">Saving…</button>
+    </div>
+  </body>
+</html>

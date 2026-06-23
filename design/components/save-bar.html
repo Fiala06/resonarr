@@ -1,0 +1,36 @@
+<!-- @dsCard group="Components" name="Save playlist bar" subtitle="Name input + save action" -->
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body {
+        margin: 0;
+        background: #0f1115;
+        color: #e8e8ea;
+        font-family: system-ui, -apple-system, sans-serif;
+        padding: 24px;
+        max-width: 520px;
+      }
+      .bar { display: flex; gap: 8px; }
+      input {
+        flex: 1; font: inherit; font-size: 15px;
+        background: #1a1d24; color: #e8e8ea;
+        border: 1px solid #2a2e37; border-radius: 6px; padding: 9px 12px;
+      }
+      button {
+        font: inherit; font-size: 15px; white-space: nowrap;
+        background: #7c5cff; color: #fff; border: none;
+        border-radius: 6px; padding: 9px 16px; cursor: pointer;
+      }
+      .ok { margin-top: 8px; color: #51cf66; font-size: 13px; }
+    </style>
+  </head>
+  <body>
+    <div class="bar">
+      <input value="Kryptonite Radio" />
+      <button>Save (26)</button>
+    </div>
+    <div class="ok">Created "Resonarr · Kryptonite Radio" (26 tracks) ✓</div>
+  </body>
+</html>
