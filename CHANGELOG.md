@@ -6,6 +6,23 @@ this project uses phased pre-1.0 development (see [docs/ROADMAP.md](docs/ROADMAP
 
 ## [Unreleased]
 
+### Phase 2 — Radio
+
+#### Added
+- **Radio feature**: pick a seed track → sonically similar owned tracks → save
+  as a Plex playlist. Routes: `GET /api/search/tracks`, `POST /api/radio`
+  (cached sonic neighbors), `POST /api/playlists` (creates the playlist in Plex
+  with the configured name prefix). New Radio tab + reusable `TrackRow`
+  component (in-repo for now; a candidate to move into the Claude Design system).
+- **Plex client**: `searchTracks` (via `/hubs/search`), `getMachineIdentifier`,
+  and `createPlaylist` (POST with a `server://` URI). A `spike:playlist` verified
+  search relevance and playlist creation on real hardware.
+
+#### Fixed
+- Track search: the section `…/all?query=` param is silently ignored by Plex
+  (returned arbitrary tracks); switched to `/hubs/search`, which matches on
+  title and artist.
+
 ### Phase 1 — Core infrastructure
 
 #### Added

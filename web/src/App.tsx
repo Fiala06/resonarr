@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { StatusView } from "./views/StatusView";
 import { SettingsView } from "./views/SettingsView";
+import { RadioView } from "./views/RadioView";
 import { colors } from "./theme";
 
-type Tab = "status" | "settings";
+type Tab = "radio" | "status" | "settings";
 
 export function App() {
-  const [tab, setTab] = useState<Tab>("status");
+  const [tab, setTab] = useState<Tab>("radio");
 
   return (
     <div style={{ maxWidth: 720, margin: "3rem auto", padding: "0 1rem" }}>
@@ -16,6 +17,9 @@ export function App() {
           Library-first music discovery
         </p>
         <nav style={{ display: "flex", gap: 6, marginTop: 16 }}>
+          <TabButton active={tab === "radio"} onClick={() => setTab("radio")}>
+            Radio
+          </TabButton>
           <TabButton active={tab === "status"} onClick={() => setTab("status")}>
             Status
           </TabButton>
@@ -29,7 +33,9 @@ export function App() {
       </header>
 
       <main style={{ marginTop: "1.5rem" }}>
-        {tab === "status" ? <StatusView /> : <SettingsView />}
+        {tab === "radio" && <RadioView />}
+        {tab === "status" && <StatusView />}
+        {tab === "settings" && <SettingsView />}
       </main>
     </div>
   );

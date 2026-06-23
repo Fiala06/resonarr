@@ -36,6 +36,10 @@ export interface RadioRequest {
   limit?: number;
 }
 
+export interface RadioResponse {
+  tracks: Track[];
+}
+
 export interface AdventureRequest {
   startTrackId: string;
   endTrackId: string;

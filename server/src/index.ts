@@ -8,6 +8,8 @@ import { getDb } from "./db/database.ts";
 import { registerHealthRoutes } from "./api/health.ts";
 import { registerSettingsRoutes } from "./api/settings.ts";
 import { registerLidarrRoutes } from "./api/lidarr.ts";
+import { registerDiscoveryRoutes } from "./api/discovery.ts";
+import { registerPlaylistRoutes } from "./api/playlists.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const webDist = resolve(here, "../../web/dist");
@@ -22,6 +24,8 @@ app.log.info(`data dir: ${config.dataDir}`);
 registerHealthRoutes(app);
 registerSettingsRoutes(app);
 registerLidarrRoutes(app);
+registerDiscoveryRoutes(app);
+registerPlaylistRoutes(app);
 
 // --- Static web app (built SPA) ----------------------------------------------
 // Present in production / Docker; absent during `dev:web` (Vite serves it).

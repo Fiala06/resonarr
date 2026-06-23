@@ -1,4 +1,11 @@
-import type { AppSettings, HealthResponse, LidarrOptions } from "@resonarr/shared";
+import type {
+  AppSettings,
+  CreatePlaylistResponse,
+  HealthResponse,
+  LidarrOptions,
+  RadioResponse,
+  Track,
+} from "@resonarr/shared";
 
 async function asJson<T>(res: Response): Promise<T> {
   if (!res.ok) {
@@ -36,4 +43,31 @@ export async function putSettings(
 
 export async function getLidarrOptions(): Promise<LidarrOptions> {
   return asJson(await fetch("/api/lidarr/options"));
+}
+
+export async function searchTracks(q: string): Promise<Track[]> {
+  return asJson(await fetch(`/api/search/tracks?q=${encodeURIComponent(q)}`));
+}
+
+export async function getRadio(seedTrackId: string): Promise<RadioResponse> {
+  return asJson(
+    await fetch("/api/radio", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ seedTrackId }),
+    }),
+  );
+}
+
+export async function createPlaylist(
+  name: string,
+  trackIds: string[],
+): Promise<CreatePlaylistResponse> {
+  return asJson(
+    await fetch("/api/playlists", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, trackIds }),
+    }),
+  );
 }
