@@ -1,0 +1,24 @@
+{
+  "name": "resonarr",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Self-hosted, library-first music discovery (Plexamp Sonic features) with Lidarr bulk-requesting.",
+  "workspaces": [
+    "shared",
+    "server",
+    "web"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev:server": "npm run dev -w server",
+    "dev:web": "npm run dev -w web",
+    "build": "npm run build -w web",
+    "start": "npm run start -w server",
+    "spike:plex": "npm run spike:plex -w server",
+    "spike:lidarr": "npm run spike:lidarr -w server",
+    "typecheck": "npm run typecheck -w shared && npm run typecheck -w server && npm run typecheck -w web"
+  }
+}

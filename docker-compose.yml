@@ -1,0 +1,13 @@
+# Dev / self-host convenience. On Unraid these map to the container template.
+services:
+  resonarr:
+    build: .
+    container_name: resonarr
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    volumes:
+      # Persists the SQLite DB + non-secret settings (Phase 1+).
+      - ./config:/config
+    restart: unless-stopped

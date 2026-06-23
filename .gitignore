@@ -1,0 +1,20 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+*.tsbuildinfo
+
+# secrets / local config
+.env
+.env.local
+
+# runtime data (SQLite lives on the mounted /config volume)
+*.sqlite
+*.sqlite-journal
+config/
+
+# logs / os
+*.log
+.DS_Store
+Thumbs.db

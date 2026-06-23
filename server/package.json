@@ -1,0 +1,24 @@
+{
+  "name": "@resonarr/server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "spike:plex": "tsx src/spikes/plex-spike.ts",
+    "spike:lidarr": "tsx src/spikes/lidarr-spike.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fastify/static": "^7.0.4",
+    "@resonarr/shared": "*",
+    "dotenv": "^16.4.5",
+    "fastify": "^4.28.1",
+    "tsx": "^4.16.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.10",
+    "typescript": "^5.5.4"
+  }
+}
