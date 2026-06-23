@@ -6,10 +6,12 @@ import type {
   BulkAddBasketResponse,
   CreatePlaylistResponse,
   DiscoveryResult,
+  AddToPlaylistResponse,
   HealthResponse,
   LibraryStats,
   LidarrOptions,
   MixesResponse,
+  PlaylistSummary,
   RadioResponse,
   Track,
 } from "@resonarr/shared";
@@ -100,6 +102,23 @@ export async function createPlaylist(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, trackIds }),
+    }),
+  );
+}
+
+export async function getPlaylists(): Promise<PlaylistSummary[]> {
+  return asJson(await fetch("/api/playlists"));
+}
+
+export async function addToPlaylist(
+  id: string,
+  trackIds: string[],
+): Promise<AddToPlaylistResponse> {
+  return asJson(
+    await fetch(`/api/playlists/${encodeURIComponent(id)}/items`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ trackIds }),
     }),
   );
 }

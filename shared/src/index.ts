@@ -142,6 +142,17 @@ export interface CreatePlaylistResponse {
   trackCount: number;
 }
 
+export interface PlaylistSummary {
+  id: string;
+  title: string;
+  trackCount: number;
+}
+
+export interface AddToPlaylistResponse {
+  playlistId: string;
+  added: number;
+}
+
 // ---------------------------------------------------------------------------
 // Settings (persisted server-side; non-secret prefs only)
 // ---------------------------------------------------------------------------

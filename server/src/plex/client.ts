@@ -30,6 +30,7 @@ interface PlexMetadata {
   thumb?: string;
   parentThumb?: string; // album art
   grandparentThumb?: string; // artist art
+  leafCount?: number; // playlist track count
   type?: string;
 }
 
@@ -50,7 +51,7 @@ export class PlexClient {
   private async request<T>(
     path: string,
     params: Record<string, string | number | undefined> = {},
-    method: "GET" | "POST" = "GET",
+    method: "GET" | "POST" | "PUT" = "GET",
   ): Promise<T> {
     const url = new URL(path, this.cfg.url);
     for (const [k, v] of Object.entries(params)) {
@@ -222,6 +223,32 @@ export class PlexClient {
     const id = data.MediaContainer.machineIdentifier;
     if (!id) throw new Error("Plex machineIdentifier not found");
     return id;
+  }
+
+  /** List audio playlists. */
+  async getPlaylists(): Promise<
+    { id: string; title: string; trackCount: number }[]
+  > {
+    const data = await this.request<PlexContainer<PlexMetadata>>("/playlists", {
+      playlistType: "audio",
+    });
+    return (data.MediaContainer.Metadata ?? []).map((m) => ({
+      id: m.ratingKey,
+      title: m.title,
+      trackCount: m.leafCount ?? 0,
+    }));
+  }
+
+  /** Append tracks to an existing playlist. */
+  async addToPlaylist(
+    playlistId: string,
+    trackIds: string[],
+  ): Promise<number> {
+    if (trackIds.length === 0) throw new Error("No tracks to add");
+    const machineId = await this.getMachineIdentifier();
+    const uri = `server://${machineId}/com.plexapp.plugins.library/library/metadata/${trackIds.join(",")}`;
+    await this.request(`/playlists/${playlistId}/items`, { uri }, "PUT");
+    return trackIds.length;
   }
 
   /** Create an audio playlist from a list of track ratingKeys. */

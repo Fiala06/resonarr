@@ -1,12 +1,8 @@
 import { useEffect, useState } from "react";
 import type { DiscoveryResult } from "@resonarr/shared";
-import {
-  bulkAddBasket,
-  createPlaylist,
-  getSettings,
-  runSage,
-} from "../api";
+import { bulkAddBasket, getSettings, runSage } from "../api";
 import { Art } from "../components/Art";
+import { SavePlaylistBar } from "../components/SavePlaylistBar";
 import { colors } from "../theme";
 
 export function SageView() {
@@ -19,9 +15,6 @@ export function SageView() {
   const [result, setResult] = useState<DiscoveryResult | null>(null);
 
   const [name, setName] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [saveMsg, setSaveMsg] = useState<string | null>(null);
-
   const [added, setAdded] = useState<Set<number>>(new Set());
   const [addingAll, setAddingAll] = useState(false);
 
@@ -40,7 +33,6 @@ export function SageView() {
     setGenerating(true);
     setError(null);
     setResult(null);
-    setSaveMsg(null);
     setAdded(new Set());
     try {
       const res = await runSage(p, bias, count);
@@ -50,23 +42,6 @@ export function SageView() {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setGenerating(false);
-    }
-  }
-
-  async function savePlaylist() {
-    if (!result || result.matches.length === 0) return;
-    setSaving(true);
-    setSaveMsg(null);
-    try {
-      const res = await createPlaylist(
-        name.trim() || "Sage",
-        result.matches.map((t) => t.id),
-      );
-      setSaveMsg(`Saved "${res.name}" (${res.trackCount} tracks) ✓`);
-    } catch (e) {
-      setSaveMsg(`Save failed: ${e instanceof Error ? e.message : String(e)}`);
-    } finally {
-      setSaving(false);
     }
   }
 
@@ -181,17 +156,7 @@ export function SageView() {
               <p style={{ color: colors.muted, margin: 0, fontSize: 13 }}>No owned matches.</p>
             ) : (
               <>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <input value={name} onChange={(e) => setName(e.target.value)} style={field} />
-                  <button onClick={savePlaylist} disabled={saving} style={{ ...primaryBtn(saving), whiteSpace: "nowrap" }}>
-                    {saving ? "Saving…" : `Save playlist (${result.matches.length})`}
-                  </button>
-                </div>
-                {saveMsg && (
-                  <span style={{ color: saveMsg.startsWith("Save failed") ? colors.red : colors.green, fontSize: 13 }}>
-                    {saveMsg}
-                  </span>
-                )}
+                <SavePlaylistBar defaultName={name} trackIds={result.matches.map((t) => t.id)} />
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   {result.matches.map((t) => (
                     <div key={t.id} style={ownedRow}>
@@ -252,19 +217,10 @@ export function SageView() {
   );
 }
 
-const field = {
-  flex: 1,
-  minWidth: 0,
-  background: colors.panel,
-  color: colors.text,
-  border: `1px solid ${colors.border}`,
-  borderRadius: 6,
-  padding: "9px 12px",
-};
 const art = {
-  width: 32,
-  height: 32,
-  borderRadius: 4,
+  width: 44,
+  height: 44,
+  borderRadius: 5,
   background: colors.panel2,
   flex: "none" as const,
 };
