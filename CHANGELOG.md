@@ -36,6 +36,12 @@ this project uses phased pre-1.0 development (see [docs/ROADMAP.md](docs/ROADMAP
 - **Unraid deploy guide**: `docs/DEPLOY-UNRAID.md` (GHCR pull, container env
   vars, `/config` volume, in-container spike verification).
 
+#### Fixed
+- Container crash-loop (`ERR_MODULE_NOT_FOUND` on `./config/env`): `tsx`
+  extensionless ESM resolution failed under Node 20. Pinned deps via a committed
+  `package-lock.json` (`npm ci`) and bumped the Docker base image to Node 24 to
+  match the verified dev environment.
+
 #### Verified
 - `npm install`, `npm run typecheck` (clean across all workspaces), server boot,
   and `/api/health` (200) on Node 24 LTS. Live spikes against real Plex/Lidarr

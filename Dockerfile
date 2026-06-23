@@ -1,15 +1,17 @@
 # syntax=docker/dockerfile:1
 
 # --- Build stage: install deps and build the web SPA -------------------------
-FROM node:20-alpine AS build
+# Node 24 to match the verified dev environment (tsx ESM resolution differs on
+# Node 20). Deps are pinned via the committed lockfile + `npm ci`.
+FROM node:24-alpine AS build
 WORKDIR /app
 
-# Install all workspace deps (manifests first for better layer caching).
-COPY package.json package-lock.json* ./
+# Install all workspace deps (manifests + lockfile first for layer caching).
+COPY package.json package-lock.json ./
 COPY shared/package.json shared/
 COPY server/package.json server/
 COPY web/package.json web/
-RUN npm install
+RUN npm ci
 
 # Copy sources and build the web bundle into web/dist.
 COPY . .
@@ -18,7 +20,7 @@ RUN npm run build -w web
 # --- Runtime stage -----------------------------------------------------------
 # The server runs TypeScript directly via tsx (no server compile step), and
 # serves web/dist statically. Single container, single process.
-FROM node:20-alpine AS runtime
+FROM node:24-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production \
     PORT=8080
