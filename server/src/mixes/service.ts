@@ -33,11 +33,11 @@ export async function runMixes(): Promise<MixesResponse> {
   const mixes: MixCard[] = await Promise.all(
     seeds.map(async (seed) => {
       const neighbors = await sonic.similar(seed.id, PER_MIX);
-      // Play-history entries often omit art; backfill from full metadata so the
-      // seed (first row / card cover) isn't a blank tile.
-      const hydratedSeed = seed.thumb
-        ? seed
-        : await plex.getTrack(seed.id).catch(() => seed);
+      // Play-history entries carry an art path that doesn't resolve through our
+      // art proxy, so always re-fetch the seed from canonical track metadata
+      // (the same source the neighbors come from) — otherwise the first row /
+      // card cover is a blank tile.
+      const hydratedSeed = await plex.getTrack(seed.id).catch(() => seed);
       const tracks = [hydratedSeed, ...neighbors.filter((t) => t.id !== seed.id)];
       return {
         id: hydratedSeed.id,
