@@ -16,13 +16,19 @@ Spotify API, fuzzy-match each track to the Plex library (reusing `matching/`):
 owned tracks → a Plex playlist, misses → the request basket via Lidarr lookup.
 Needs a Spotify OAuth flow + a new server-side secret.
 
-### Scheduled / auto-updating playlists
-Let a discovery run keep a playlist fresh on a schedule (e.g. weekly). Save the
-definition (a Sage prompt, a Discover source playlist, or recent-listening
-seeds), then a background job periodically re-runs it and **appends new owned
-tracks** — especially music newly added to Plex that fits the style — without
-duplicating what's already there. Builds on *Saved discovery runs* below; needs
-a scheduler, persisted auto-playlist definitions, and a "recently added" bias.
+### Discover Weekly (scheduled auto-playlists)
+A Spotify-Discover-Weekly equivalent: a personalized playlist that **refreshes
+on a schedule** (default weekly). A background job seeds from recent listening
+history, expands via sonic similarity, and rebuilds the playlist with owned
+tracks that fit your taste — biased toward ones you haven't played lately and
+music **newly added to Plex** — avoiding repeats from recent weeks.
+
+Generalizes to any saved discovery definition (a Sage prompt or a Discover
+source playlist) on a schedule. Two refresh modes worth supporting: **replace**
+(a fresh set each week, like Discover Weekly) and **append** (keep growing one
+playlist as new matches appear). Needs: a scheduler, persisted auto-playlist
+definitions (builds on *Saved discovery runs* below), a "recently added /
+recently unplayed" bias, and history so weeks don't repeat.
 
 ---
 
