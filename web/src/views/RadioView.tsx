@@ -127,26 +127,35 @@ export function RadioView() {
 
           {neighbors.length > 0 && (
             <>
-              <div style={{ display: "grid", gap: 6 }}>
-                {neighbors.map((t) => (
-                  <TrackRow key={t.id} track={t} />
-                ))}
-              </div>
-
-              <div style={{ display: "grid", gap: 8 }}>
-                <input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Playlist name"
-                  style={{
-                    background: colors.panel,
-                    color: colors.text,
-                    border: `1px solid ${colors.border}`,
-                    borderRadius: 6,
-                    padding: "9px 12px",
-                  }}
-                />
-                <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+              {/* Save controls up top so the name is editable before scrolling
+                  through the track list. */}
+              <div
+                style={{
+                  display: "grid",
+                  gap: 8,
+                  padding: "12px",
+                  borderRadius: 8,
+                  background: colors.panel,
+                  border: `1px solid ${colors.border}`,
+                }}
+              >
+                <span style={{ color: colors.muted, fontSize: "0.8rem" }}>
+                  Playlist name
+                </span>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Playlist name"
+                    style={{
+                      flex: 1,
+                      background: colors.bg,
+                      color: colors.text,
+                      border: `1px solid ${colors.border}`,
+                      borderRadius: 6,
+                      padding: "9px 12px",
+                    }}
+                  />
                   <button
                     onClick={save}
                     disabled={saving}
@@ -158,25 +167,30 @@ export function RadioView() {
                       padding: "9px 18px",
                       cursor: saving ? "default" : "pointer",
                       opacity: saving ? 0.7 : 1,
+                      whiteSpace: "nowrap",
                     }}
                   >
-                    {saving
-                      ? "Saving…"
-                      : `Save playlist (${neighbors.length + 1} tracks)`}
+                    {saving ? "Saving…" : `Save (${neighbors.length + 1})`}
                   </button>
-                  {saveMsg && (
-                    <span
-                      style={{
-                        color: saveMsg.startsWith("Save failed")
-                          ? colors.red
-                          : colors.green,
-                        fontSize: "0.9rem",
-                      }}
-                    >
-                      {saveMsg}
-                    </span>
-                  )}
                 </div>
+                {saveMsg && (
+                  <span
+                    style={{
+                      color: saveMsg.startsWith("Save failed")
+                        ? colors.red
+                        : colors.green,
+                      fontSize: "0.9rem",
+                    }}
+                  >
+                    {saveMsg}
+                  </span>
+                )}
+              </div>
+
+              <div style={{ display: "grid", gap: 6 }}>
+                {neighbors.map((t) => (
+                  <TrackRow key={t.id} track={t} />
+                ))}
               </div>
             </>
           )}
