@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>resonarr</Name>
+  <Repository>ghcr.io/fiala06/resonarr:latest</Repository>
+  <Registry>https://github.com/Fiala06/resonarr/pkgs/container/resonarr</Registry>
+  <Network>bridge</Network>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/Fiala06/resonarr/issues</Support>
+  <Project>https://github.com/Fiala06/resonarr</Project>
+  <Overview>Self-hosted, library-first music discovery in the spirit of Plexamp's Sonic features. Builds playlists only from music you already own; anything recommended that you don't own can be bulk-requested through Lidarr. Sonic Sage (natural-language prompt to playlist), Radio, Mixes, and Sonic Adventure. Plex token and Lidarr API key stay server-side.</Overview>
+  <Category>MediaApp:Music</Category>
+  <WebUI>http://[IP]:[PORT:8080]/</WebUI>
+  <ExtraParams/>
+  <PostArgs/>
+  <Config Name="WebUI Port" Target="8080" Default="8080" Mode="tcp" Description="Web UI / API port" Type="Port" Display="always" Required="true">8080</Config>
+  <Config Name="Config" Target="/config" Default="/mnt/user/appdata/resonarr" Mode="rw" Description="SQLite DB + settings" Type="Path" Display="always" Required="true">/mnt/user/appdata/resonarr</Config>
+  <Config Name="PLEX_URL" Target="PLEX_URL" Default="" Description="Plex base URL, e.g. http://192.168.1.10:32400 (use a LAN IP, not localhost)" Type="Variable" Display="always" Required="true"/>
+  <Config Name="PLEX_TOKEN" Target="PLEX_TOKEN" Default="" Description="Plex auth token (server-side only)" Type="Variable" Display="always" Required="true" Mask="true"/>
+  <Config Name="LIDARR_URL" Target="LIDARR_URL" Default="" Description="Lidarr base URL, e.g. http://192.168.1.10:8686 (LAN IP)" Type="Variable" Display="always" Required="true"/>
+  <Config Name="LIDARR_API_KEY" Target="LIDARR_API_KEY" Default="" Description="Lidarr API key (Settings > General)" Type="Variable" Display="always" Required="true" Mask="true"/>
+  <Config Name="LLM_PROVIDER" Target="LLM_PROVIDER" Default="claude" Description="Sonic Sage provider: claude | openai | ollama" Type="Variable" Display="always" Required="false">claude</Config>
+  <Config Name="ANTHROPIC_API_KEY" Target="ANTHROPIC_API_KEY" Default="" Description="Anthropic API key (if using Claude)" Type="Variable" Display="always" Required="false" Mask="true"/>
+  <Config Name="OPENAI_API_KEY" Target="OPENAI_API_KEY" Default="" Description="OpenAI API key (if using OpenAI)" Type="Variable" Display="advanced" Required="false" Mask="true"/>
+  <Config Name="OLLAMA_URL" Target="OLLAMA_URL" Default="" Description="Ollama base URL (if using a local model)" Type="Variable" Display="advanced" Required="false"/>
+  <Config Name="AUTH_USER" Target="AUTH_USER" Default="" Description="Optional HTTP Basic auth username (set with AUTH_PASS to require login)" Type="Variable" Display="advanced" Required="false"/>
+  <Config Name="AUTH_PASS" Target="AUTH_PASS" Default="" Description="Optional HTTP Basic auth password" Type="Variable" Display="advanced" Required="false" Mask="true"/>
+</Container>

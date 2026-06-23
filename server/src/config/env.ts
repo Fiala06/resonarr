@@ -49,6 +49,13 @@ export const config = {
     return url && apiKey ? { url, apiKey } : undefined;
   })(),
 
+  /** Optional HTTP Basic auth — enabled only when both are set. */
+  auth: ((): { user: string; pass: string } | undefined => {
+    const user = optional("AUTH_USER");
+    const pass = optional("AUTH_PASS");
+    return user && pass ? { user, pass } : undefined;
+  })(),
+
   llm: {
     provider: (optional("LLM_PROVIDER") ?? "claude") as
       | "claude"

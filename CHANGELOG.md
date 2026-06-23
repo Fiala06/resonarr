@@ -6,6 +6,24 @@ this project uses phased pre-1.0 development (see [docs/ROADMAP.md](docs/ROADMAP
 
 ## [Unreleased]
 
+### Phase 7 — Hardening
+
+#### Added
+- **Optional HTTP Basic auth** — enabled only when `AUTH_USER` + `AUTH_PASS` are
+  set; protects the SPA and API, with `/api/health` exempt for the healthcheck.
+- **Docker HEALTHCHECK** hitting `/api/health` (surfaces container health in Unraid).
+- **Unraid Community-Apps template** (`docs/unraid-template.xml`).
+
+#### Changed
+- Upgraded to **Fastify 5** (+ `@fastify/static` 8), resolving the runtime
+  `fast-uri` advisory chain (`npm audit` 7 → 3; the remaining 3 are the
+  dev-only Vite/esbuild dev-server issue, no production exposure).
+
+### Improved — Sonic Adventure
+- Bidirectional pathfinding: walk from both the start and destination and meet
+  in the middle, so cross-genre paths ease into the destination instead of
+  jumping.
+
 ### Phase 6 — Sonic Adventure
 
 #### Added

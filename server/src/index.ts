@@ -22,6 +22,24 @@ const app = Fastify({ logger: true });
 getDb();
 app.log.info(`data dir: ${config.dataDir}`);
 
+// Optional HTTP Basic auth (opt-in via AUTH_USER/AUTH_PASS). /api/health is
+// exempt so the container healthcheck works without credentials.
+if (config.auth) {
+  const expected =
+    "Basic " +
+    Buffer.from(`${config.auth.user}:${config.auth.pass}`).toString("base64");
+  app.addHook("onRequest", async (req, reply) => {
+    if (req.url === "/api/health") return;
+    if (req.headers.authorization !== expected) {
+      reply
+        .header("WWW-Authenticate", 'Basic realm="Resonarr"')
+        .code(401)
+        .send({ error: "Unauthorized" });
+    }
+  });
+  app.log.info("HTTP Basic auth enabled");
+}
+
 // --- API routes --------------------------------------------------------------
 registerHealthRoutes(app);
 registerSettingsRoutes(app);
@@ -48,7 +66,7 @@ if (existsSync(webDist)) {
 
 app
   .listen({ port: config.port, host: "0.0.0.0" })
-  .then((addr) => app.log.info(`Resonarr listening on ${addr}`))
+  .then(() => app.log.info(`Resonarr listening on 0.0.0.0:${config.port}`))
   .catch((err) => {
     app.log.error(err);
     process.exit(1);
