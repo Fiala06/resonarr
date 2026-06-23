@@ -128,6 +128,20 @@ playlist.
 
 ---
 
+## Shipped beyond the plan
+
+Built on top of the Phase 0–7 base:
+
+- **Discover** — fresh, owned picks seeded from a chosen playlist (e.g. Liked
+  Songs), excluding what's already in it.
+- **Basket "done"** — `requested` items flip to `done` once Lidarr reports the
+  files on disk (`POST /api/basket/refresh`).
+- **Activity log** — structured run/request logging in-app and to `docker logs`.
+- **Plex login + act-as-user** — opt-in `AUTH_PLEX` gate; the app acts as the
+  signed-in Plex account (their playlists, history, saves). See
+  [DEPLOY-UNRAID.md](DEPLOY-UNRAID.md#4-securing-remote-access).
+- **UI** — tab state persisted in the URL hash; richer Mixes cards; tooltips.
+
 ## Cross-cutting: Claude Design sync
 
 Throughout Phases 2–7, reusable UI components are authored in the **Claude
