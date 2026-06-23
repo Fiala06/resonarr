@@ -7,8 +7,8 @@
  * If it returns nothing / errors, Plex Pass Sonic Analysis likely hasn't been
  * run on the library, and the sonic features need rethinking before Phase 2.
  */
-import { config } from "../config/env";
-import { PlexClient } from "../plex/client";
+import { config } from "../config/env.ts";
+import { PlexClient } from "../plex/client.ts";
 
 async function main() {
   if (!config.plex) {

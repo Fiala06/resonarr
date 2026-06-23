@@ -4,8 +4,8 @@
  *
  * Run: npm run spike:lidarr
  */
-import { config } from "../config/env";
-import { LidarrClient } from "../lidarr/client";
+import { config } from "../config/env.ts";
+import { LidarrClient } from "../lidarr/client.ts";
 
 async function main() {
   if (!config.lidarr) {

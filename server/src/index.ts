@@ -4,9 +4,9 @@ import { fileURLToPath } from "node:url";
 import Fastify from "fastify";
 import fastifyStatic from "@fastify/static";
 import type { HealthResponse, ServiceStatus } from "@resonarr/shared";
-import { config } from "./config/env";
-import { PlexClient } from "./plex/client";
-import { LidarrClient } from "./lidarr/client";
+import { config } from "./config/env.ts";
+import { PlexClient } from "./plex/client.ts";
+import { LidarrClient } from "./lidarr/client.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const webDist = resolve(here, "../../web/dist");

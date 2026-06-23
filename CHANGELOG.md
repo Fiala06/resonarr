@@ -38,9 +38,11 @@ this project uses phased pre-1.0 development (see [docs/ROADMAP.md](docs/ROADMAP
 
 #### Fixed
 - Container crash-loop (`ERR_MODULE_NOT_FOUND` on `./config/env`): `tsx`
-  extensionless ESM resolution failed under Node 20. Pinned deps via a committed
-  `package-lock.json` (`npm ci`) and bumped the Docker base image to Node 24 to
-  match the verified dev environment.
+  extensionless ESM import resolution works on Windows but fails on Alpine
+  Linux (directory-probe miss). Fixed by using explicit `.ts` extensions on all
+  relative server imports (`allowImportingTsExtensions`), which tsx maps
+  directly to the file on every OS. Also pinned deps via a committed
+  `package-lock.json` (`npm ci`) and set the Docker base image to Node 24.
 
 #### Verified
 - `npm install`, `npm run typecheck` (clean across all workspaces), server boot,

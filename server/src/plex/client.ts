@@ -1,5 +1,5 @@
 import type { Track } from "@resonarr/shared";
-import type { PlexConfig } from "../config/env";
+import type { PlexConfig } from "../config/env.ts";
 
 /**
  * Minimal Plex client over the HTTP API.

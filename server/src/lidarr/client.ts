@@ -1,4 +1,4 @@
-import type { LidarrConfig } from "../config/env";
+import type { LidarrConfig } from "../config/env.ts";
 
 /**
  * Minimal Lidarr v1 API client.
