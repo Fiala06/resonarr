@@ -7,7 +7,7 @@ import type {
 } from "@resonarr/shared";
 import { getLidarrOptions, getSettings, putSettings } from "../api";
 import { InfoHint } from "../components/InfoHint";
-import { colors } from "../theme";
+import { colors, fx } from "../theme";
 
 const inputStyle: CSSProperties = {
   background: colors.panel,
@@ -57,10 +57,16 @@ export function SettingsView() {
   if (!form) return <p style={{ color: colors.muted }}>Loading settings…</p>;
 
   return (
-    <section style={{ display: "grid", gap: 18, maxWidth: 560 }}>
+    <section className="rsn-rise" style={{ display: "grid", gap: 18, maxWidth: 560 }}>
       <div>
-        <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>Settings</h1>
-        <div style={{ fontSize: 13, color: colors.muted, marginTop: 3 }}>
+        <div style={{ fontSize: 11, letterSpacing: 1.4, fontWeight: 700, color: colors.accentLight }}>
+          SETTINGS
+        </div>
+        <h1 style={{ fontSize: 26, fontWeight: 700, margin: "6px 0 0", letterSpacing: "-0.4px" }}>
+          Preferences
+        </h1>
+        <div style={{ width: 42, height: 3, borderRadius: 3, background: fx.accentBar, marginTop: 12 }} />
+        <div style={{ fontSize: 13.5, color: colors.muted, marginTop: 12 }}>
           Your library, your Lidarr, your rules for what Resonarr recommends.
         </div>
       </div>
@@ -189,12 +195,14 @@ export function SettingsView() {
         <button
           onClick={save}
           disabled={saving}
+          className="rsn-btn"
           style={{
-            background: colors.accent,
+            background: fx.btnBg,
             color: "white",
             border: "none",
-            borderRadius: 6,
-            padding: "9px 18px",
+            borderRadius: 8,
+            padding: "10px 18px",
+            boxShadow: fx.btnGlow,
             cursor: saving ? "default" : "pointer",
             opacity: saving ? 0.7 : 1,
           }}
@@ -223,8 +231,9 @@ function Card({ title, children }: { title: string; children: ReactNode }) {
       style={{
         background: colors.sidebar,
         border: `1px solid ${colors.border}`,
-        borderRadius: 10,
+        borderRadius: 12,
         overflow: "hidden",
+        boxShadow: fx.cardShadow,
       }}
     >
       <div

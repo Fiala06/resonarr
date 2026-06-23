@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { LogEntry, LogLevel } from "@resonarr/shared";
 import { clearLogs, getLogs } from "../api";
-import { colors } from "../theme";
+import { colors, fx } from "../theme";
 
 const LEVEL_COLOR: Record<LogLevel, string> = {
   info: colors.muted,
@@ -31,11 +31,17 @@ export function LogsView() {
   }
 
   return (
-    <section style={{ display: "grid", gap: 16 }}>
+    <section className="rsn-rise" style={{ display: "grid", gap: 16 }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>Activity log</h1>
-          <div style={{ fontSize: 13, color: colors.muted, marginTop: 3 }}>
+          <div style={{ fontSize: 11, letterSpacing: 1.4, fontWeight: 700, color: colors.accentLight }}>
+            ACTIVITY LOG
+          </div>
+          <h1 style={{ fontSize: 26, fontWeight: 700, margin: "6px 0 0", letterSpacing: "-0.4px" }}>
+            What each run did, and why
+          </h1>
+          <div style={{ width: 42, height: 3, borderRadius: 3, background: fx.accentBar, marginTop: 12 }} />
+          <div style={{ fontSize: 13.5, color: colors.muted, marginTop: 12 }}>
             What Resonarr has been doing — discovery runs, playlist saves, and
             why any Lidarr requests failed. Also mirrored to the container logs.
           </div>
@@ -74,10 +80,11 @@ function LogRow({ entry }: { entry: LogEntry }) {
       style={{
         display: "flex",
         gap: 12,
-        padding: "7px 11px",
-        borderRadius: 6,
-        background: colors.panel,
+        padding: "8px 12px",
+        borderRadius: 9,
+        background: fx.rowBg,
         border: `1px solid ${colors.border}`,
+        boxShadow: fx.rowShadow,
         fontSize: 13,
         alignItems: "baseline",
       }}

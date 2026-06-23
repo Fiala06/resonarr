@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { AuthUser, LibraryStats } from "@resonarr/shared";
 import { Logo } from "./Logo";
-import { colors } from "../theme";
+import { colors, fx } from "../theme";
 
 export type Tab =
   | "sage"
@@ -74,6 +74,12 @@ const MAIN_TABS: { key: Tab; label: string }[] = [
   { key: "basket", label: "Basket" },
 ];
 
+// "38,412" -> "38.4k" for the compact footer label.
+function compact(n: number): string {
+  if (n >= 1000) return `${(n / 1000).toFixed(1).replace(/\.0$/, "")}k`;
+  return String(n);
+}
+
 export function Sidebar({
   active,
   onNavigate,
@@ -94,7 +100,7 @@ export function Sidebar({
   return (
     <div
       style={{
-        width: 232,
+        width: 236,
         flex: "none",
         background: colors.sidebar,
         borderRight: `1px solid ${colors.border}`,
@@ -103,14 +109,15 @@ export function Sidebar({
         padding: "20px 14px",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 8px 22px" }}>
-        <Logo size={28} />
-        <span style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.3px" }}>
-          Resonarr
+      <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "4px 8px 22px" }}>
+        {/* glow on the resonance mark */}
+        <span style={{ display: "inline-flex", filter: fx.logoGlow }}>
+          <Logo size={28} />
         </span>
+        <span style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.3px" }}>Resonarr</span>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
         {MAIN_TABS.map((t) => (
           <NavItem
             key={t.key}
@@ -123,55 +130,96 @@ export function Sidebar({
         ))}
       </div>
 
-      <div style={{ marginTop: "auto" }}>
-        <div style={{ padding: "0 8px 14px" }}>
-          <div style={{ fontSize: 11, letterSpacing: 1, color: colors.faint, fontWeight: 600 }}>
-            LIBRARY
+      {/* Cleaned-up footer: secondary nav + one compact status row.
+          Library breakdown moved into a hover tooltip. */}
+      <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 3 }}>
+        <NavItem tab="logs" label="Activity log" active={active === "logs"} onClick={() => onNavigate("logs")} />
+        <NavItem tab="settings" label="Settings" active={active === "settings"} onClick={() => onNavigate("settings")} />
+
+        <div
+          style={{
+            marginTop: 13,
+            paddingTop: 13,
+            borderTop: `1px solid ${colors.border}`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 8,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+            <span style={{ position: "relative", width: 7, height: 7, flex: "none" }}>
+              <span
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  borderRadius: "50%",
+                  background: lidarrOk ? colors.green : colors.faint,
+                }}
+              />
+              {lidarrOk && (
+                <span
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    borderRadius: "50%",
+                    background: colors.green,
+                    animation: "resonarr-pulse 3.4s ease-in-out infinite",
+                  }}
+                />
+              )}
+            </span>
+            <span style={{ fontSize: 12, color: colors.muted, whiteSpace: "nowrap" }}>
+              {lidarrOk === null ? "Checking…" : lidarrOk ? "Lidarr connected" : "Lidarr offline"}
+            </span>
           </div>
-          {stats ? (
-            <>
-              <div style={{ fontSize: 13, color: colors.muted, marginTop: 8 }}>
-                {stats.tracks.toLocaleString()} tracks
-              </div>
-              <div style={{ fontSize: 13, color: colors.muted }}>
-                {stats.albums.toLocaleString()} albums · {stats.artists.toLocaleString()} artists
-              </div>
-            </>
-          ) : (
-            <div style={{ fontSize: 13, color: colors.muted, marginTop: 8 }}>—</div>
+
+          {stats && (
+            <span
+              data-tip="1"
+              style={{
+                position: "relative",
+                fontSize: 12,
+                color: colors.faint,
+                whiteSpace: "nowrap",
+                cursor: "default",
+              }}
+            >
+              {compact(stats.tracks)} tracks
+              <span
+                className="tip"
+                style={{
+                  position: "absolute",
+                  bottom: "calc(100% + 9px)",
+                  right: 0,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 4,
+                  background: colors.panel2,
+                  border: `1px solid ${colors.border}`,
+                  borderRadius: 9,
+                  padding: "10px 13px",
+                  boxShadow:
+                    "0 10px 26px -8px rgba(0,0,0,0.85), 0 0 0 1px rgba(124,92,255,0.12)",
+                  zIndex: 10,
+                  textAlign: "right",
+                }}
+              >
+                <span style={{ fontSize: 10, letterSpacing: 1, fontWeight: 700, color: colors.accentLight }}>
+                  LIBRARY
+                </span>
+                <span style={{ fontSize: 12, color: colors.text, whiteSpace: "nowrap" }}>
+                  {stats.tracks.toLocaleString()} tracks
+                </span>
+                <span style={{ fontSize: 12, color: colors.muted, whiteSpace: "nowrap" }}>
+                  {stats.albums.toLocaleString()} albums
+                </span>
+                <span style={{ fontSize: 12, color: colors.muted, whiteSpace: "nowrap" }}>
+                  {stats.artists.toLocaleString()} artists
+                </span>
+              </span>
+            </span>
           )}
-        </div>
-
-        <div style={{ height: 1, background: colors.border, margin: "0 6px 12px" }} />
-
-        <NavItem
-          tab="logs"
-          label="Activity log"
-          active={active === "logs"}
-          onClick={() => onNavigate("logs")}
-        />
-        <NavItem
-          tab="settings"
-          label="Settings"
-          active={active === "settings"}
-          onClick={() => onNavigate("settings")}
-        />
-        <div style={{ marginTop: 12, padding: "0 8px", display: "flex", alignItems: "center", gap: 8 }}>
-          <span
-            style={{
-              width: 7,
-              height: 7,
-              borderRadius: "50%",
-              background: lidarrOk ? colors.green : colors.faint,
-            }}
-          />
-          <span style={{ fontSize: 12, color: colors.muted }}>
-            {lidarrOk === null
-              ? "Checking…"
-              : lidarrOk
-                ? "Lidarr connected"
-                : "Lidarr offline"}
-          </span>
         </div>
 
         {authUser && onLogout && (
@@ -217,17 +265,33 @@ function NavItem({
     <div
       onClick={onClick}
       style={{
+        position: "relative",
         display: "flex",
         alignItems: "center",
         gap: 11,
         padding: "9px 11px",
-        borderRadius: 6,
+        borderRadius: 8,
         fontSize: 14,
         cursor: "pointer",
-        background: active ? "rgba(124,92,255,0.13)" : "transparent",
+        background: active ? fx.navActiveBg : "transparent",
         color: active ? colors.text : colors.muted,
+        transition: "background .2s ease, color .2s ease",
       }}
     >
+      {/* left accent bar on the active item */}
+      <span
+        style={{
+          position: "absolute",
+          left: -4,
+          top: 8,
+          bottom: 8,
+          width: 3,
+          borderRadius: 3,
+          background: fx.accentBar,
+          opacity: active ? 1 : 0,
+          transition: "opacity .2s ease",
+        }}
+      />
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flex: "none" }}>
         {ICONS[tab]}
       </svg>
@@ -235,12 +299,13 @@ function NavItem({
       {badge !== undefined && (
         <span
           style={{
-            background: colors.accent,
+            background: fx.btnBg,
             color: "#fff",
             fontSize: 11,
             fontWeight: 600,
             borderRadius: 10,
-            padding: "1px 7px",
+            padding: "1px 8px",
+            boxShadow: fx.btnGlow,
           }}
         >
           {badge}

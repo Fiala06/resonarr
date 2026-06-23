@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { Track } from "@resonarr/shared";
-import { Art } from "./Art";
-import { colors } from "../theme";
+import { AlbumArt } from "./AlbumArt";
+import { colors, fx } from "../theme";
 
 // Reusable track row. (Phase 2 lives in-repo; this is a prime candidate to move
 // into the Claude Design system later.)
@@ -17,18 +17,27 @@ export function TrackRow({
   return (
     <div
       onClick={onClick}
+      className="rsn-row"
       style={{
         display: "flex",
         alignItems: "center",
-        gap: 10,
-        padding: "8px 10px",
-        borderRadius: 6,
+        gap: 12,
+        padding: "10px 12px",
+        borderRadius: 9,
         cursor: onClick ? "pointer" : "default",
         border: `1px solid ${colors.border}`,
-        background: colors.panel,
+        background: fx.rowBg,
+        boxShadow: fx.rowShadow,
       }}
     >
-      <Art thumb={track.thumb} />
+      <AlbumArt
+        thumb={track.thumb}
+        tint={colors.seedBg}
+        album={track.album}
+        artist={track.artist}
+        line="In your library"
+        tone="owned"
+      />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div
           style={{

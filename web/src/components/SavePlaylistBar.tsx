@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { PlaylistSummary } from "@resonarr/shared";
 import { addToPlaylist, createPlaylist, getPlaylists } from "../api";
-import { colors } from "../theme";
+import { colors, fx } from "../theme";
 
 /** Save tracks to a NEW Plex playlist or append to an EXISTING one. */
 export function SavePlaylistBar({
@@ -69,12 +69,14 @@ export function SavePlaylistBar({
         <button
           onClick={save}
           disabled={saving || trackIds.length === 0}
+          className="rsn-btn"
           style={{
-            background: colors.accent,
+            background: fx.btnBg,
             color: "white",
             border: "none",
-            borderRadius: 6,
-            padding: "9px 16px",
+            borderRadius: 8,
+            padding: "10px 16px",
+            boxShadow: fx.btnGlow,
             cursor: saving ? "default" : "pointer",
             opacity: saving || trackIds.length === 0 ? 0.6 : 1,
             whiteSpace: "nowrap",

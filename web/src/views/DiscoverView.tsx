@@ -4,7 +4,7 @@ import { discoverFromPlaylist, getPlaylists } from "../api";
 import { InfoHint } from "../components/InfoHint";
 import { TrackRow } from "../components/TrackRow";
 import { SavePlaylistBar } from "../components/SavePlaylistBar";
-import { colors } from "../theme";
+import { colors, fx } from "../theme";
 
 export function DiscoverView() {
   const [playlists, setPlaylists] = useState<PlaylistSummary[] | null>(null);
@@ -37,10 +37,16 @@ export function DiscoverView() {
   }
 
   return (
-    <section style={{ display: "grid", gap: 18 }}>
+    <section className="rsn-rise" style={{ display: "grid", gap: 18 }}>
       <div>
-        <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>Discover</h1>
-        <div style={{ fontSize: 13, color: colors.muted, marginTop: 3 }}>
+        <div style={{ fontSize: 11, letterSpacing: 1.4, fontWeight: 700, color: colors.accentLight }}>
+          DISCOVER
+        </div>
+        <h1 style={{ fontSize: 26, fontWeight: 700, margin: "6px 0 0", letterSpacing: "-0.4px" }}>
+          Fresh picks from a playlist you love
+        </h1>
+        <div style={{ width: 42, height: 3, borderRadius: 3, background: fx.accentBar, marginTop: 12 }} />
+        <div style={{ fontSize: 13.5, color: colors.muted, marginTop: 12 }}>
           Point at a playlist you love — your Liked Songs, a favorites list — and
           get fresh tracks that sound like it but aren’t in it yet. All owned, all
           ready to play.
@@ -76,6 +82,7 @@ export function DiscoverView() {
         <button
           onClick={run}
           disabled={loading || !playlistId}
+          className="rsn-btn"
           style={primaryBtn(loading || !playlistId)}
         >
           {loading ? "Finding…" : "Find fresh picks"}
@@ -118,11 +125,12 @@ export function DiscoverView() {
 
 function primaryBtn(disabled: boolean) {
   return {
-    background: colors.accent,
+    background: fx.btnBg,
     color: "white",
     border: "none",
-    borderRadius: 6,
-    padding: "9px 16px",
+    borderRadius: 8,
+    padding: "10px 18px",
+    boxShadow: fx.btnGlow,
     cursor: disabled ? "default" : "pointer",
     opacity: disabled ? 0.7 : 1,
   };

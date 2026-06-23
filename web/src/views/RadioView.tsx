@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import type { Track } from "@resonarr/shared";
 import { getRadio, searchTracks } from "../api";
 import { SavePlaylistBar } from "../components/SavePlaylistBar";
-import { Art } from "../components/Art";
+import { AlbumArt } from "../components/AlbumArt";
 import { Logo } from "../components/Logo";
-import { colors } from "../theme";
+import { colors, fx } from "../theme";
 
 export function RadioView() {
   const [query, setQuery] = useState("");
@@ -65,10 +65,16 @@ export function RadioView() {
   }
 
   return (
-    <section style={{ display: "grid", gap: 16 }}>
+    <section className="rsn-rise" style={{ display: "grid", gap: 16 }}>
       <div>
-        <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>Radio</h1>
-        <div style={{ fontSize: 13, color: colors.muted, marginTop: 3 }}>
+        <div style={{ fontSize: 11, letterSpacing: 1.4, fontWeight: 700, color: colors.accentLight }}>
+          RADIO
+        </div>
+        <h1 style={{ fontSize: 26, fontWeight: 700, margin: "6px 0 0", letterSpacing: "-0.4px" }}>
+          A station from any seed
+        </h1>
+        <div style={{ width: 42, height: 3, borderRadius: 3, background: fx.accentBar, marginTop: 12 }} />
+        <div style={{ fontSize: 13.5, color: colors.muted, marginTop: 12 }}>
           Pick a seed track — Resonarr finds sonically similar tracks you own and
           saves them straight to Plex.
         </div>
@@ -86,8 +92,20 @@ export function RadioView() {
           {results.length > 0 && (
             <div style={{ display: "grid", gap: 6 }}>
               {results.map((t) => (
-                <div key={t.id} onClick={() => pickSeed(t)} style={{ ...rowStyle, cursor: "pointer" }}>
-                  <Art thumb={t.thumb} />
+                <div
+                  key={t.id}
+                  onClick={() => pickSeed(t)}
+                  className="rsn-row"
+                  style={{ ...rowStyle, cursor: "pointer" }}
+                >
+                  <AlbumArt
+                    thumb={t.thumb}
+                    tint={colors.seedBg}
+                    album={t.album}
+                    artist={t.artist}
+                    line="In your library"
+                    tone="owned"
+                  />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 14 }}>{t.title}</div>
                     <div style={sub}>{t.artist}{t.album ? ` — ${t.album}` : ""}</div>
@@ -104,13 +122,49 @@ export function RadioView() {
       {seed && (
         <>
           {/* seed card */}
-          <div style={{ display: "flex", alignItems: "center", gap: 14, background: colors.panel, border: `1px solid ${colors.border}`, borderRadius: 8, padding: 16 }}>
-            <div style={{ width: 56, height: 56, borderRadius: 6, background: colors.seedBg, flex: "none", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Logo size={22} />
+          <div
+            style={{
+              position: "relative",
+              display: "flex",
+              alignItems: "center",
+              gap: 14,
+              background: colors.panel,
+              border: `1px solid ${colors.border}`,
+              borderRadius: 12,
+              padding: 18,
+              overflow: "hidden",
+              boxShadow: fx.cardShadow,
+            }}
+          >
+            {/* breathing glow behind the content */}
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                background: fx.seedGlow,
+                animation: "resonarr-breathe 5.5s ease-in-out infinite",
+                pointerEvents: "none",
+              }}
+            />
+            <div
+              style={{
+                position: "relative",
+                width: 60,
+                height: 60,
+                borderRadius: 8,
+                background: colors.seedBg,
+                flex: "none",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                filter: fx.logoGlow,
+              }}
+            >
+              <Logo size={24} />
             </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 11, letterSpacing: 1, color: colors.accentLight, fontWeight: 600 }}>SEED TRACK</div>
-              <div style={{ fontSize: 16, fontWeight: 600, marginTop: 2 }}>{seed.title}</div>
+            <div style={{ position: "relative", flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 11, letterSpacing: 1.2, color: colors.accentLight, fontWeight: 700 }}>SEED TRACK</div>
+              <div style={{ fontSize: 17, fontWeight: 600, marginTop: 3 }}>{seed.title}</div>
               <div style={sub}>{seed.artist}{seed.album ? ` — ${seed.album}` : ""}</div>
             </div>
             <button
@@ -118,7 +172,8 @@ export function RadioView() {
                 setSeed(null);
                 setNeighbors([]);
               }}
-              style={ghostBtn}
+              className="rsn-btn"
+              style={{ ...ghostBtn, position: "relative" }}
             >
               Change seed
             </button>
@@ -148,8 +203,15 @@ export function RadioView() {
               <SavePlaylistBar defaultName={`${seed.title} Radio`} trackIds={[seed.id, ...neighbors.map((t) => t.id)]} />
               <div style={{ display: "grid", gap: 6 }}>
                 {neighbors.map((t, i) => (
-                  <div key={t.id} style={rowStyle}>
-                    <Art thumb={t.thumb} />
+                  <div key={t.id} className="rsn-row" style={rowStyle}>
+                    <AlbumArt
+                      thumb={t.thumb}
+                      tint={colors.seedBg}
+                      album={t.album}
+                      artist={t.artist}
+                      line="In your library"
+                      tone="owned"
+                    />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 14 }}>{t.title}</div>
                       <div style={sub}>{t.artist}{t.album ? ` — ${t.album}` : ""}</div>
@@ -177,19 +239,21 @@ const sub = { fontSize: 12, color: colors.muted };
 const rowStyle = {
   display: "flex",
   alignItems: "center",
-  gap: 11,
-  padding: "9px 11px",
-  borderRadius: 6,
-  background: colors.panel,
+  gap: 12,
+  padding: "10px 12px",
+  borderRadius: 9,
+  background: fx.rowBg,
   border: `1px solid ${colors.border}`,
+  boxShadow: fx.rowShadow,
 };
 const matchBadge = {
   fontSize: 11,
+  fontWeight: 600,
   color: colors.accentLight,
-  background: "rgba(124,92,255,0.12)",
-  border: `1px solid #3a3550`,
+  background: fx.badgeHi,
+  border: `1px solid rgba(124,92,255,0.35)`,
   borderRadius: 20,
-  padding: "3px 9px",
+  padding: "4px 11px",
   whiteSpace: "nowrap" as const,
 };
 const ghostBtn = {

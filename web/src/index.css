@@ -41,3 +41,74 @@ textarea {
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/* ======================================================================
+   POLISH LAYER
+   Keyframes, hover interactions, and small hover-helper classes.
+   These live in CSS (not inline styles) because they're :hover / @keyframes
+   driven. Everything else is done with inline styles via `fx` in theme.ts.
+   ====================================================================== */
+
+@keyframes resonarr-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.9; }
+  50% { transform: scale(1.35); opacity: 0.35; }
+}
+
+/* Breathing glow behind the Radio seed card. */
+@keyframes resonarr-breathe {
+  0%, 100% { opacity: 0.65; }
+  50% { opacity: 1; }
+}
+
+/* Subtle slide-up on view mount. NOTE: intentionally no opacity fade -
+   keeps content fully opaque for screenshots / prefers-reduced-motion. */
+@keyframes resonarr-rise {
+  from { transform: translateY(9px); }
+  to { transform: none; }
+}
+.rsn-rise { animation: resonarr-rise 0.42s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+
+/* Hover lift helpers - add the class, the inline styles set base look. */
+.rsn-row { transition: transform 0.15s ease, border-color 0.15s ease; }
+.rsn-row:hover { transform: translateY(-3px); border-color: rgba(124, 92, 255, 0.55); }
+
+.rsn-btn { transition: transform 0.15s ease, box-shadow 0.15s ease; }
+.rsn-btn:hover { transform: translateY(-1px); }
+
+.rsn-card { transition: transform 0.18s ease, border-color 0.18s ease; }
+.rsn-card:hover { transform: translateY(-3px); border-color: #7c5cff; }
+
+/* Library tooltip (sidebar footer) ----------------------------------- */
+[data-tip] { position: relative; }
+[data-tip] .tip {
+  opacity: 0;
+  transform: translateY(4px) scale(0.98);
+  transform-origin: bottom right;
+  pointer-events: none;
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+[data-tip]:hover .tip { opacity: 1; transform: translateY(0) scale(1); }
+
+/* Album-art hover preview (track / basket rows) ---------------------- */
+[data-art] .artpop {
+  opacity: 0;
+  transform: translateY(6px) scale(0.95);
+  transform-origin: bottom left;
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+[data-art]:hover .artpop { opacity: 1; transform: translateY(0) scale(1); }
+[data-art] .artthumb { transition: transform 0.18s ease, box-shadow 0.18s ease; }
+[data-art]:hover .artthumb {
+  transform: scale(1.12);
+  box-shadow: 0 8px 18px -6px rgba(0, 0, 0, 0.75);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rsn-rise,
+  [data-art] .artpop,
+  [data-tip] .tip,
+  .rsn-row,
+  .rsn-btn,
+  .rsn-card { animation: none !important; transition: none !important; }
+}

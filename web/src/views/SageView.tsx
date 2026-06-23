@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import type { DiscoveryResult } from "@resonarr/shared";
 import { bulkAddBasket, getSettings, runSage } from "../api";
-import { Art } from "../components/Art";
+import { AlbumArt } from "../components/AlbumArt";
 import { InfoHint } from "../components/InfoHint";
 import { SavePlaylistBar } from "../components/SavePlaylistBar";
-import { colors } from "../theme";
+import { colors, fx } from "../theme";
 
 export function SageView() {
   const [prompt, setPrompt] = useState("");
@@ -83,14 +83,19 @@ export function SageView() {
   }
 
   return (
-    <section style={{ display: "grid", gap: 18 }}>
+    <section className="rsn-rise" style={{ display: "grid", gap: 18 }}>
       <div>
-        <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>Sonic Sage</h1>
-        <div style={{ fontSize: 13, color: colors.muted, marginTop: 3 }}>
-          Discovery that reaches past your shelves.{" "}
+        <div style={{ fontSize: 11, letterSpacing: 1.4, fontWeight: 700, color: colors.accentLight }}>
+          SONIC SAGE
+        </div>
+        <h1 style={{ fontSize: 26, fontWeight: 700, margin: "6px 0 0", letterSpacing: "-0.4px" }}>
+          Discovery that reaches past your shelves
+        </h1>
+        <div style={{ width: 42, height: 3, borderRadius: 3, background: fx.accentBar, marginTop: 12 }} />
+        <div style={{ fontSize: 13.5, color: colors.muted, marginTop: 12 }}>
           {provider && (
             <>
-              Using <strong>{provider}</strong>.{" "}
+              Using <strong style={{ color: colors.text }}>{provider}</strong>.{" "}
             </>
           )}
           Plays what you own, and turns the gaps into Lidarr requests.
@@ -112,7 +117,12 @@ export function SageView() {
         }}
       />
       <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
-        <button onClick={generate} disabled={generating} style={primaryBtn(generating)}>
+        <button
+          onClick={generate}
+          disabled={generating}
+          className="rsn-btn"
+          style={primaryBtn(generating)}
+        >
           {generating ? "Thinking…" : "Generate"}
         </button>
         <label style={{ display: "flex", gap: 6, alignItems: "center", color: colors.muted }}>
@@ -161,8 +171,15 @@ export function SageView() {
                 <SavePlaylistBar defaultName={name} trackIds={result.matches.map((t) => t.id)} />
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   {result.matches.map((t) => (
-                    <div key={t.id} style={ownedRow}>
-                      <Art thumb={t.thumb} />
+                    <div key={t.id} className="rsn-row" style={ownedRow}>
+                      <AlbumArt
+                        thumb={t.thumb}
+                        tint={colors.seedBg}
+                        album={t.album}
+                        artist={t.artist}
+                        line="In your library"
+                        tone="owned"
+                      />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 14 }}>{t.title}</div>
                         <div style={sub}>{t.artist}{t.album ? ` — ${t.album}` : ""}</div>
@@ -185,14 +202,25 @@ export function SageView() {
                 <div style={{ fontSize: 12, color: colors.muted }}>
                   — one click sends these to Lidarr; tracked in your Basket, never dropped.
                 </div>
-                <button onClick={addAll} disabled={addingAll} style={{ ...ghostBtn, marginLeft: "auto" }}>
+                <button
+                  onClick={addAll}
+                  disabled={addingAll}
+                  className="rsn-btn"
+                  style={{ ...ghostBtn, marginLeft: "auto" }}
+                >
                   {addingAll ? "Adding…" : "Add all"}
                 </button>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {result.misses.map((m, i) => (
-                  <div key={`${m.artist}-${m.title}-${i}`} style={missRow}>
-                    <div style={{ ...art, background: "#1f2330" }} />
+                  <div key={`${m.artist}-${m.title}-${i}`} className="rsn-row" style={missRow}>
+                    <AlbumArt
+                      album={m.album ?? m.artist}
+                      artist={m.artist}
+                      tint={colors.seedBg}
+                      line="Not in your library yet"
+                      tone="missing"
+                    />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 14 }}>
                         {m.title ? `${m.title} — ` : ""}
@@ -205,7 +233,7 @@ export function SageView() {
                     ) : (
                       <>
                         <span style={{ fontSize: 11, color: colors.gold }}>not owned</span>
-                        <button onClick={() => addMiss(i)} style={requestBtn}>Request</button>
+                        <button onClick={() => addMiss(i)} className="rsn-btn" style={requestBtn}>Request</button>
                       </>
                     )}
                   </div>
@@ -219,22 +247,16 @@ export function SageView() {
   );
 }
 
-const art = {
-  width: 44,
-  height: 44,
-  borderRadius: 5,
-  background: colors.panel2,
-  flex: "none" as const,
-};
 const sub = { fontSize: 12, color: colors.muted };
 const ownedRow = {
   display: "flex",
   alignItems: "center",
-  gap: 11,
-  padding: "9px 11px",
-  borderRadius: 6,
-  background: colors.panel,
+  gap: 12,
+  padding: "10px 12px",
+  borderRadius: 9,
+  background: fx.rowBg,
   border: `1px solid ${colors.border}`,
+  boxShadow: fx.rowShadow,
 };
 const missRow = { ...ownedRow, border: `1px dashed #3a3550` };
 const requestBtn = {
@@ -261,11 +283,12 @@ const ghostBtn = {
 };
 function primaryBtn(disabled: boolean) {
   return {
-    background: colors.accent,
+    background: fx.btnBg,
     color: "white",
     border: "none",
-    borderRadius: 6,
-    padding: "9px 18px",
+    borderRadius: 8,
+    padding: "10px 18px",
+    boxShadow: fx.btnGlow,
     cursor: disabled ? "default" : "pointer",
     opacity: disabled ? 0.7 : 1,
   };

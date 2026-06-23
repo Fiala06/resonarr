@@ -7,7 +7,8 @@ import {
   removeFromBasket,
   requestBasket,
 } from "../api";
-import { colors } from "../theme";
+import { AlbumArt } from "../components/AlbumArt";
+import { colors, fx } from "../theme";
 
 const STATUS_COLOR: Record<BasketItemStatus, string> = {
   pending: colors.muted,
@@ -118,10 +119,16 @@ export function BasketView({ onChange }: { onChange?: () => void }) {
   const pendingCount = items.filter((i) => i.status === "pending").length;
 
   return (
-    <section style={{ display: "grid", gap: 16, maxWidth: 620 }}>
+    <section className="rsn-rise" style={{ display: "grid", gap: 16, maxWidth: 620 }}>
       <div>
-        <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>Basket</h1>
-        <p style={{ color: colors.muted, margin: "3px 0 0", fontSize: 13 }}>
+        <div style={{ fontSize: 11, letterSpacing: 1.4, fontWeight: 700, color: colors.accentLight }}>
+          REQUEST BASKET
+        </div>
+        <h1 style={{ fontSize: 26, fontWeight: 700, margin: "6px 0 0", letterSpacing: "-0.4px" }}>
+          Everything worth owning, in one click
+        </h1>
+        <div style={{ width: 42, height: 3, borderRadius: 3, background: fx.accentBar, marginTop: 12 }} />
+        <p style={{ color: colors.muted, margin: "12px 0 0", fontSize: 13.5 }}>
           Everything recommended that you don’t own yet. Verified against Lidarr,
           sent artist-first with search, tracked here until it lands.
         </p>
@@ -156,6 +163,7 @@ export function BasketView({ onChange }: { onChange?: () => void }) {
           <button
             onClick={add}
             disabled={adding}
+            className="rsn-btn"
             style={{ ...buttonStyle, whiteSpace: "nowrap" }}
           >
             {adding ? "Adding…" : "Add"}
@@ -173,6 +181,7 @@ export function BasketView({ onChange }: { onChange?: () => void }) {
         <button
           onClick={() => request(false)}
           disabled={requesting || selected.size === 0}
+          className="rsn-btn"
           style={{ ...buttonStyle, opacity: selected.size === 0 ? 0.5 : 1 }}
         >
           Request selected ({selected.size})
@@ -180,9 +189,11 @@ export function BasketView({ onChange }: { onChange?: () => void }) {
         <button
           onClick={() => request(true)}
           disabled={requesting || pendingCount === 0}
+          className="rsn-btn"
           style={{
             ...buttonStyle,
             background: "transparent",
+            boxShadow: "none",
             border: `1px solid ${colors.border}`,
             opacity: pendingCount === 0 ? 0.5 : 1,
           }}
@@ -193,9 +204,11 @@ export function BasketView({ onChange }: { onChange?: () => void }) {
           onClick={checkStatus}
           disabled={refreshing}
           title="Re-check Lidarr for downloads"
+          className="rsn-btn"
           style={{
             ...buttonStyle,
             background: "transparent",
+            boxShadow: "none",
             border: `1px solid ${colors.border}`,
           }}
         >
@@ -212,20 +225,44 @@ export function BasketView({ onChange }: { onChange?: () => void }) {
           {items.map((it) => (
             <div
               key={it.id}
+              className="rsn-row"
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 10,
-                padding: "8px 10px",
-                borderRadius: 6,
-                background: colors.panel,
+                gap: 12,
+                padding: "10px 12px",
+                borderRadius: 9,
+                background: fx.rowBg,
                 border: `1px solid ${colors.border}`,
+                boxShadow: fx.rowShadow,
               }}
             >
               <input
                 type="checkbox"
                 checked={selected.has(it.id)}
                 onChange={() => toggle(it.id)}
+              />
+              <AlbumArt
+                album={it.album ?? it.artist}
+                artist={it.artist}
+                tint={colors.seedBg}
+                eyebrow={it.type === "artist" ? "ARTIST" : "ALBUM"}
+                line={
+                  it.status === "done"
+                    ? "Downloaded · in your library"
+                    : it.status === "pending"
+                      ? "Queued · pending request"
+                      : it.status === "failed"
+                        ? "Request failed"
+                        : "Requesting via Lidarr…"
+                }
+                tone={
+                  it.status === "done"
+                    ? "owned"
+                    : it.status === "pending"
+                      ? "missing"
+                      : "info"
+                }
               />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div>
@@ -298,10 +335,11 @@ const inputStyle = {
 };
 
 const buttonStyle = {
-  background: colors.accent,
+  background: fx.btnBg,
   color: "white",
   border: "none",
-  borderRadius: 6,
-  padding: "9px 16px",
+  borderRadius: 8,
+  padding: "10px 16px",
+  boxShadow: fx.btnGlow,
   cursor: "pointer",
 };

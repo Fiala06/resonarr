@@ -3,7 +3,7 @@ import type { MixCard } from "@resonarr/shared";
 import { getMixes } from "../api";
 import { TrackRow } from "../components/TrackRow";
 import { SavePlaylistBar } from "../components/SavePlaylistBar";
-import { colors } from "../theme";
+import { colors, fx } from "../theme";
 
 const ART = ["#2a1d4a", "#1e4d4a", "#28304d", "#4a2535", "#3a3a22", "#2f2440"];
 
@@ -30,15 +30,21 @@ export function MixesView() {
   const open = mixes?.find((m) => m.id === openId) ?? null;
 
   return (
-    <section style={{ display: "grid", gap: 18 }}>
+    <section className="rsn-rise" style={{ display: "grid", gap: 18 }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>Mixes</h1>
-          <div style={{ fontSize: 13, color: colors.muted, marginTop: 3 }}>
+          <div style={{ fontSize: 11, letterSpacing: 1.4, fontWeight: 700, color: colors.accentLight }}>
+            MIXES
+          </div>
+          <h1 style={{ fontSize: 26, fontWeight: 700, margin: "6px 0 0", letterSpacing: "-0.4px" }}>
+            Made from what you've been playing
+          </h1>
+          <div style={{ width: 42, height: 3, borderRadius: 3, background: fx.accentBar, marginTop: 12 }} />
+          <div style={{ fontSize: 13.5, color: colors.muted, marginTop: 12 }}>
             Built from tracks you own, seeded by your recent listening.
           </div>
         </div>
-        <button onClick={load} disabled={loading} style={primaryBtn(loading)}>
+        <button onClick={load} disabled={loading} className="rsn-btn" style={primaryBtn(loading)}>
           {loading ? "Building…" : "Refresh"}
         </button>
       </div>
@@ -107,12 +113,14 @@ function MixCardTile({
   return (
     <div
       onClick={onClick}
+      className="rsn-card"
       style={{
         background: colors.sidebar,
         border: `1px solid ${active ? colors.accent : colors.border}`,
-        borderRadius: 10,
+        borderRadius: 12,
         overflow: "hidden",
         cursor: "pointer",
+        boxShadow: fx.cardShadow,
       }}
     >
       <div style={{ height: 110, background: tint, position: "relative", overflow: "hidden" }}>
@@ -153,11 +161,12 @@ function MixCardTile({
 
 function primaryBtn(disabled: boolean) {
   return {
-    background: colors.accent,
+    background: fx.btnBg,
     color: "white",
     border: "none",
-    borderRadius: 6,
-    padding: "9px 16px",
+    borderRadius: 8,
+    padding: "10px 18px",
+    boxShadow: fx.btnGlow,
     cursor: disabled ? "default" : "pointer",
     opacity: disabled ? 0.7 : 1,
   };

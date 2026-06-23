@@ -11,6 +11,7 @@ import { BasketView } from "./views/BasketView";
 import { LogsView } from "./views/LogsView";
 import { SettingsView } from "./views/SettingsView";
 import { getBasket, getHealth, getLibraryStats, logout } from "./api";
+import { fx } from "./theme";
 
 const TABS: Tab[] = [
   "sage",
@@ -74,7 +75,7 @@ export function App({ authUser }: { authUser?: AuthUser }) {
   }, [tab, refreshBasket]);
 
   return (
-    <div style={{ height: "100%", display: "flex", overflow: "hidden" }}>
+    <div style={{ height: "100%", display: "flex", overflow: "hidden", background: fx.appBg }}>
       <Sidebar
         active={tab}
         onNavigate={navigate}
