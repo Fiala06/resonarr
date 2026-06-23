@@ -12,11 +12,41 @@ import { LogsView } from "./views/LogsView";
 import { SettingsView } from "./views/SettingsView";
 import { getBasket, getHealth, getLibraryStats } from "./api";
 
+const TABS: Tab[] = [
+  "sage",
+  "radio",
+  "mixes",
+  "discover",
+  "adventure",
+  "basket",
+  "logs",
+  "settings",
+];
+
+// The active tab lives in the URL hash so it survives a page refresh and works
+// with the browser's back/forward buttons.
+function tabFromHash(): Tab {
+  const h = window.location.hash.replace(/^#/, "");
+  return (TABS as string[]).includes(h) ? (h as Tab) : "sage";
+}
+
 export function App() {
-  const [tab, setTab] = useState<Tab>("sage");
+  const [tab, setTab] = useState<Tab>(tabFromHash);
   const [lidarrOk, setLidarrOk] = useState<boolean | null>(null);
   const [stats, setStats] = useState<LibraryStats | null>(null);
   const [basketCount, setBasketCount] = useState(0);
+
+  const navigate = useCallback((t: Tab) => {
+    window.location.hash = t;
+    setTab(t);
+  }, []);
+
+  // Reflect back/forward navigation (and manual hash edits) into state.
+  useEffect(() => {
+    const onHash = () => setTab(tabFromHash());
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
 
   const refreshBasket = useCallback(() => {
     getBasket()
@@ -42,7 +72,7 @@ export function App() {
     <div style={{ height: "100%", display: "flex", overflow: "hidden" }}>
       <Sidebar
         active={tab}
-        onNavigate={setTab}
+        onNavigate={navigate}
         basketCount={basketCount}
         stats={stats}
         lidarrOk={lidarrOk}
