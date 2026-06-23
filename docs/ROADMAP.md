@@ -54,6 +54,13 @@ to build: uses play counts + `lastViewedAt` Plex already exposes.
 
 ### Grow & complete the library (Lidarr synergy)
 
+- **Audition links for unowned items** *(quick win)* — on basket rows and Sonic
+  Sage misses, add small links to **YouTube** (search URL — "let me hear it")
+  and **MusicBrainz** (free: the artist `mbid` is already resolved at lookup),
+  optionally Bandcamp/Last.fm. Lets you evaluate a recommendation before
+  spending a Lidarr request. Pure outbound links — no API or secrets. (Album-
+  level MB links would need the release-group id, which isn't stored yet, so v1
+  is artist-direct + a YouTube track search.)
 - **New releases from artists you play** — watch owned artists, surface new
   albums, and queue them to Lidarr + a "New from your artists" playlist once
   downloaded. Lidarr monitors releases but doesn't know *which* artists you
