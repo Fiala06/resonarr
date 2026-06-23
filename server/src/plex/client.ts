@@ -122,17 +122,21 @@ export class PlexClient {
     return (data.MediaContainer.Metadata ?? []).map(toTrack);
   }
 
-  /** Full-text track search within a section (for the seed-track picker). */
-  async searchTracks(
-    sectionKey: string,
-    query: string,
-    limit = 30,
-  ): Promise<Track[]> {
-    const data = await this.request<PlexContainer<PlexMetadata>>(
-      `/library/sections/${sectionKey}/all`,
-      { type: TRACK_TYPE, query, limit },
+  /**
+   * Full-text track search via Plex's hub search (the `/all?query=` param is
+   * silently ignored, so we use `/hubs/search` and pull the track hub).
+   */
+  async searchTracks(query: string, limit = 30): Promise<Track[]> {
+    const data = await this.request<{
+      MediaContainer: {
+        Hub?: { type: string; Metadata?: PlexMetadata[] }[];
+      };
+    }>("/hubs/search", { query, limit });
+
+    const trackHub = (data.MediaContainer.Hub ?? []).find(
+      (h) => h.type === "track",
     );
-    return (data.MediaContainer.Metadata ?? []).map(toTrack);
+    return (trackHub?.Metadata ?? []).map(toTrack);
   }
 
   /** The Plex server's machine identifier — required to build playlist URIs. */
