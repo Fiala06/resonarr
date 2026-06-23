@@ -125,7 +125,13 @@ export interface LogEntry {
 // ---------------------------------------------------------------------------
 
 export type BasketItemType = "artist" | "album";
-export type BasketItemStatus = "pending" | "requested" | "failed";
+/**
+ * pending  — added, not yet sent to Lidarr
+ * requested — submitted to Lidarr, searching/downloading
+ * done     — Lidarr now has the files (confirmed via statistics)
+ * failed   — submission errored
+ */
+export type BasketItemStatus = "pending" | "requested" | "done" | "failed";
 
 export type BasketItemSource = "sonic-sage" | "manual";
 

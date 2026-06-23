@@ -20,7 +20,7 @@ export function App() {
 
   const refreshBasket = useCallback(() => {
     getBasket()
-      .then((items) => setBasketCount(items.length))
+      .then((items) => setBasketCount(items.filter((i) => i.status !== "done").length))
       .catch(() => {});
   }, []);
 

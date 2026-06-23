@@ -10,6 +10,7 @@ import {
   addManyToBasket,
   addToBasket,
   listBasket,
+  refreshBasketStatuses,
   removeFromBasket,
   requestBasket,
 } from "../basket/service.ts";
@@ -44,6 +45,15 @@ export function registerBasketRoutes(app: FastifyInstance): void {
       return { ok: true };
     },
   );
+
+  // Re-check requested items against Lidarr; flip downloaded ones to "done".
+  app.post("/api/basket/refresh", async (): Promise<BasketItem[]> => {
+    try {
+      return await refreshBasketStatuses();
+    } catch {
+      return listBasket();
+    }
+  });
 
   app.post<{ Body: RequestBasketRequest }>(
     "/api/basket/request",

@@ -159,6 +159,10 @@ export async function removeFromBasket(id: string): Promise<void> {
   await fetch(`/api/basket/${encodeURIComponent(id)}`, { method: "DELETE" });
 }
 
+export async function refreshBasket(): Promise<BasketItem[]> {
+  return asJson(await fetch("/api/basket/refresh", { method: "POST" }));
+}
+
 export async function requestBasket(ids?: string[]): Promise<BasketItem[]> {
   return asJson(
     await fetch("/api/basket/request", {

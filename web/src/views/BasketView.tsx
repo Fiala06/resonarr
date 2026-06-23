@@ -3,6 +3,7 @@ import type { BasketItem, BasketItemStatus } from "@resonarr/shared";
 import {
   addToBasket,
   getBasket,
+  refreshBasket,
   removeFromBasket,
   requestBasket,
 } from "../api";
@@ -10,8 +11,16 @@ import { colors } from "../theme";
 
 const STATUS_COLOR: Record<BasketItemStatus, string> = {
   pending: colors.muted,
-  requested: colors.green,
+  requested: colors.gold, // submitted, still downloading
+  done: colors.green, // files have landed in Lidarr
   failed: colors.red,
+};
+
+const STATUS_LABEL: Record<BasketItemStatus, string> = {
+  pending: "pending",
+  requested: "requested",
+  done: "✓ done",
+  failed: "failed",
 };
 
 export function BasketView() {
@@ -22,11 +31,29 @@ export function BasketView() {
   const [addError, setAddError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [requesting, setRequesting] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
   useEffect(() => {
+    // Refresh against Lidarr on open so "done" reflects what has landed.
     getBasket().then(setItems).catch((e) => setMsg(String(e)));
+    refreshBasket().then(setItems).catch(() => {});
   }, []);
+
+  async function checkStatus() {
+    setRefreshing(true);
+    setMsg(null);
+    try {
+      const updated = await refreshBasket();
+      setItems(updated);
+      const doneCount = updated.filter((i) => i.status === "done").length;
+      setMsg(`${doneCount} downloaded`);
+    } catch (e) {
+      setMsg(`Status check failed: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setRefreshing(false);
+    }
+  }
 
   async function add() {
     if (!artist.trim()) return;
@@ -155,6 +182,18 @@ export function BasketView() {
         >
           Request all pending ({pendingCount})
         </button>
+        <button
+          onClick={checkStatus}
+          disabled={refreshing}
+          title="Re-check Lidarr for downloads"
+          style={{
+            ...buttonStyle,
+            background: "transparent",
+            border: `1px solid ${colors.border}`,
+          }}
+        >
+          {refreshing ? "Checking…" : "Check status"}
+        </button>
         {msg && <span style={{ color: colors.muted, fontSize: "0.85rem" }}>{msg}</span>}
       </div>
 
@@ -198,7 +237,7 @@ export function BasketView() {
                   letterSpacing: "0.5px",
                 }}
               >
-                {it.status}
+                {STATUS_LABEL[it.status]}
               </span>
               {it.status === "failed" && (
                 <button

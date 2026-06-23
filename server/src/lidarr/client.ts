@@ -39,10 +39,25 @@ export interface LidarrArtistResult {
   [key: string]: unknown;
 }
 
+export interface LidarrStatistics {
+  trackFileCount?: number;
+  totalTrackCount?: number;
+  /** 0–100; share of tracks that have files. */
+  percentOfTracks?: number;
+}
+
 export interface LidarrArtist {
   id: number;
   foreignArtistId: string;
   artistName: string;
+  statistics?: LidarrStatistics;
+}
+
+export interface LidarrAlbum {
+  id: number;
+  title: string;
+  foreignAlbumId: string;
+  statistics?: LidarrStatistics;
 }
 
 export interface AddArtistOptions {
@@ -131,9 +146,17 @@ export class LidarrClient {
     });
   }
 
-  /** Artists already in Lidarr (used to avoid double-adding). */
+  /** Artists already in Lidarr (used to avoid double-adding). Includes
+   *  download statistics so callers can tell what has landed on disk. */
   getArtists(): Promise<LidarrArtist[]> {
     return this.request<LidarrArtist[]>("/api/v1/artist");
+  }
+
+  /** Albums for an artist, with per-album download statistics. */
+  getAlbums(artistId: number): Promise<LidarrAlbum[]> {
+    return this.request<LidarrAlbum[]>("/api/v1/album", {
+      params: { artistId },
+    });
   }
 
   /** Add an artist from a lookup result with the given target + profiles. */

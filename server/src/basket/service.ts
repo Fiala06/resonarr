@@ -7,6 +7,7 @@ import type {
 } from "@resonarr/shared";
 import { getDb } from "../db/database.ts";
 import { log } from "../log/service.ts";
+import { normalize } from "../matching/match.ts";
 import { services } from "../services.ts";
 import { getSettings } from "../settings/service.ts";
 
@@ -210,5 +211,57 @@ export async function requestBasket(ids?: string[]): Promise<BasketItem[]> {
   }
 
   log.info("basket", `Requested ${requested}, failed ${failed}`);
+  return listBasket();
+}
+
+/**
+ * Re-check "requested" items against Lidarr's download statistics and flip any
+ * that now have files to "done" — so the basket reflects what has actually
+ * landed, not just what was submitted. Cheap when nothing is outstanding.
+ */
+export async function refreshBasketStatuses(): Promise<BasketItem[]> {
+  const lidarr = services.lidarr;
+  const requested = listBasket().filter((i) => i.status === "requested");
+  if (!lidarr || requested.length === 0) return listBasket();
+
+  const artistsByMbid = new Map(
+    (await lidarr.getArtists()).map((a) => [a.foreignArtistId, a]),
+  );
+
+  // Album lookups are per-artist; cache within this pass.
+  const albumCache = new Map<number, Awaited<ReturnType<typeof lidarr.getAlbums>>>();
+  let done = 0;
+
+  for (const item of requested) {
+    if (!item.mbid) continue;
+    const artist = artistsByMbid.get(item.mbid);
+    if (!artist) continue; // not in Lidarr yet — still outstanding
+
+    let landed = false;
+    if (item.type === "album" && item.album) {
+      try {
+        let albums = albumCache.get(artist.id);
+        if (!albums) {
+          albums = await lidarr.getAlbums(artist.id);
+          albumCache.set(artist.id, albums);
+        }
+        const want = normalize(item.album);
+        const match = albums.find((a) => normalize(a.title) === want);
+        landed = (match?.statistics?.trackFileCount ?? 0) > 0;
+      } catch {
+        landed = false;
+      }
+    } else {
+      // Artist-level request: any tracks on disk counts as landed.
+      landed = (artist.statistics?.trackFileCount ?? 0) > 0;
+    }
+
+    if (landed) {
+      setStatus(item.id, "done");
+      done += 1;
+    }
+  }
+
+  if (done > 0) log.info("basket", `${done} item(s) now downloaded (done)`);
   return listBasket();
 }
