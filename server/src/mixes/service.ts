@@ -1,5 +1,6 @@
 import type { MixCard, MixesResponse, Track } from "@resonarr/shared";
 import { services } from "../services.ts";
+import { log } from "../log/service.ts";
 
 const MIX_COUNT = 6; // how many mixes to generate
 const PER_MIX = 30; // tracks per mix
@@ -48,5 +49,9 @@ export async function runMixes(): Promise<MixesResponse> {
     }),
   );
 
+  log.info(
+    "mixes",
+    `Built ${mixes.length} mixes from ${recent.length} recent tracks`,
+  );
   return { mixes };
 }

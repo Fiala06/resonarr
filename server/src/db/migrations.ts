@@ -44,6 +44,21 @@ const MIGRATIONS: Migration[] = [
       );
     `,
   },
+  {
+    version: 2,
+    up: `
+      CREATE TABLE IF NOT EXISTS event_log (
+        id      INTEGER PRIMARY KEY AUTOINCREMENT,
+        ts      TEXT NOT NULL,
+        level   TEXT NOT NULL,
+        source  TEXT NOT NULL,
+        message TEXT NOT NULL,
+        detail  TEXT
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_event_log_id ON event_log (id DESC);
+    `,
+  },
 ];
 
 export function runMigrations(db: DatabaseSync): void {

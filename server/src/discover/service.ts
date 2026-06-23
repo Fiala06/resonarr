@@ -1,5 +1,6 @@
 import type { DiscoverResponse, Track } from "@resonarr/shared";
 import { services } from "../services.ts";
+import { log } from "../log/service.ts";
 
 const MAX_SEEDS = 25; // seeds sampled from the source playlist
 const PER_SEED = 15; // neighbors fetched per seed
@@ -50,6 +51,10 @@ export async function discoverFromPlaylist(
     .slice(0, Math.max(1, Math.min(limit, 100)))
     .map((s) => s.track);
 
+  log.info(
+    "discover",
+    `"${source.title}": ${tracks.length} fresh picks from ${seeds.length} seeds (${sourceTracks.length} in playlist)`,
+  );
   return { source, tracks };
 }
 

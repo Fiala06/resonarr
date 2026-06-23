@@ -6,6 +6,7 @@ import type {
   BasketItemType,
 } from "@resonarr/shared";
 import { getDb } from "../db/database.ts";
+import { log } from "../log/service.ts";
 import { services } from "../services.ts";
 import { getSettings } from "../settings/service.ts";
 
@@ -171,7 +172,10 @@ export async function requestBasket(ids?: string[]): Promise<BasketItem[]> {
     (await lidarr.getArtists()).map((a) => [a.foreignArtistId, a]),
   );
 
+  let requested = 0;
+  let failed = 0;
   for (const item of items) {
+    const label = item.album ? `${item.artist} — ${item.album}` : item.artist;
     try {
       const existing = item.mbid
         ? existingByMbid.get(item.mbid)
@@ -194,10 +198,17 @@ export async function requestBasket(ids?: string[]): Promise<BasketItem[]> {
         });
       }
       setStatus(item.id, "requested");
-    } catch {
+      requested += 1;
+    } catch (err) {
       setStatus(item.id, "failed");
+      failed += 1;
+      // Surface the reason the UI's "failed" badge can't show.
+      log.warn("basket", `Request failed: ${label}`, {
+        error: err instanceof Error ? err.message : String(err),
+      });
     }
   }
 
+  log.info("basket", `Requested ${requested}, failed ${failed}`);
   return listBasket();
 }

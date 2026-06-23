@@ -10,6 +10,7 @@ export type Tab =
   | "discover"
   | "adventure"
   | "basket"
+  | "logs"
   | "settings";
 
 const ICONS: Record<Tab, ReactNode> = {
@@ -43,6 +44,12 @@ const ICONS: Record<Tab, ReactNode> = {
     <>
       <path d="M3 5 H13 L12 13 H4 Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
       <path d="M6 5 V4 a2 2 0 0 1 4 0 V5" stroke="currentColor" strokeWidth="1.4" />
+    </>
+  ),
+  logs: (
+    <>
+      <rect x="3" y="2.5" width="10" height="11" rx="1.5" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M5.5 6 H10.5 M5.5 8.5 H10.5 M5.5 11 H8.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
     </>
   ),
   settings: (
@@ -133,6 +140,12 @@ export function Sidebar({
 
         <div style={{ height: 1, background: colors.border, margin: "0 6px 12px" }} />
 
+        <NavItem
+          tab="logs"
+          label="Activity log"
+          active={active === "logs"}
+          onClick={() => onNavigate("logs")}
+        />
         <NavItem
           tab="settings"
           label="Settings"

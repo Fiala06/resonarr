@@ -1,6 +1,7 @@
 import type { DiscoveryResult, Suggestion, Track } from "@resonarr/shared";
 import { services } from "../services.ts";
 import { getProvider } from "../llm/index.ts";
+import { log } from "../log/service.ts";
 import { tracksMatch } from "../matching/match.ts";
 import type { PlexClient } from "../plex/client.ts";
 
@@ -19,6 +20,10 @@ export async function runSage(
   if (!plex) throw new Error("Plex is not configured");
 
   const provider = getProvider(); // throws a clear error if no key/url
+  log.info("sage", `Prompt: "${truncate(prompt, 80)}"`, {
+    count: suggestionCount,
+    ownArtistBias,
+  });
 
   let ownedArtists: string[] | undefined;
   const section = await plex.getMusicSection();
@@ -26,10 +31,18 @@ export async function runSage(
     ownedArtists = await plex.getArtistNames(section.key, 200);
   }
 
-  const suggestions = await provider.suggest(prompt, {
-    count: suggestionCount,
-    ownedArtists,
-  });
+  let suggestions: Suggestion[];
+  try {
+    suggestions = await provider.suggest(prompt, {
+      count: suggestionCount,
+      ownedArtists,
+    });
+  } catch (err) {
+    log.error("sage", "LLM suggestion failed", {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    throw err;
+  }
 
   // Match each suggestion against Plex in parallel.
   const matched = await Promise.all(
@@ -51,7 +64,15 @@ export async function runSage(
     }
   }
 
+  log.info(
+    "sage",
+    `${matches.length} owned matches, ${misses.length} misses from ${suggestions.length} suggestions`,
+  );
   return { matches, misses };
+}
+
+function truncate(s: string, n: number): string {
+  return s.length > n ? `${s.slice(0, n)}…` : s;
 }
 
 async function matchOne(

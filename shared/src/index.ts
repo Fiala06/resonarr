@@ -102,6 +102,25 @@ export interface DiscoveryResult {
 }
 
 // ---------------------------------------------------------------------------
+// Activity log
+// ---------------------------------------------------------------------------
+
+export type LogLevel = "info" | "warn" | "error";
+
+/** A recorded app event, surfaced in the Logs view and mirrored to stdout. */
+export interface LogEntry {
+  id: number;
+  /** ISO 8601 timestamp. */
+  ts: string;
+  level: LogLevel;
+  /** Originating feature/subsystem, e.g. "sage", "discover", "basket". */
+  source: string;
+  message: string;
+  /** Optional structured context (already JSON-stringified). */
+  detail?: string;
+}
+
+// ---------------------------------------------------------------------------
 // Request basket / Lidarr
 // ---------------------------------------------------------------------------
 

@@ -8,6 +8,7 @@ import { MixesView } from "./views/MixesView";
 import { DiscoverView } from "./views/DiscoverView";
 import { AdventureView } from "./views/AdventureView";
 import { BasketView } from "./views/BasketView";
+import { LogsView } from "./views/LogsView";
 import { SettingsView } from "./views/SettingsView";
 import { getBasket, getHealth, getLibraryStats } from "./api";
 
@@ -54,6 +55,7 @@ export function App() {
           {tab === "discover" && <DiscoverView />}
           {tab === "adventure" && <AdventureView />}
           {tab === "basket" && <BasketView />}
+          {tab === "logs" && <LogsView />}
           {tab === "settings" && <SettingsView />}
         </div>
       </div>

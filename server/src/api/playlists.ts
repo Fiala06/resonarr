@@ -5,6 +5,7 @@ import type {
   CreatePlaylistResponse,
   PlaylistSummary,
 } from "@resonarr/shared";
+import { log } from "../log/service.ts";
 import { services } from "../services.ts";
 import { getSettings } from "../settings/service.ts";
 
@@ -35,6 +36,7 @@ export function registerPlaylistRoutes(app: FastifyInstance): void {
       const title = prefix ? `${prefix} · ${name}` : name;
 
       const created = await services.plex.createPlaylist(title, trackIds);
+      log.info("playlist", `Created "${created.title}" (${created.trackCount} tracks)`);
       return {
         playlistId: created.playlistId,
         name: created.title,
@@ -58,6 +60,7 @@ export function registerPlaylistRoutes(app: FastifyInstance): void {
         return reply.code(503).send({ error: "Plex is not configured" }) as never;
       }
       const added = await services.plex.addToPlaylist(id, trackIds);
+      log.info("playlist", `Added ${added} tracks to playlist ${id}`);
       return { playlistId: id, added };
     },
   );

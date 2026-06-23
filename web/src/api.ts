@@ -11,6 +11,7 @@ import type {
   HealthResponse,
   LibraryStats,
   LidarrOptions,
+  LogEntry,
   MixesResponse,
   PlaylistSummary,
   RadioResponse,
@@ -178,6 +179,14 @@ export async function bulkAddBasket(
       body: JSON.stringify({ items }),
     }),
   );
+}
+
+export async function getLogs(limit = 200): Promise<LogEntry[]> {
+  return asJson(await fetch(`/api/logs?limit=${limit}`));
+}
+
+export async function clearLogs(): Promise<void> {
+  await fetch("/api/logs", { method: "DELETE" });
 }
 
 export async function runSage(
