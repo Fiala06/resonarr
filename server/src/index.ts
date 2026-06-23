@@ -14,6 +14,13 @@ import { registerBasketRoutes } from "./api/basket.ts";
 import { registerSageRoutes } from "./api/sage.ts";
 import { registerLogRoutes } from "./api/logs.ts";
 import { registerProfileRoutes } from "./api/profiles.ts";
+import { registerAuthRoutes } from "./api/auth.ts";
+import {
+  authEnabled,
+  getSession,
+  parseCookie,
+  SESSION_COOKIE,
+} from "./auth/service.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const webDist = resolve(here, "../../web/dist");
@@ -42,8 +49,24 @@ if (config.auth) {
   app.log.info("HTTP Basic auth enabled");
 }
 
+// Plex login gate (opt-in via AUTH_PLEX). Protects the API; the static SPA and
+// the auth/health endpoints stay open so the login screen can load and sign in.
+if (authEnabled()) {
+  app.addHook("onRequest", async (req, reply) => {
+    const path = req.url.split("?")[0] ?? req.url;
+    if (!path.startsWith("/api/")) return; // SPA + static assets
+    if (path === "/api/health" || path.startsWith("/api/auth/")) return;
+    const sess = getSession(parseCookie(req.headers.cookie, SESSION_COOKIE));
+    if (!sess) {
+      reply.code(401).send({ error: "Not authenticated" });
+    }
+  });
+  app.log.info("Plex login required (AUTH_PLEX)");
+}
+
 // --- API routes --------------------------------------------------------------
 registerHealthRoutes(app);
+registerAuthRoutes(app);
 registerSettingsRoutes(app);
 registerLidarrRoutes(app);
 registerDiscoveryRoutes(app);

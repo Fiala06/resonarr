@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { LibraryStats, UserProfile } from "@resonarr/shared";
+import type { AuthUser, LibraryStats, UserProfile } from "@resonarr/shared";
 import { Logo } from "./Logo";
 import { ProfileSwitcher } from "./ProfileSwitcher";
 import { colors } from "../theme";
@@ -83,6 +83,8 @@ export function Sidebar({
   lidarrOk,
   profiles,
   onProfilesChanged,
+  authUser,
+  onLogout,
 }: {
   active: Tab;
   onNavigate: (t: Tab) => void;
@@ -91,6 +93,8 @@ export function Sidebar({
   lidarrOk: boolean | null;
   profiles: UserProfile[];
   onProfilesChanged: () => void;
+  authUser?: AuthUser;
+  onLogout?: () => void;
 }) {
   return (
     <div
@@ -178,6 +182,28 @@ export function Sidebar({
                 : "Lidarr offline"}
           </span>
         </div>
+
+        {authUser && onLogout && (
+          <div
+            onClick={onLogout}
+            title={`Signed in as ${authUser.name}`}
+            style={{
+              marginTop: 10,
+              padding: "0 8px",
+              fontSize: 12,
+              color: colors.faint,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              {authUser.name}
+            </span>
+            <span style={{ color: colors.accentLight }}>· Log out</span>
+          </div>
+        )}
       </div>
     </div>
   );

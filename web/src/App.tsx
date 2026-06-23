@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import type { LibraryStats, UserProfile } from "@resonarr/shared";
+import type { AuthUser, LibraryStats, UserProfile } from "@resonarr/shared";
 import { Sidebar } from "./components/Sidebar";
 import type { Tab } from "./components/Sidebar";
 import { SageView } from "./views/SageView";
@@ -10,7 +10,13 @@ import { AdventureView } from "./views/AdventureView";
 import { BasketView } from "./views/BasketView";
 import { LogsView } from "./views/LogsView";
 import { SettingsView } from "./views/SettingsView";
-import { getBasket, getHealth, getLibraryStats, getProfiles } from "./api";
+import {
+  getBasket,
+  getHealth,
+  getLibraryStats,
+  getProfiles,
+  logout,
+} from "./api";
 
 const TABS: Tab[] = [
   "sage",
@@ -30,7 +36,7 @@ function tabFromHash(): Tab {
   return (TABS as string[]).includes(h) ? (h as Tab) : "sage";
 }
 
-export function App() {
+export function App({ authUser }: { authUser?: AuthUser }) {
   const [tab, setTab] = useState<Tab>(tabFromHash);
   const [lidarrOk, setLidarrOk] = useState<boolean | null>(null);
   const [stats, setStats] = useState<LibraryStats | null>(null);
@@ -46,6 +52,11 @@ export function App() {
   const navigate = useCallback((t: Tab) => {
     window.location.hash = t;
     setTab(t);
+  }, []);
+
+  const onLogout = useCallback(async () => {
+    await logout();
+    window.location.reload();
   }, []);
 
   // Reflect back/forward navigation (and manual hash edits) into state.
@@ -86,6 +97,8 @@ export function App() {
         lidarrOk={lidarrOk}
         profiles={profiles}
         onProfilesChanged={loadProfiles}
+        authUser={authUser}
+        onLogout={onLogout}
       />
       <div style={{ flex: 1, minWidth: 0, overflowY: "auto" }}>
         {/* Remount views when the active profile changes so they refetch with

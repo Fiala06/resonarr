@@ -2,6 +2,8 @@ import type {
   AddBasketItemRequest,
   AdventureResponse,
   AppSettings,
+  AuthLoginStatus,
+  AuthStatus,
   BasketItem,
   BulkAddBasketResponse,
   CreatePlaylistResponse,
@@ -186,6 +188,24 @@ export async function bulkAddBasket(
       body: JSON.stringify({ items }),
     }),
   );
+}
+
+export async function getAuthStatus(): Promise<AuthStatus> {
+  const res = await fetch("/api/auth/me");
+  if (res.status === 401) return { authRequired: true };
+  return asJson(res);
+}
+
+export async function startLogin(): Promise<PlexPinStart> {
+  return asJson(await fetch("/api/auth/login", { method: "POST" }));
+}
+
+export async function pollLogin(pinId: string): Promise<AuthLoginStatus> {
+  return asJson(await fetch(`/api/auth/login/${encodeURIComponent(pinId)}`));
+}
+
+export async function logout(): Promise<void> {
+  await fetch("/api/auth/logout", { method: "POST" });
 }
 
 export async function getProfiles(): Promise<UserProfile[]> {

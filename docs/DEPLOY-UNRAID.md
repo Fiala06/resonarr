@@ -67,6 +67,7 @@ Add each as a **Variable** (Key → Value):
 | `LLM_PROVIDER` | `claude` | `claude` \| `openai` \| `ollama` |
 | `ANTHROPIC_API_KEY` | *(only if using Claude)* | |
 | `PORT` | `8080` | matches the port mapping |
+| `AUTH_PLEX` | `true` | *(optional)* require Plex login — see Securing remote access |
 
 > ⚠️ **`localhost` from inside a container points at the container, not the
 > host.** Use the LAN IP of the machine running Plex / Lidarr (often the Unraid
@@ -93,7 +94,37 @@ Apply. Unraid pulls the image and starts the container.
 
 ---
 
-## 4. Updating
+## 4. Securing remote access
+
+On a trusted home LAN you can leave Resonarr open. **Before exposing it beyond
+your LAN**, secure it — it holds Plex tokens (yours and any connected users').
+
+**Network layer first (strongest):** don't port-forward Resonarr directly.
+
+- **Tailscale / WireGuard** — reach it over a private mesh VPN; nothing is
+  public. Simplest and safest for a household.
+- **Cloudflare Tunnel + Access** — public URL with no open ports, plus a login
+  (email allowlist) at Cloudflare's edge.
+- **Reverse proxy** (SWAG / Nginx Proxy Manager / Traefik / Caddy) — terminates
+  **HTTPS** (required) and can add its own auth (Authelia/Authentik).
+
+**App-layer login (`AUTH_PLEX`):** set `AUTH_PLEX=true` to require a Plex login.
+Anyone whose Plex account can access **your** server is allowed in (so a partner
+with a shared account just logs in with their own Plex). Sessions are HttpOnly
+cookies; no passwords are stored.
+
+> ⚠️ Always pair `AUTH_PLEX` with **HTTPS** (via a proxy/tunnel). Without TLS the
+> session cookie travels in the clear. `AUTH_PLEX` is an app-level gate, not a
+> substitute for not exposing the raw HTTP port.
+>
+> **Locked out?** Unset `AUTH_PLEX` and restart the container to disable the gate.
+
+`AUTH_USER` / `AUTH_PASS` (HTTP Basic auth) remain as a single-shared-password
+alternative. Use one mechanism or the other, not both.
+
+---
+
+## 5. Updating
 
 Push to `main` → CI rebuilds `:latest`. On Unraid, click the container →
 **Force update** (or use the auto-update plugin) to pull the new image.

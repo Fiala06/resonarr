@@ -70,6 +70,17 @@ const MIGRATIONS: Migration[] = [
       );
     `,
   },
+  {
+    version: 4,
+    up: `
+      CREATE TABLE IF NOT EXISTS auth_sessions (
+        id         TEXT PRIMARY KEY,
+        name       TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        expires_at INTEGER NOT NULL
+      );
+    `,
+  },
 ];
 
 export function runMigrations(db: DatabaseSync): void {

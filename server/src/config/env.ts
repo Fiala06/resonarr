@@ -56,6 +56,15 @@ export const config = {
     return user && pass ? { user, pass } : undefined;
   })(),
 
+  /**
+   * Require Plex login (anyone with access to the Plex server). Opt-in via
+   * AUTH_PLEX=true/1. Only effective when Plex itself is configured.
+   */
+  authPlex: ((): boolean => {
+    const v = optional("AUTH_PLEX")?.toLowerCase();
+    return v === "true" || v === "1" || v === "yes";
+  })(),
+
   llm: {
     provider: (optional("LLM_PROVIDER") ?? "claude") as
       | "claude"

@@ -122,6 +122,23 @@ export interface PlexPinStart {
   authUrl: string;
 }
 
+/** The signed-in user, if any. */
+export interface AuthUser {
+  name: string;
+}
+
+/** Whether login is enforced, and who (if anyone) is currently signed in. */
+export interface AuthStatus {
+  authRequired: boolean;
+  user?: AuthUser;
+}
+
+/** Poll result for a login PIN. */
+export interface AuthLoginStatus {
+  pending: boolean;
+  user?: AuthUser;
+}
+
 /** Poll result for a Plex PIN login. */
 export interface PlexPinStatus {
   /** True while the user hasn't finished authorizing yet. */
