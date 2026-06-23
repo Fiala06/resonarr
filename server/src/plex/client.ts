@@ -133,6 +133,22 @@ export class PlexClient {
     return (data.MediaContainer.Metadata ?? []).map(toTrack);
   }
 
+  /** Recently played tracks from a section's play history (de-duplicated). */
+  async getRecentlyPlayed(sectionKey: string, limit = 40): Promise<Track[]> {
+    const data = await this.request<PlexContainer<PlexMetadata>>(
+      "/status/sessions/history/all",
+      { librarySectionID: sectionKey, sort: "viewedAt:desc", limit },
+    );
+    const seen = new Set<string>();
+    const out: Track[] = [];
+    for (const m of data.MediaContainer.Metadata ?? []) {
+      if (!m.ratingKey || seen.has(m.ratingKey)) continue;
+      seen.add(m.ratingKey);
+      out.push(toTrack(m));
+    }
+    return out;
+  }
+
   /**
    * Full-text track search via Plex's hub search (the `/all?query=` param is
    * silently ignored, so we use `/hubs/search` and pull the track hub).
@@ -148,6 +164,16 @@ export class PlexClient {
       (h) => h.type === "track",
     );
     return (trackHub?.Metadata ?? []).map(toTrack);
+  }
+
+  /** Fetch a single track by ratingKey. */
+  async getTrack(ratingKey: string): Promise<Track> {
+    const data = await this.request<PlexContainer<PlexMetadata>>(
+      `/library/metadata/${ratingKey}`,
+    );
+    const m = data.MediaContainer.Metadata?.[0];
+    if (!m) throw new Error(`Track ${ratingKey} not found`);
+    return toTrack(m);
   }
 
   /** The Plex server's machine identifier — required to build playlist URIs. */

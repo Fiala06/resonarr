@@ -6,6 +6,24 @@ this project uses phased pre-1.0 development (see [docs/ROADMAP.md](docs/ROADMAP
 
 ## [Unreleased]
 
+### Phase 6 — Sonic Adventure
+
+#### Added
+- **Sonic Adventure**: pick a start + destination track → a sonic path between
+  them, built by a greedy walk over Plex `nearest` (precompute the destination's
+  neighborhood, step toward it, destination always last). `POST /api/adventure`;
+  Adventure tab with two seed pickers and a numbered path. Heuristic (no raw
+  vectors) — tunable.
+
+### Phase 5 — Mixes for You
+
+#### Added
+- **Mixes for You**: seeded from Plex play history (recently played), expanded
+  via the cached sonic similarity, deduped + shuffled into a mix. `GET /api/mixes`;
+  Mixes tab with generate/regenerate + save.
+- Shared `SeedPicker` and `SavePlaylistBar` components; `PlexClient`
+  `getRecentlyPlayed` + `getTrack`.
+
 ### Phase 4 — Sonic Sage
 
 #### Added

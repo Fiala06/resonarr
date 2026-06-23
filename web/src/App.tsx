@@ -4,9 +4,18 @@ import { SettingsView } from "./views/SettingsView";
 import { RadioView } from "./views/RadioView";
 import { BasketView } from "./views/BasketView";
 import { SageView } from "./views/SageView";
+import { MixesView } from "./views/MixesView";
+import { AdventureView } from "./views/AdventureView";
 import { colors } from "./theme";
 
-type Tab = "sage" | "radio" | "basket" | "status" | "settings";
+type Tab =
+  | "sage"
+  | "radio"
+  | "mixes"
+  | "adventure"
+  | "basket"
+  | "status"
+  | "settings";
 
 export function App() {
   const [tab, setTab] = useState<Tab>("sage");
@@ -24,6 +33,15 @@ export function App() {
           </TabButton>
           <TabButton active={tab === "radio"} onClick={() => setTab("radio")}>
             Radio
+          </TabButton>
+          <TabButton active={tab === "mixes"} onClick={() => setTab("mixes")}>
+            Mixes
+          </TabButton>
+          <TabButton
+            active={tab === "adventure"}
+            onClick={() => setTab("adventure")}
+          >
+            Adventure
           </TabButton>
           <TabButton active={tab === "basket"} onClick={() => setTab("basket")}>
             Basket
@@ -43,6 +61,8 @@ export function App() {
       <main style={{ marginTop: "1.5rem" }}>
         {tab === "sage" && <SageView />}
         {tab === "radio" && <RadioView />}
+        {tab === "mixes" && <MixesView />}
+        {tab === "adventure" && <AdventureView />}
         {tab === "basket" && <BasketView />}
         {tab === "status" && <StatusView />}
         {tab === "settings" && <SettingsView />}

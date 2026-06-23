@@ -47,6 +47,17 @@ export interface AdventureRequest {
   length?: number;
 }
 
+export interface AdventureResponse {
+  /** Ordered path from start to destination, inclusive. */
+  path: Track[];
+}
+
+export interface MixResponse {
+  /** Recently-played tracks the mix was seeded from. */
+  seeds: Track[];
+  tracks: Track[];
+}
+
 export interface SageRequest {
   prompt: string;
   /** Bias recommendations toward artists already owned. */

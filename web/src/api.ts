@@ -1,5 +1,6 @@
 import type {
   AddBasketItemRequest,
+  AdventureResponse,
   AppSettings,
   BasketItem,
   BulkAddBasketResponse,
@@ -7,6 +8,7 @@ import type {
   DiscoveryResult,
   HealthResponse,
   LidarrOptions,
+  MixResponse,
   RadioResponse,
   Track,
 } from "@resonarr/shared";
@@ -59,6 +61,24 @@ export async function getRadio(seedTrackId: string): Promise<RadioResponse> {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ seedTrackId }),
+    }),
+  );
+}
+
+export async function getMixes(): Promise<MixResponse> {
+  return asJson(await fetch("/api/mixes"));
+}
+
+export async function getAdventure(
+  startTrackId: string,
+  endTrackId: string,
+  length?: number,
+): Promise<AdventureResponse> {
+  return asJson(
+    await fetch("/api/adventure", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ startTrackId, endTrackId, length }),
     }),
   );
 }
