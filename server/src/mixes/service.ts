@@ -1,6 +1,7 @@
 import type { MixCard, MixesResponse, Track } from "@resonarr/shared";
 import { services } from "../services.ts";
 import { log } from "../log/service.ts";
+import { getActivePlexClient } from "../profiles/service.ts";
 
 const MIX_COUNT = 6; // how many mixes to generate
 const PER_MIX = 30; // tracks per mix
@@ -10,9 +11,11 @@ const PER_MIX = 30; // tracks per mix
  * artist and expanded via sonic similarity. All tracks are owned.
  */
 export async function runMixes(): Promise<MixesResponse> {
-  const plex = services.plex;
   const sonic = services.sonic;
-  if (!plex || !sonic) throw new Error("Plex is not configured");
+  if (!sonic) throw new Error("Plex is not configured");
+  // History + seeds come from the active profile (whose listening this is);
+  // sonic expansion runs over the shared library via the owner client.
+  const plex = getActivePlexClient();
 
   const section = await plex.getMusicSection();
   const recent = await plex.getRecentlyPlayed(section.key, 60);

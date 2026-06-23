@@ -13,6 +13,7 @@ import { registerPlaylistRoutes } from "./api/playlists.ts";
 import { registerBasketRoutes } from "./api/basket.ts";
 import { registerSageRoutes } from "./api/sage.ts";
 import { registerLogRoutes } from "./api/logs.ts";
+import { registerProfileRoutes } from "./api/profiles.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const webDist = resolve(here, "../../web/dist");
@@ -50,6 +51,7 @@ registerPlaylistRoutes(app);
 registerBasketRoutes(app);
 registerSageRoutes(app);
 registerLogRoutes(app);
+registerProfileRoutes(app);
 
 // --- Static web app (built SPA) ----------------------------------------------
 // Present in production / Docker; absent during `dev:web` (Vite serves it).

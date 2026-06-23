@@ -1,6 +1,7 @@
 import type { DiscoverResponse, Track } from "@resonarr/shared";
 import { services } from "../services.ts";
 import { log } from "../log/service.ts";
+import { getActivePlexClient } from "../profiles/service.ts";
 
 const MAX_SEEDS = 25; // seeds sampled from the source playlist
 const PER_SEED = 15; // neighbors fetched per seed
@@ -16,9 +17,11 @@ export async function discoverFromPlaylist(
   playlistId: string,
   limit = DEFAULT_LIMIT,
 ): Promise<DiscoverResponse> {
-  const plex = services.plex;
   const sonic = services.sonic;
-  if (!plex || !sonic) throw new Error("Plex is not configured");
+  if (!sonic) throw new Error("Plex is not configured");
+  // Read the seed playlist from the active profile's account; expand over the
+  // shared library via the owner client.
+  const plex = getActivePlexClient();
 
   const source = (await plex.getPlaylists()).find((p) => p.id === playlistId);
   if (!source) throw new Error("Playlist not found");

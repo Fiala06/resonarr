@@ -7,6 +7,7 @@ import type {
 } from "@resonarr/shared";
 import { log } from "../log/service.ts";
 import { services } from "../services.ts";
+import { getActivePlexClient } from "../profiles/service.ts";
 import { getSettings } from "../settings/service.ts";
 
 export function registerPlaylistRoutes(app: FastifyInstance): void {
@@ -15,7 +16,7 @@ export function registerPlaylistRoutes(app: FastifyInstance): void {
     if (!services.plex) {
       return reply.code(503).send({ error: "Plex is not configured" }) as never;
     }
-    return services.plex.getPlaylists();
+    return getActivePlexClient().getPlaylists();
   });
 
   // Create a new playlist.
@@ -35,7 +36,7 @@ export function registerPlaylistRoutes(app: FastifyInstance): void {
       const prefix = getSettings().playlistPrefix.trim();
       const title = prefix ? `${prefix} · ${name}` : name;
 
-      const created = await services.plex.createPlaylist(title, trackIds);
+      const created = await getActivePlexClient().createPlaylist(title, trackIds);
       log.info("playlist", `Created "${created.title}" (${created.trackCount} tracks)`);
       return {
         playlistId: created.playlistId,
@@ -59,7 +60,7 @@ export function registerPlaylistRoutes(app: FastifyInstance): void {
       if (!services.plex) {
         return reply.code(503).send({ error: "Plex is not configured" }) as never;
       }
-      const added = await services.plex.addToPlaylist(id, trackIds);
+      const added = await getActivePlexClient().addToPlaylist(id, trackIds);
       log.info("playlist", `Added ${added} tracks to playlist ${id}`);
       return { playlistId: id, added };
     },

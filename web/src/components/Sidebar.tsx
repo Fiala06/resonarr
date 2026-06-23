@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
-import type { LibraryStats } from "@resonarr/shared";
+import type { LibraryStats, UserProfile } from "@resonarr/shared";
 import { Logo } from "./Logo";
+import { ProfileSwitcher } from "./ProfileSwitcher";
 import { colors } from "../theme";
 
 export type Tab =
@@ -80,12 +81,16 @@ export function Sidebar({
   basketCount,
   stats,
   lidarrOk,
+  profiles,
+  onProfilesChanged,
 }: {
   active: Tab;
   onNavigate: (t: Tab) => void;
   basketCount: number;
   stats: LibraryStats | null;
   lidarrOk: boolean | null;
+  profiles: UserProfile[];
+  onProfilesChanged: () => void;
 }) {
   return (
     <div
@@ -105,6 +110,10 @@ export function Sidebar({
           Resonarr
         </span>
       </div>
+
+      {profiles.length > 0 && (
+        <ProfileSwitcher profiles={profiles} onChanged={onProfilesChanged} />
+      )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
         {MAIN_TABS.map((t) => (

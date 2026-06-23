@@ -59,6 +59,17 @@ const MIGRATIONS: Migration[] = [
       CREATE INDEX IF NOT EXISTS idx_event_log_id ON event_log (id DESC);
     `,
   },
+  {
+    version: 3,
+    up: `
+      CREATE TABLE IF NOT EXISTS profiles (
+        id         TEXT PRIMARY KEY,
+        name       TEXT NOT NULL,
+        token      TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+    `,
+  },
 ];
 
 export function runMigrations(db: DatabaseSync): void {

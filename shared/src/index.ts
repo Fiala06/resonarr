@@ -102,6 +102,35 @@ export interface DiscoveryResult {
 }
 
 // ---------------------------------------------------------------------------
+// User profiles (multi-user)
+// ---------------------------------------------------------------------------
+
+/** A Plex identity Resonarr can act as. The owner uses the server's env token;
+ *  added users authenticate via Plex and have their token stored server-side. */
+export interface UserProfile {
+  /** "owner" for the server account, otherwise a generated id. */
+  id: string;
+  name: string;
+  isOwner: boolean;
+  /** Whether this is the currently selected profile. */
+  active: boolean;
+}
+
+/** Start of a Plex PIN login: open authUrl, then poll with pinId. */
+export interface PlexPinStart {
+  pinId: string;
+  authUrl: string;
+}
+
+/** Poll result for a Plex PIN login. */
+export interface PlexPinStatus {
+  /** True while the user hasn't finished authorizing yet. */
+  pending: boolean;
+  /** Present once authorized — the newly connected profile. */
+  profile?: UserProfile;
+}
+
+// ---------------------------------------------------------------------------
 // Activity log
 // ---------------------------------------------------------------------------
 
@@ -212,6 +241,8 @@ export interface AppSettings {
   lidarrMetadataProfileId: number | null;
   /** Prefix applied to playlists Resonarr creates in Plex. */
   playlistPrefix: string;
+  /** Active user profile id ("owner" = the server account / env token). */
+  activeProfileId: string;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -222,6 +253,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   lidarrQualityProfileId: null,
   lidarrMetadataProfileId: null,
   playlistPrefix: "Resonarr",
+  activeProfileId: "owner",
 };
 
 /** Lidarr targets offered in the Settings UI dropdowns. */

@@ -13,6 +13,9 @@ import type {
   LidarrOptions,
   LogEntry,
   MixesResponse,
+  PlexPinStart,
+  PlexPinStatus,
+  UserProfile,
   PlaylistSummary,
   RadioResponse,
   Track,
@@ -183,6 +186,32 @@ export async function bulkAddBasket(
       body: JSON.stringify({ items }),
     }),
   );
+}
+
+export async function getProfiles(): Promise<UserProfile[]> {
+  return asJson(await fetch("/api/profiles"));
+}
+
+export async function setActiveProfile(id: string): Promise<UserProfile[]> {
+  return asJson(
+    await fetch("/api/profiles/active", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    }),
+  );
+}
+
+export async function removeProfile(id: string): Promise<void> {
+  await fetch(`/api/profiles/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
+export async function startPlexPin(): Promise<PlexPinStart> {
+  return asJson(await fetch("/api/profiles/pin", { method: "POST" }));
+}
+
+export async function pollPlexPin(pinId: string): Promise<PlexPinStatus> {
+  return asJson(await fetch(`/api/profiles/pin/${encodeURIComponent(pinId)}`));
 }
 
 export async function getLogs(limit = 200): Promise<LogEntry[]> {
