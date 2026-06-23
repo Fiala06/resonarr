@@ -93,6 +93,15 @@ export interface RequestBasketRequest {
   ids?: string[];
 }
 
+export interface BulkAddBasketRequest {
+  items: AddBasketItemRequest[];
+}
+
+export interface BulkAddBasketResponse {
+  added: BasketItem[];
+  failed: { artist: string; error: string }[];
+}
+
 // ---------------------------------------------------------------------------
 // Playlists
 // ---------------------------------------------------------------------------

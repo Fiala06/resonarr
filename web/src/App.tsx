@@ -3,12 +3,13 @@ import { StatusView } from "./views/StatusView";
 import { SettingsView } from "./views/SettingsView";
 import { RadioView } from "./views/RadioView";
 import { BasketView } from "./views/BasketView";
+import { SageView } from "./views/SageView";
 import { colors } from "./theme";
 
-type Tab = "radio" | "basket" | "status" | "settings";
+type Tab = "sage" | "radio" | "basket" | "status" | "settings";
 
 export function App() {
-  const [tab, setTab] = useState<Tab>("radio");
+  const [tab, setTab] = useState<Tab>("sage");
 
   return (
     <div style={{ maxWidth: 720, margin: "3rem auto", padding: "0 1rem" }}>
@@ -18,6 +19,9 @@ export function App() {
           Library-first music discovery
         </p>
         <nav style={{ display: "flex", gap: 6, marginTop: 16 }}>
+          <TabButton active={tab === "sage"} onClick={() => setTab("sage")}>
+            Sonic Sage
+          </TabButton>
           <TabButton active={tab === "radio"} onClick={() => setTab("radio")}>
             Radio
           </TabButton>
@@ -37,6 +41,7 @@ export function App() {
       </header>
 
       <main style={{ marginTop: "1.5rem" }}>
+        {tab === "sage" && <SageView />}
         {tab === "radio" && <RadioView />}
         {tab === "basket" && <BasketView />}
         {tab === "status" && <StatusView />}

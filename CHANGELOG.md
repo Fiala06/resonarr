@@ -6,6 +6,22 @@ this project uses phased pre-1.0 development (see [docs/ROADMAP.md](docs/ROADMAP
 
 ## [Unreleased]
 
+### Phase 4 — Sonic Sage
+
+#### Added
+- **Sonic Sage**: natural-language prompt → LLM track suggestions → matched
+  against the Plex library. Owned matches become a playlist; misses are surfaced
+  for one-click add to the request basket (validated, never silently dropped).
+- **Pluggable LLM layer** (`SuggestProvider`) with **Claude**, **OpenAI**, and
+  **Ollama** adapters (HTTP via fetch — no SDK/native deps), selected by the
+  Settings provider with sensible default models. Uniform JSON-object prompt +
+  tolerant parser.
+- **Own-artist bias**: optionally seeds the prompt with a sample of owned Plex
+  artists.
+- **Fuzzy matcher** (`normalize` + `tracksMatch`) tolerant of remaster/live/feat
+  variations; `POST /api/sage`; `POST /api/basket/bulk` (best-effort, source
+  `sonic-sage`). New Sonic Sage tab (default).
+
 ### Phase 2 — Radio
 
 #### Added

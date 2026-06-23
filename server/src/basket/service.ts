@@ -102,6 +102,25 @@ export async function addToBasket(
   return item;
 }
 
+/** Add several items best-effort; returns what succeeded and what failed. */
+export async function addManyToBasket(
+  inputs: AddBasketItemRequest[],
+): Promise<{ added: BasketItem[]; failed: { artist: string; error: string }[] }> {
+  const added: BasketItem[] = [];
+  const failed: { artist: string; error: string }[] = [];
+  for (const input of inputs) {
+    try {
+      added.push(await addToBasket(input));
+    } catch (err) {
+      failed.push({
+        artist: input.artist,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+  return { added, failed };
+}
+
 export function removeFromBasket(id: string): void {
   getDb().prepare("DELETE FROM basket_items WHERE id = ?").run(id);
 }

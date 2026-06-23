@@ -2,9 +2,12 @@ import type { FastifyInstance } from "fastify";
 import type {
   AddBasketItemRequest,
   BasketItem,
+  BulkAddBasketRequest,
+  BulkAddBasketResponse,
   RequestBasketRequest,
 } from "@resonarr/shared";
 import {
+  addManyToBasket,
   addToBasket,
   listBasket,
   removeFromBasket,
@@ -24,6 +27,13 @@ export function registerBasketRoutes(app: FastifyInstance): void {
           error: err instanceof Error ? err.message : String(err),
         }) as never;
       }
+    },
+  );
+
+  app.post<{ Body: BulkAddBasketRequest }>(
+    "/api/basket/bulk",
+    async (req): Promise<BulkAddBasketResponse> => {
+      return addManyToBasket(req.body?.items ?? []);
     },
   );
 

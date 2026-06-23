@@ -97,6 +97,17 @@ export class PlexClient {
     return { key: music.key, title: music.title };
   }
 
+  /** Artist names in a section (type 8) — used to bias LLM suggestions. */
+  async getArtistNames(sectionKey: string, limit = 200): Promise<string[]> {
+    const data = await this.request<PlexContainer<PlexMetadata>>(
+      `/library/sections/${sectionKey}/all`,
+      { type: 8, limit },
+    );
+    return (data.MediaContainer.Metadata ?? [])
+      .map((m) => m.title)
+      .filter((t): t is string => Boolean(t));
+  }
+
   /** Fetch a handful of tracks from a section — useful as sonic seeds. */
   async getSampleTracks(sectionKey: string, limit = 5): Promise<Track[]> {
     const data = await this.request<PlexContainer<PlexMetadata>>(

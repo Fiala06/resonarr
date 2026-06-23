@@ -1,7 +1,10 @@
 import type {
+  AddBasketItemRequest,
   AppSettings,
   BasketItem,
+  BulkAddBasketResponse,
   CreatePlaylistResponse,
+  DiscoveryResult,
   HealthResponse,
   LidarrOptions,
   RadioResponse,
@@ -100,6 +103,31 @@ export async function requestBasket(ids?: string[]): Promise<BasketItem[]> {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ids }),
+    }),
+  );
+}
+
+export async function bulkAddBasket(
+  items: AddBasketItemRequest[],
+): Promise<BulkAddBasketResponse> {
+  return asJson(
+    await fetch("/api/basket/bulk", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ items }),
+    }),
+  );
+}
+
+export async function runSage(
+  prompt: string,
+  ownArtistBias: boolean,
+): Promise<DiscoveryResult> {
+  return asJson(
+    await fetch("/api/sage", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt, ownArtistBias }),
     }),
   );
 }
