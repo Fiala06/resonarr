@@ -10,6 +10,7 @@
     "spike:lidarr": "tsx src/spikes/lidarr-spike.ts",
     "spike:lidarr-add": "tsx src/spikes/lidarr-add-spike.ts",
     "spike:playlist": "tsx src/spikes/playlist-spike.ts",
+    "spike:users": "tsx src/spikes/users-spike.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
