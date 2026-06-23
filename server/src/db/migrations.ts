@@ -81,6 +81,11 @@ const MIGRATIONS: Migration[] = [
       );
     `,
   },
+  {
+    version: 5,
+    // Carry the user's Plex token on the session so the app can act as them.
+    up: `ALTER TABLE auth_sessions ADD COLUMN token TEXT;`,
+  },
 ];
 
 export function runMigrations(db: DatabaseSync): void {

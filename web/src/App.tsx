@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import type { AuthUser, LibraryStats, UserProfile } from "@resonarr/shared";
+import type { AuthUser, LibraryStats } from "@resonarr/shared";
 import { Sidebar } from "./components/Sidebar";
 import type { Tab } from "./components/Sidebar";
 import { SageView } from "./views/SageView";
@@ -10,13 +10,7 @@ import { AdventureView } from "./views/AdventureView";
 import { BasketView } from "./views/BasketView";
 import { LogsView } from "./views/LogsView";
 import { SettingsView } from "./views/SettingsView";
-import {
-  getBasket,
-  getHealth,
-  getLibraryStats,
-  getProfiles,
-  logout,
-} from "./api";
+import { getBasket, getHealth, getLibraryStats, logout } from "./api";
 
 const TABS: Tab[] = [
   "sage",
@@ -41,13 +35,6 @@ export function App({ authUser }: { authUser?: AuthUser }) {
   const [lidarrOk, setLidarrOk] = useState<boolean | null>(null);
   const [stats, setStats] = useState<LibraryStats | null>(null);
   const [basketCount, setBasketCount] = useState(0);
-  const [profiles, setProfiles] = useState<UserProfile[]>([]);
-
-  const activeProfileId = profiles.find((p) => p.active)?.id ?? "owner";
-
-  const loadProfiles = useCallback(() => {
-    getProfiles().then(setProfiles).catch(() => {});
-  }, []);
 
   const navigate = useCallback((t: Tab) => {
     window.location.hash = t;
@@ -79,8 +66,7 @@ export function App({ authUser }: { authUser?: AuthUser }) {
     getLibraryStats()
       .then(setStats)
       .catch(() => {});
-    loadProfiles();
-  }, [loadProfiles]);
+  }, []);
 
   // Keep the basket badge fresh as you move around the app.
   useEffect(() => {
@@ -95,15 +81,11 @@ export function App({ authUser }: { authUser?: AuthUser }) {
         basketCount={basketCount}
         stats={stats}
         lidarrOk={lidarrOk}
-        profiles={profiles}
-        onProfilesChanged={loadProfiles}
         authUser={authUser}
         onLogout={onLogout}
       />
       <div style={{ flex: 1, minWidth: 0, overflowY: "auto" }}>
-        {/* Remount views when the active profile changes so they refetch with
-            the new account's token (playlists, history, etc.). */}
-        <div key={activeProfileId} style={{ padding: "28px 34px 48px", maxWidth: 860 }}>
+        <div style={{ padding: "28px 34px 48px", maxWidth: 860 }}>
           {tab === "sage" && <SageView />}
           {tab === "radio" && <RadioView />}
           {tab === "mixes" && <MixesView />}

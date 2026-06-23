@@ -11,6 +11,7 @@ import type {
   Track,
 } from "@resonarr/shared";
 import { services } from "../services.ts";
+import { userPlexClient } from "../auth/service.ts";
 import { runMixes } from "../mixes/service.ts";
 import { runAdventure } from "../adventure/service.ts";
 import { discoverFromPlaylist } from "../discover/service.ts";
@@ -80,12 +81,12 @@ export function registerDiscoveryRoutes(app: FastifyInstance): void {
   });
 
   // Mixes: seeded from recent listening, expanded by similarity.
-  app.get("/api/mixes", async (_req, reply): Promise<MixesResponse> => {
+  app.get("/api/mixes", async (req, reply): Promise<MixesResponse> => {
     if (!services.plex) {
       return reply.code(503).send({ error: "Plex is not configured" }) as never;
     }
     try {
-      return await runMixes();
+      return await runMixes(userPlexClient(req));
     } catch (err) {
       return reply.code(502).send({
         error: err instanceof Error ? err.message : String(err),
@@ -105,7 +106,7 @@ export function registerDiscoveryRoutes(app: FastifyInstance): void {
         return reply.code(503).send({ error: "Plex is not configured" }) as never;
       }
       try {
-        return await discoverFromPlaylist(playlistId, limit);
+        return await discoverFromPlaylist(userPlexClient(req), playlistId, limit);
       } catch (err) {
         return reply.code(502).send({
           error: err instanceof Error ? err.message : String(err),

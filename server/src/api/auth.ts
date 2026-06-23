@@ -1,13 +1,13 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import type { AuthLoginStatus, AuthStatus, PlexPinStart } from "@resonarr/shared";
 import { buildAuthUrl, checkPin, createPin, getAccountName } from "../plex/auth.ts";
-import { getClientId } from "../profiles/service.ts";
 import { log } from "../log/service.ts";
 import {
   authEnabled,
   clearSessionCookie,
   createSession,
   deleteSession,
+  getClientId,
   getSession,
   parseCookie,
   sessionCookie,
@@ -68,7 +68,7 @@ export function registerAuthRoutes(app: FastifyInstance): void {
         }
 
         const name = await getAccountName(token);
-        const sid = createSession(name);
+        const sid = createSession(name, token);
         reply.header("Set-Cookie", sessionCookie(sid, isHttps(req)));
         log.info("auth", `Signed in: ${name}`);
         return { pending: false, user: { name } };

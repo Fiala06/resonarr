@@ -1,6 +1,8 @@
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
+import type { FastifyRequest } from "fastify";
 import { getDb } from "../db/database.ts";
 import { config } from "../config/env.ts";
+import { PlexClient } from "../plex/client.ts";
 
 /**
  * Session-cookie auth gated on Plex server access. A user proves they belong by
@@ -31,29 +33,37 @@ export async function verifyServerAccess(token: string): Promise<boolean> {
   }
 }
 
-export function createSession(name: string): string {
+export function createSession(name: string, token: string): string {
   const id = randomBytes(32).toString("hex");
   const now = Date.now();
   getDb()
     .prepare(
-      `INSERT INTO auth_sessions (id, name, created_at, expires_at)
-       VALUES (?, ?, ?, ?)`,
+      `INSERT INTO auth_sessions (id, name, token, created_at, expires_at)
+       VALUES (?, ?, ?, ?, ?)`,
     )
-    .run(id, name, new Date(now).toISOString(), now + SESSION_TTL_MS);
+    .run(id, name, token, new Date(now).toISOString(), now + SESSION_TTL_MS);
   return id;
 }
 
-export function getSession(id: string | undefined): { name: string } | null {
+export interface Session {
+  name: string;
+  /** The user's Plex token (may be null for legacy sessions). */
+  token: string | null;
+}
+
+export function getSession(id: string | undefined): Session | null {
   if (!id) return null;
   const row = getDb()
-    .prepare("SELECT name, expires_at FROM auth_sessions WHERE id = ?")
-    .get(id) as { name: string; expires_at: number } | undefined;
+    .prepare("SELECT name, token, expires_at FROM auth_sessions WHERE id = ?")
+    .get(id) as
+    | { name: string; token: string | null; expires_at: number }
+    | undefined;
   if (!row) return null;
   if (row.expires_at < Date.now()) {
     deleteSession(id);
     return null;
   }
-  return { name: row.name };
+  return { name: row.name, token: row.token };
 }
 
 export function deleteSession(id: string): void {
@@ -86,4 +96,34 @@ export function sessionCookie(id: string, secure: boolean): string {
 
 export function clearSessionCookie(): string {
   return `${SESSION_COOKIE}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0`;
+}
+
+/** A stable X-Plex-Client-Identifier for this instance, generated once. */
+export function getClientId(): string {
+  const db = getDb();
+  const row = db
+    .prepare("SELECT value FROM settings WHERE key = '_plexClientId'")
+    .get() as { value: string } | undefined;
+  if (row) return JSON.parse(row.value) as string;
+
+  const id = randomUUID();
+  db.prepare(
+    "INSERT INTO settings (key, value) VALUES ('_plexClientId', ?)",
+  ).run(JSON.stringify(id));
+  return id;
+}
+
+/**
+ * Plex client for the request's user. When login is enabled and the request has
+ * a session, it uses that user's token (so the app acts as whoever is signed
+ * in); otherwise it falls back to the owner's configured token.
+ */
+export function userPlexClient(req: FastifyRequest): PlexClient {
+  if (!config.plex) throw new Error("Plex is not configured");
+  let token = config.plex.token;
+  if (authEnabled()) {
+    const sess = getSession(parseCookie(req.headers.cookie, SESSION_COOKIE));
+    if (sess?.token) token = sess.token;
+  }
+  return new PlexClient({ url: config.plex.url, token });
 }
