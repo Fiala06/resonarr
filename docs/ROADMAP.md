@@ -6,6 +6,11 @@ it came together.
 
 Legend: **Next** = likely to build soon · **Ideas** = candidates, not committed.
 
+What makes Resonarr different from Plexamp: it's **library-first**, it reads
+**Plex sonic** data, it has a **pluggable LLM**, and — uniquely — it can actually
+*acquire* music via **Lidarr**. The strongest ideas lean on all four, especially
+Lidarr: Plexamp can recommend music but it can't go get it.
+
 ---
 
 ## Next
@@ -30,24 +35,86 @@ playlist as new matches appear). Needs: a scheduler, persisted auto-playlist
 definitions (builds on *Saved discovery runs* below), a "recently added /
 recently unplayed" bias, and history so weeks don't repeat.
 
+### Artist-level discovery → Lidarr
+The most on-brand idea here: "artists *like* the ones you love that you don't own
+yet." Take your top/most-played artists, find adjacent artists (LLM and/or sonic
+adjacency), validate via Lidarr lookup, and drop them in the basket. Today the
+basket fills from track-level misses; this makes discovery deliberately about
+**expanding the collection** — the one thing Plexamp can't do.
+
+### Deep cuts & rediscovery
+Surface owned tracks you rarely or never play, or loved a year ago and drifted
+from. Plexamp is strong at *new* sonic neighbors but weak at "rediscover your own
+shelf" — and with tens of thousands of tracks, most are probably unplayed. Cheap
+to build: uses play counts + `lastViewedAt` Plex already exposes.
+
 ---
 
 ## Ideas
 
-- **Cycling prompt examples in Sonic Sage** — like Plexamp's "Try one of these",
-  show a rotating set of ~10 example prompts seeded from the user's play history
-  / top artists (e.g. "melancholic, haunting vocals, reminiscent of
-  Evanescence"). Cycle them as placeholder/suggestions to spark ideas.
-- **Declutter the sidebar footer** — the lower-left is getting busy (library
-  stats, Settings, Lidarr status, login/logout). Group it into a tidier account
-  / status area (e.g. collapse stats, fold status + logout into one menu).
+### Grow & complete the library (Lidarr synergy)
+
+- **New releases from artists you play** — watch owned artists, surface new
+  albums, and queue them to Lidarr + a "New from your artists" playlist once
+  downloaded. Lidarr monitors releases but doesn't know *which* artists you
+  actually listen to; play history does the filtering.
+- **Discography completeness / library health** — "you have 7 of 11 albums by X"
+  → one-click fill the gaps via the basket. Also flag low-bitrate tracks for
+  quality upgrades. Pure Lidarr / MusicBrainz synergy; collector appeal.
+
+### Rediscover & revisit
+
+- **On-this-day / time machine** — "what you were into last summer", decade or
+  year-added playlists. Nostalgia is core to music lovers and nearly free to
+  build from date-added / play history.
+- **Discover: "new artists only"** — optional mode that excludes candidates whose
+  artist already appears in the source, for true new-artist discovery rather than
+  new-tracks-by-known-artists.
+
+### Smarter, learning recommendations
+
+- **Like/dislike feedback loop** — thumbs on any track that bias future
+  Sage/Radio/Discover (boost approved sonic neighborhoods, suppress rejected
+  ones). Turns one-shot discovery into a system that learns your taste; could
+  write back to Plex star ratings. The sleeper — it makes everything else better.
+- **Mood / activity presets** — focus, workout, dinner, wind-down — generated
+  from Plex mood/genre tags + sonic similarity with smart ordering. Low effort,
+  high everyday use.
+- **Cycling prompt examples in Sonic Sage** — like Plexamp's "Try one of these":
+  a rotating set of ~10 example prompts seeded from the user's play history / top
+  artists (e.g. "melancholic, haunting vocals, reminiscent of Evanescence"). Best
+  seeded from the *taste profile* below.
+
+### Insight & delight
+
+- **Taste profile + "Resonarr Wrapped"** — analyze listening into top artists,
+  eras, genres, and a plain-language "your sound" summary; a yearly wrapped.
+  Shareable, delightful, and makes the LLM earn its keep.
+- **Shared / collaborative household playlists** — now that multiple people log
+  in, let them build playlists together or see "what she's into lately". The
+  multi-user groundwork already exists.
+
+### Bigger bets (higher effort)
+
+- **In-app preview / playback** — today you build a playlist but jump to Plex to
+  hear it. Even 30-second previews to audition before saving would close the
+  loop and greatly improve daily usability. Bigger build (streaming/transcode
+  from Plex).
+- **Energy-arc / tempo-curve playlists** — DJ-style sets that ramp up then cool
+  down. ⚠️ Needs a feasibility spike first: unclear whether Plex exposes raw
+  sonic attributes (tempo/energy) via the API — `nearest` gives neighbors and
+  distance, not the underlying numbers.
+
+### Plumbing & UX
+
 - **Saved discovery runs / history** — wire up the reserved `sessions` table to
   save Sage/Discover runs (prompt, params, resulting playlist) and re-run them.
-- **Discover: "new artists only"** — optional mode that also excludes candidates
-  whose artist already appears in the source playlist, for true new-artist
-  discovery rather than new-tracks-by-known-artists.
-- **Basket "done" via Plex** — optionally confirm a request actually scanned
-  into Plex (playable), not just that Lidarr has the files on disk.
+  Foundation for *Discover Weekly*.
+- **Basket "done" via Plex** — optionally confirm a request actually scanned into
+  Plex (playable), not just that Lidarr has the files on disk.
+- **Declutter the sidebar footer** — the lower-left is getting busy (library
+  stats, Settings, Lidarr status, login/logout). Group it into a tidier account /
+  status area.
 - **Per-user concurrency** — today the app acts as the single signed-in session;
   revisit if multiple people use one instance simultaneously.
 
