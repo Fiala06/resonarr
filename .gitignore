@@ -10,9 +10,10 @@ dist/
 .env.local
 
 # runtime data (SQLite lives on the mounted /config volume)
+# Anchored to repo root so it does NOT match source dirs like server/src/config.
 *.sqlite
 *.sqlite-journal
-config/
+/config/
 
 # logs / os
 *.log
