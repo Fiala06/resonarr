@@ -48,6 +48,7 @@ export class PlexClient {
   private async request<T>(
     path: string,
     params: Record<string, string | number | undefined> = {},
+    method: "GET" | "POST" = "GET",
   ): Promise<T> {
     const url = new URL(path, this.cfg.url);
     for (const [k, v] of Object.entries(params)) {
@@ -57,6 +58,7 @@ export class PlexClient {
     let res: Response;
     try {
       res = await fetch(url, {
+        method,
         headers: {
           Accept: "application/json",
           "X-Plex-Token": this.cfg.token,
@@ -118,6 +120,56 @@ export class PlexClient {
       { limit, maxDistance },
     );
     return (data.MediaContainer.Metadata ?? []).map(toTrack);
+  }
+
+  /** Full-text track search within a section (for the seed-track picker). */
+  async searchTracks(
+    sectionKey: string,
+    query: string,
+    limit = 30,
+  ): Promise<Track[]> {
+    const data = await this.request<PlexContainer<PlexMetadata>>(
+      `/library/sections/${sectionKey}/all`,
+      { type: TRACK_TYPE, query, limit },
+    );
+    return (data.MediaContainer.Metadata ?? []).map(toTrack);
+  }
+
+  /** The Plex server's machine identifier — required to build playlist URIs. */
+  async getMachineIdentifier(): Promise<string> {
+    const data = await this.request<{
+      MediaContainer: { machineIdentifier?: string };
+    }>("/identity");
+    const id = data.MediaContainer.machineIdentifier;
+    if (!id) throw new Error("Plex machineIdentifier not found");
+    return id;
+  }
+
+  /** Create an audio playlist from a list of track ratingKeys. */
+  async createPlaylist(
+    title: string,
+    trackIds: string[],
+  ): Promise<{ playlistId: string; title: string; trackCount: number }> {
+    if (trackIds.length === 0) {
+      throw new Error("Cannot create an empty playlist");
+    }
+    const machineId = await this.getMachineIdentifier();
+    const uri = `server://${machineId}/com.plexapp.plugins.library/library/metadata/${trackIds.join(",")}`;
+
+    const data = await this.request<PlexContainer<PlexMetadata>>(
+      "/playlists",
+      { type: "audio", title, smart: 0, uri },
+      "POST",
+    );
+    const created = data.MediaContainer.Metadata?.[0];
+    if (!created) {
+      throw new Error("Plex did not return the created playlist");
+    }
+    return {
+      playlistId: created.ratingKey,
+      title: created.title,
+      trackCount: trackIds.length,
+    };
   }
 }
 

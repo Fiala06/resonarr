@@ -8,6 +8,7 @@
     "start": "tsx src/index.ts",
     "spike:plex": "tsx src/spikes/plex-spike.ts",
     "spike:lidarr": "tsx src/spikes/lidarr-spike.ts",
+    "spike:playlist": "tsx src/spikes/playlist-spike.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
