@@ -3,8 +3,10 @@ node_modules
 .git
 .env
 .env.local
-dist
 **/dist
 *.log
-config
-*.sqlite
+
+# Runtime data (host-mounted) — anchored to root so it does NOT match
+# source dirs like server/src/config.
+/config
+/*.sqlite

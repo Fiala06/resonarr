@@ -37,12 +37,15 @@ this project uses phased pre-1.0 development (see [docs/ROADMAP.md](docs/ROADMAP
   vars, `/config` volume, in-container spike verification).
 
 #### Fixed
-- Container crash-loop (`ERR_MODULE_NOT_FOUND` on `./config/env`): `tsx`
-  extensionless ESM import resolution works on Windows but fails on Alpine
-  Linux (directory-probe miss). Fixed by using explicit `.ts` extensions on all
-  relative server imports (`allowImportingTsExtensions`), which tsx maps
-  directly to the file on every OS. Also pinned deps via a committed
-  `package-lock.json` (`npm ci`) and set the Docker base image to Node 24.
+- Container crash-loop (`ERR_MODULE_NOT_FOUND` on `./config/env`): **root cause**
+  was an over-broad `.dockerignore` pattern (`config`) that excluded
+  `server/src/config/` from the build context, so the file was never in the
+  image. Anchored the runtime-data ignores to the context root (`/config`) and
+  added a Docker build-time guard that fails loudly if source is missing.
+  Along the way also hardened the build: pinned deps via committed
+  `package-lock.json` (`npm ci`), set the Docker base image to Node 24, and
+  used explicit `.ts` import extensions (`allowImportingTsExtensions`) for
+  deterministic `tsx` resolution across OSes.
 
 #### Verified
 - `npm install`, `npm run typecheck` (clean across all workspaces), server boot,

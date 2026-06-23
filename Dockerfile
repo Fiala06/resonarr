@@ -15,6 +15,13 @@ RUN npm ci
 
 # Copy sources and build the web bundle into web/dist.
 COPY . .
+
+# Sanity check: fail the build loudly if source dirs were excluded from the
+# build context (e.g. an over-broad .dockerignore pattern) instead of letting
+# the container crash-loop at runtime.
+RUN test -f server/src/config/env.ts \
+    || (echo "BUILD ERROR: server/src/config/env.ts missing from context" && exit 1)
+
 RUN npm run build -w web
 
 # --- Runtime stage -----------------------------------------------------------
