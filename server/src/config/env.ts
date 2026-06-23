@@ -1,4 +1,5 @@
 import { config as loadEnv } from "dotenv";
+import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 
@@ -25,6 +26,14 @@ export interface LidarrConfig {
 
 export const config = {
   port: Number(optional("PORT") ?? "8080"),
+
+  /**
+   * Where the SQLite DB + persisted settings live. In the container this is the
+   * mounted /config volume; in local dev it falls back to <repo>/.data.
+   */
+  dataDir:
+    optional("DATA_DIR") ??
+    (existsSync("/config") ? "/config" : resolve(repoRoot, ".data")),
 
   /** Present only when both URL and token are configured. */
   plex: ((): PlexConfig | undefined => {

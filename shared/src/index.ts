@@ -92,6 +92,44 @@ export interface CreatePlaylistResponse {
 }
 
 // ---------------------------------------------------------------------------
+// Settings (persisted server-side; non-secret prefs only)
+// ---------------------------------------------------------------------------
+
+export type LlmProvider = "claude" | "openai" | "ollama";
+
+export interface AppSettings {
+  /** Active LLM provider for Sonic Sage. */
+  llmProvider: LlmProvider;
+  /** Model id for the active provider ("" = adapter default). */
+  llmModel: string;
+  /** Default state of the "bias toward owned artists" toggle. */
+  ownArtistBias: boolean;
+  /** Lidarr target for new requests. */
+  lidarrRootFolderPath: string;
+  lidarrQualityProfileId: number | null;
+  lidarrMetadataProfileId: number | null;
+  /** Prefix applied to playlists Resonarr creates in Plex. */
+  playlistPrefix: string;
+}
+
+export const DEFAULT_SETTINGS: AppSettings = {
+  llmProvider: "claude",
+  llmModel: "",
+  ownArtistBias: false,
+  lidarrRootFolderPath: "",
+  lidarrQualityProfileId: null,
+  lidarrMetadataProfileId: null,
+  playlistPrefix: "Resonarr",
+};
+
+/** Lidarr targets offered in the Settings UI dropdowns. */
+export interface LidarrOptions {
+  rootFolders: { id: number; path: string }[];
+  qualityProfiles: { id: number; name: string }[];
+  metadataProfiles: { id: number; name: string }[];
+}
+
+// ---------------------------------------------------------------------------
 // Health
 // ---------------------------------------------------------------------------
 

@@ -3,56 +3,25 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import Fastify from "fastify";
 import fastifyStatic from "@fastify/static";
-import type { HealthResponse, ServiceStatus } from "@resonarr/shared";
 import { config } from "./config/env.ts";
-import { PlexClient } from "./plex/client.ts";
-import { LidarrClient } from "./lidarr/client.ts";
+import { getDb } from "./db/database.ts";
+import { registerHealthRoutes } from "./api/health.ts";
+import { registerSettingsRoutes } from "./api/settings.ts";
+import { registerLidarrRoutes } from "./api/lidarr.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const webDist = resolve(here, "../../web/dist");
 
 const app = Fastify({ logger: true });
 
-// --- API: health -------------------------------------------------------------
-// Best-effort reachability probe for the two upstreams. Never throws — the UI
-// uses this to tell the user what still needs configuring.
-app.get("/api/health", async (): Promise<HealthResponse> => {
-  return {
-    app: "ok",
-    plex: await probe(async () => {
-      const plex = new PlexClient(requireOrThrow(config.plex, "plex"));
-      const section = await plex.getMusicSection();
-      return `music section: ${section.title}`;
-    }, config.plex !== undefined),
-    lidarr: await probe(async () => {
-      const lidarr = new LidarrClient(requireOrThrow(config.lidarr, "lidarr"));
-      const status = await lidarr.systemStatus();
-      return `Lidarr ${status.version}`;
-    }, config.lidarr !== undefined),
-  };
-});
+// Initialize the database (creates the file + runs migrations) before serving.
+getDb();
+app.log.info(`data dir: ${config.dataDir}`);
 
-function requireOrThrow<T>(value: T | undefined, name: string): T {
-  if (value === undefined) throw new Error(`${name} not configured`);
-  return value;
-}
-
-async function probe(
-  fn: () => Promise<string>,
-  configured: boolean,
-): Promise<ServiceStatus> {
-  if (!configured) return { configured: false };
-  try {
-    const detail = await fn();
-    return { configured: true, ok: true, detail };
-  } catch (err) {
-    return {
-      configured: true,
-      ok: false,
-      error: err instanceof Error ? err.message : String(err),
-    };
-  }
-}
+// --- API routes --------------------------------------------------------------
+registerHealthRoutes(app);
+registerSettingsRoutes(app);
+registerLidarrRoutes(app);
 
 // --- Static web app (built SPA) ----------------------------------------------
 // Present in production / Docker; absent during `dev:web` (Vite serves it).

@@ -6,6 +6,30 @@ this project uses phased pre-1.0 development (see [docs/ROADMAP.md](docs/ROADMAP
 
 ## [Unreleased]
 
+### Phase 1 — Core infrastructure
+
+#### Added
+- **SQLite persistence** via Node's built-in `node:sqlite` (no native module,
+  no Docker build tooling): a lazily-opened connection on the `/config` volume
+  (or `<repo>/.data` in dev), with forward-only migrations tracked by
+  `user_version`. Tables: `settings`, `basket_items`, `sessions`, `sonic_cache`.
+- **Settings persistence + API**: `GET`/`PUT /api/settings` over a typed
+  `AppSettings` (LLM provider/model, own-artist-bias default, Lidarr
+  root-folder/quality/metadata-profile targets, playlist prefix). Provider is
+  seeded from env on first run, then user-overridable.
+- **`GET /api/lidarr/options`**: live Lidarr root folders + quality/metadata
+  profiles for the Settings dropdowns (503 with a clear message when Lidarr is
+  unreachable).
+- **Settings UI**: Status/Settings tabbed shell with a working settings form.
+- **Sonic cache** (`SonicService`): SQLite-backed cache in front of Plex
+  `nearest`, so repeated sonic queries don't hammer Plex (used from Phase 2).
+- **Hardened clients**: 10s request timeouts + clearer error messages on the
+  Plex and Lidarr clients; a process-wide services container.
+
+#### Verified
+- Typecheck clean; settings round-trip through the API and persist across a
+  server restart (on-disk SQLite).
+
 ### Phase 0 — Scaffold + connectivity spikes
 
 #### Added

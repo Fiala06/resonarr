@@ -31,6 +31,8 @@ export interface LidarrArtistLookup {
   disambiguation?: string;
 }
 
+const REQUEST_TIMEOUT_MS = 10_000;
+
 export class LidarrClient {
   constructor(private readonly cfg: LidarrConfig) {}
 
@@ -42,12 +44,25 @@ export class LidarrClient {
     for (const [k, v] of Object.entries(params)) {
       if (v !== undefined) url.searchParams.set(k, String(v));
     }
-    const res = await fetch(url, {
-      headers: {
-        Accept: "application/json",
-        "X-Api-Key": this.cfg.apiKey,
-      },
-    });
+
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        headers: {
+          Accept: "application/json",
+          "X-Api-Key": this.cfg.apiKey,
+        },
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      });
+    } catch (err) {
+      if (err instanceof Error && err.name === "TimeoutError") {
+        throw new Error(`Lidarr request timed out after ${REQUEST_TIMEOUT_MS}ms`);
+      }
+      throw new Error(
+        `Lidarr request failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+
     if (!res.ok) {
       throw new Error(
         `Lidarr ${res.status} ${res.statusText} for ${url.pathname}`,

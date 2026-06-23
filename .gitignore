@@ -14,6 +14,8 @@ dist/
 *.sqlite
 *.sqlite-journal
 /config/
+# local-dev data dir (SQLite DB) when /config isn't present
+/.data/
 
 # logs / os
 *.log

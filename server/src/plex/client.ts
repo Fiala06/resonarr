@@ -40,6 +40,7 @@ interface PlexContainer<T> {
 }
 
 const TRACK_TYPE = 10; // Plex library "type" value for tracks
+const REQUEST_TIMEOUT_MS = 10_000;
 
 export class PlexClient {
   constructor(private readonly cfg: PlexConfig) {}
@@ -52,12 +53,25 @@ export class PlexClient {
     for (const [k, v] of Object.entries(params)) {
       if (v !== undefined) url.searchParams.set(k, String(v));
     }
-    const res = await fetch(url, {
-      headers: {
-        Accept: "application/json",
-        "X-Plex-Token": this.cfg.token,
-      },
-    });
+
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        headers: {
+          Accept: "application/json",
+          "X-Plex-Token": this.cfg.token,
+        },
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      });
+    } catch (err) {
+      if (err instanceof Error && err.name === "TimeoutError") {
+        throw new Error(`Plex request timed out after ${REQUEST_TIMEOUT_MS}ms`);
+      }
+      throw new Error(
+        `Plex request failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+
     if (!res.ok) {
       throw new Error(
         `Plex ${res.status} ${res.statusText} for ${url.pathname}`,

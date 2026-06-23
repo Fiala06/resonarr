@@ -1,80 +1,62 @@
-import { useEffect, useState } from "react";
-import type { HealthResponse, ServiceStatus } from "@resonarr/shared";
+import { useState } from "react";
+import { StatusView } from "./views/StatusView";
+import { SettingsView } from "./views/SettingsView";
+import { colors } from "./theme";
 
-// Phase 0 placeholder UI: confirms the web<->/api round-trip and shows whether
-// Plex and Lidarr are reachable. Real components arrive in Phase 2, authored in
-// the Claude Design system and synced into src/components/.
+type Tab = "status" | "settings";
+
 export function App() {
-  const [health, setHealth] = useState<HealthResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetch("/api/health")
-      .then((r) => r.json())
-      .then(setHealth)
-      .catch((e) => setError(String(e)));
-  }, []);
+  const [tab, setTab] = useState<Tab>("status");
 
   return (
-    <main
-      style={{
-        fontFamily: "system-ui, sans-serif",
-        maxWidth: 640,
-        margin: "4rem auto",
-        padding: "0 1rem",
-        color: "#e8e8ea",
-        background: "transparent",
-      }}
-    >
-      <h1 style={{ marginBottom: 4 }}>Resonarr</h1>
-      <p style={{ color: "#9aa0a6", marginTop: 0 }}>
-        Library-first music discovery · Phase 0 skeleton
-      </p>
+    <div style={{ maxWidth: 720, margin: "3rem auto", padding: "0 1rem" }}>
+      <header>
+        <h1 style={{ marginBottom: 4 }}>Resonarr</h1>
+        <p style={{ color: colors.muted, marginTop: 0 }}>
+          Library-first music discovery
+        </p>
+        <nav style={{ display: "flex", gap: 6, marginTop: 16 }}>
+          <TabButton active={tab === "status"} onClick={() => setTab("status")}>
+            Status
+          </TabButton>
+          <TabButton
+            active={tab === "settings"}
+            onClick={() => setTab("settings")}
+          >
+            Settings
+          </TabButton>
+        </nav>
+      </header>
 
-      <section style={{ marginTop: "2rem" }}>
-        <h2 style={{ fontSize: "1rem" }}>Service status</h2>
-        {error && <p style={{ color: "#ff6b6b" }}>Error: {error}</p>}
-        {!health && !error && <p>Checking…</p>}
-        {health && (
-          <ul style={{ listStyle: "none", padding: 0 }}>
-            <StatusRow label="App" status={{ configured: true, ok: true }} />
-            <StatusRow label="Plex" status={health.plex} />
-            <StatusRow label="Lidarr" status={health.lidarr} />
-          </ul>
-        )}
-      </section>
-    </main>
+      <main style={{ marginTop: "1.5rem" }}>
+        {tab === "status" ? <StatusView /> : <SettingsView />}
+      </main>
+    </div>
   );
 }
 
-function StatusRow({
-  label,
-  status,
+function TabButton({
+  active,
+  onClick,
+  children,
 }: {
-  label: string;
-  status: ServiceStatus;
+  active: boolean;
+  onClick: () => void;
+  children: string;
 }) {
-  let icon = "•";
-  let color = "#9aa0a6";
-  let detail = "not configured";
-
-  if (status.configured) {
-    if (status.ok) {
-      icon = "✓";
-      color = "#51cf66";
-      detail = status.detail ?? "ok";
-    } else {
-      icon = "✗";
-      color = "#ff6b6b";
-      detail = status.error;
-    }
-  }
-
   return (
-    <li style={{ padding: "6px 0", display: "flex", gap: 8 }}>
-      <span style={{ color, width: 16 }}>{icon}</span>
-      <strong style={{ width: 64 }}>{label}</strong>
-      <span style={{ color: "#9aa0a6" }}>{detail}</span>
-    </li>
+    <button
+      onClick={onClick}
+      style={{
+        background: active ? colors.panel : "transparent",
+        color: active ? colors.text : colors.muted,
+        border: `1px solid ${active ? colors.border : "transparent"}`,
+        borderRadius: 6,
+        padding: "6px 14px",
+        cursor: "pointer",
+      }}
+    >
+      {children}
+    </button>
   );
 }
