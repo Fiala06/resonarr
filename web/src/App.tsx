@@ -54,7 +54,7 @@ export function App() {
           {tab === "mixes" && <MixesView />}
           {tab === "discover" && <DiscoverView />}
           {tab === "adventure" && <AdventureView />}
-          {tab === "basket" && <BasketView />}
+          {tab === "basket" && <BasketView onChange={refreshBasket} />}
           {tab === "logs" && <LogsView />}
           {tab === "settings" && <SettingsView />}
         </div>

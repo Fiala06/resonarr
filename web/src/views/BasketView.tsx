@@ -23,8 +23,15 @@ const STATUS_LABEL: Record<BasketItemStatus, string> = {
   failed: "failed",
 };
 
-export function BasketView() {
-  const [items, setItems] = useState<BasketItem[]>([]);
+export function BasketView({ onChange }: { onChange?: () => void }) {
+  const [items, setItemsRaw] = useState<BasketItem[]>([]);
+
+  // Update local state and let the parent refresh the sidebar badge.
+  function setItems(next: BasketItem[]) {
+    setItemsRaw(next);
+    onChange?.();
+  }
+
   const [artist, setArtist] = useState("");
   const [album, setAlbum] = useState("");
   const [adding, setAdding] = useState(false);
