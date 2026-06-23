@@ -1,0 +1,240 @@
+import { useEffect, useState } from "react";
+import type { BasketItem, BasketItemStatus } from "@resonarr/shared";
+import {
+  addToBasket,
+  getBasket,
+  removeFromBasket,
+  requestBasket,
+} from "../api";
+import { colors } from "../theme";
+
+const STATUS_COLOR: Record<BasketItemStatus, string> = {
+  pending: colors.muted,
+  requested: colors.green,
+  failed: colors.red,
+};
+
+export function BasketView() {
+  const [items, setItems] = useState<BasketItem[]>([]);
+  const [artist, setArtist] = useState("");
+  const [album, setAlbum] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [requesting, setRequesting] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    getBasket().then(setItems).catch((e) => setMsg(String(e)));
+  }, []);
+
+  async function add() {
+    if (!artist.trim()) return;
+    setAdding(true);
+    setAddError(null);
+    try {
+      await addToBasket(artist.trim(), album.trim() || undefined);
+      setArtist("");
+      setAlbum("");
+      setItems(await getBasket());
+    } catch (e) {
+      setAddError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setAdding(false);
+    }
+  }
+
+  async function remove(id: string) {
+    await removeFromBasket(id);
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+    setItems(await getBasket());
+  }
+
+  function toggle(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function request(all: boolean) {
+    setRequesting(true);
+    setMsg(null);
+    try {
+      const ids = all ? undefined : [...selected];
+      const updated = await requestBasket(ids);
+      setItems(updated);
+      setSelected(new Set());
+      const requested = updated.filter((i) => i.status === "requested").length;
+      const failed = updated.filter((i) => i.status === "failed").length;
+      setMsg(`Requested ${requested} · failed ${failed}`);
+    } catch (e) {
+      setMsg(`Request failed: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setRequesting(false);
+    }
+  }
+
+  const pendingCount = items.filter((i) => i.status === "pending").length;
+
+  return (
+    <section style={{ display: "grid", gap: 16, maxWidth: 560 }}>
+      <div>
+        <h2 style={{ fontSize: "1rem", margin: "0 0 4px" }}>Request basket</h2>
+        <p style={{ color: colors.muted, margin: 0, fontSize: "0.9rem" }}>
+          Music you don’t own. Each item is verified against Lidarr before it’s
+          added, then bulk-requested (artist-first, with search).
+        </p>
+      </div>
+
+      {/* Add form */}
+      <div
+        style={{
+          display: "grid",
+          gap: 8,
+          padding: 12,
+          borderRadius: 8,
+          background: colors.panel,
+          border: `1px solid ${colors.border}`,
+        }}
+      >
+        <div style={{ display: "flex", gap: 8 }}>
+          <input
+            value={artist}
+            onChange={(e) => setArtist(e.target.value)}
+            placeholder="Artist"
+            onKeyDown={(e) => e.key === "Enter" && add()}
+            style={inputStyle}
+          />
+          <input
+            value={album}
+            onChange={(e) => setAlbum(e.target.value)}
+            placeholder="Album (optional)"
+            onKeyDown={(e) => e.key === "Enter" && add()}
+            style={inputStyle}
+          />
+          <button
+            onClick={add}
+            disabled={adding}
+            style={{ ...buttonStyle, whiteSpace: "nowrap" }}
+          >
+            {adding ? "Adding…" : "Add"}
+          </button>
+        </div>
+        {addError && (
+          <span style={{ color: colors.red, fontSize: "0.85rem" }}>
+            {addError}
+          </span>
+        )}
+      </div>
+
+      {/* Actions */}
+      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+        <button
+          onClick={() => request(false)}
+          disabled={requesting || selected.size === 0}
+          style={{ ...buttonStyle, opacity: selected.size === 0 ? 0.5 : 1 }}
+        >
+          Request selected ({selected.size})
+        </button>
+        <button
+          onClick={() => request(true)}
+          disabled={requesting || pendingCount === 0}
+          style={{
+            ...buttonStyle,
+            background: "transparent",
+            border: `1px solid ${colors.border}`,
+            opacity: pendingCount === 0 ? 0.5 : 1,
+          }}
+        >
+          Request all pending ({pendingCount})
+        </button>
+        {msg && <span style={{ color: colors.muted, fontSize: "0.85rem" }}>{msg}</span>}
+      </div>
+
+      {/* List */}
+      {items.length === 0 ? (
+        <p style={{ color: colors.muted }}>Basket is empty.</p>
+      ) : (
+        <div style={{ display: "grid", gap: 6 }}>
+          {items.map((it) => (
+            <div
+              key={it.id}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                padding: "8px 10px",
+                borderRadius: 6,
+                background: colors.panel,
+                border: `1px solid ${colors.border}`,
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={selected.has(it.id)}
+                onChange={() => toggle(it.id)}
+              />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div>
+                  {it.artist}
+                  {it.album ? ` — ${it.album}` : ""}
+                </div>
+                <div style={{ fontSize: "0.8rem", color: colors.muted }}>
+                  {it.type} · {it.source}
+                </div>
+              </div>
+              <span
+                style={{
+                  color: STATUS_COLOR[it.status],
+                  fontSize: "0.8rem",
+                  textTransform: "uppercase",
+                }}
+              >
+                {it.status}
+              </span>
+              <button
+                onClick={() => remove(it.id)}
+                title="Remove"
+                style={{
+                  background: "transparent",
+                  color: colors.muted,
+                  border: "none",
+                  cursor: "pointer",
+                  fontSize: "1.1rem",
+                }}
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+const inputStyle = {
+  flex: 1,
+  minWidth: 0,
+  background: colors.bg,
+  color: colors.text,
+  border: `1px solid ${colors.border}`,
+  borderRadius: 6,
+  padding: "9px 12px",
+};
+
+const buttonStyle = {
+  background: colors.accent,
+  color: "white",
+  border: "none",
+  borderRadius: 6,
+  padding: "9px 16px",
+  cursor: "pointer",
+};

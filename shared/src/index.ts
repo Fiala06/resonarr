@@ -68,6 +68,8 @@ export interface DiscoveryResult {
 export type BasketItemType = "artist" | "album";
 export type BasketItemStatus = "pending" | "requested" | "failed";
 
+export type BasketItemSource = "sonic-sage" | "manual";
+
 export interface BasketItem {
   id: string;
   type: BasketItemType;
@@ -75,9 +77,20 @@ export interface BasketItem {
   album?: string;
   /** MusicBrainz id resolved via Lidarr lookup (proves it is real). */
   mbid?: string;
-  source: "sonic-sage" | "manual";
+  source: BasketItemSource;
   status: BasketItemStatus;
   createdAt: string;
+}
+
+export interface AddBasketItemRequest {
+  artist: string;
+  album?: string;
+  source?: BasketItemSource;
+}
+
+export interface RequestBasketRequest {
+  /** Specific basket item ids to submit; omitted/empty = all pending. */
+  ids?: string[];
 }
 
 // ---------------------------------------------------------------------------

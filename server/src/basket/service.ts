@@ -1,0 +1,184 @@
+import { randomUUID } from "node:crypto";
+import type {
+  AddBasketItemRequest,
+  BasketItem,
+  BasketItemStatus,
+  BasketItemType,
+} from "@resonarr/shared";
+import { getDb } from "../db/database.ts";
+import { services } from "../services.ts";
+import { getSettings } from "../settings/service.ts";
+
+interface BasketRow {
+  id: string;
+  type: string;
+  artist: string;
+  album: string | null;
+  mbid: string | null;
+  source: string;
+  status: string;
+  created_at: string;
+}
+
+function rowToItem(r: BasketRow): BasketItem {
+  return {
+    id: r.id,
+    type: r.type as BasketItemType,
+    artist: r.artist,
+    album: r.album ?? undefined,
+    mbid: r.mbid ?? undefined,
+    source: r.source === "sonic-sage" ? "sonic-sage" : "manual",
+    status: r.status as BasketItemStatus,
+    createdAt: r.created_at,
+  };
+}
+
+export function listBasket(): BasketItem[] {
+  const db = getDb();
+  const rows = db
+    .prepare("SELECT * FROM basket_items ORDER BY created_at DESC")
+    .all() as unknown as BasketRow[];
+  return rows.map(rowToItem);
+}
+
+/**
+ * Add an item to the basket, but only after Lidarr's metadata lookup confirms
+ * the artist is real — this is the hallucination guard. Deduplicates on
+ * (mbid, album).
+ */
+export async function addToBasket(
+  input: AddBasketItemRequest,
+): Promise<BasketItem> {
+  const artist = input.artist.trim();
+  if (!artist) throw new Error("artist is required");
+  if (!services.lidarr) throw new Error("Lidarr is not configured");
+
+  const hits = await services.lidarr.artistLookup(artist);
+  const match = hits[0];
+  if (!match) {
+    throw new Error(`No Lidarr/MusicBrainz match for "${artist}"`);
+  }
+
+  const album = input.album?.trim() || undefined;
+  const db = getDb();
+
+  // Dedupe on resolved artist mbid + album.
+  const existing = db
+    .prepare(
+      `SELECT * FROM basket_items
+       WHERE mbid = ? AND IFNULL(album, '') = IFNULL(?, '')`,
+    )
+    .get(match.foreignArtistId, album ?? null) as unknown as
+    | BasketRow
+    | undefined;
+  if (existing) return rowToItem(existing);
+
+  const item: BasketItem = {
+    id: randomUUID(),
+    type: (album ? "album" : "artist") as BasketItemType,
+    artist: match.artistName,
+    album,
+    mbid: match.foreignArtistId,
+    source: input.source ?? "manual",
+    status: "pending",
+    createdAt: new Date().toISOString(),
+  };
+
+  db.prepare(
+    `INSERT INTO basket_items
+       (id, type, artist, album, mbid, source, status, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).run(
+    item.id,
+    item.type,
+    item.artist,
+    item.album ?? null,
+    item.mbid ?? null,
+    item.source,
+    item.status,
+    item.createdAt,
+  );
+
+  return item;
+}
+
+export function removeFromBasket(id: string): void {
+  getDb().prepare("DELETE FROM basket_items WHERE id = ?").run(id);
+}
+
+function setStatus(id: string, status: BasketItemStatus): void {
+  getDb()
+    .prepare("UPDATE basket_items SET status = ? WHERE id = ?")
+    .run(status, id);
+}
+
+/**
+ * Submit basket items to Lidarr: artist-first (add if missing, with search for
+ * missing albums) or trigger a search if the artist already exists. Returns the
+ * updated items with per-item status.
+ */
+export async function requestBasket(ids?: string[]): Promise<BasketItem[]> {
+  const lidarr = services.lidarr;
+  if (!lidarr) throw new Error("Lidarr is not configured");
+
+  const settings = getSettings();
+  if (
+    !settings.lidarrRootFolderPath ||
+    settings.lidarrQualityProfileId === null ||
+    settings.lidarrMetadataProfileId === null
+  ) {
+    throw new Error(
+      "Lidarr target not configured — set root folder + profiles in Settings",
+    );
+  }
+
+  const db = getDb();
+  const items = (
+    ids && ids.length > 0
+      ? (db
+          .prepare(
+            `SELECT * FROM basket_items WHERE id IN (${ids.map(() => "?").join(",")})`,
+          )
+          .all(...ids) as unknown as BasketRow[])
+      : (db
+          .prepare("SELECT * FROM basket_items WHERE status = 'pending'")
+          .all() as unknown as BasketRow[])
+  ).map(rowToItem);
+
+  if (items.length === 0) return [];
+
+  // Fetch the existing artist set once to avoid double-adding.
+  const existingByMbid = new Map(
+    (await lidarr.getArtists()).map((a) => [a.foreignArtistId, a]),
+  );
+
+  for (const item of items) {
+    try {
+      const existing = item.mbid
+        ? existingByMbid.get(item.mbid)
+        : undefined;
+
+      if (existing) {
+        await lidarr.searchArtist(existing.id);
+      } else {
+        const hits = await lidarr.artistLookup(item.artist);
+        const lookup =
+          hits.find((h) => h.foreignArtistId === item.mbid) ?? hits[0];
+        if (!lookup) throw new Error("artist no longer resolvable");
+        await lidarr.addArtist(lookup, {
+          rootFolderPath: settings.lidarrRootFolderPath,
+          qualityProfileId: settings.lidarrQualityProfileId,
+          metadataProfileId: settings.lidarrMetadataProfileId,
+          monitored: true,
+          searchForMissingAlbums: true,
+          monitor: "all",
+        });
+      }
+      setStatus(item.id, "requested");
+    } catch {
+      setStatus(item.id, "failed");
+    }
+  }
+
+  return listBasket();
+}

@@ -2,9 +2,10 @@ import { useState } from "react";
 import { StatusView } from "./views/StatusView";
 import { SettingsView } from "./views/SettingsView";
 import { RadioView } from "./views/RadioView";
+import { BasketView } from "./views/BasketView";
 import { colors } from "./theme";
 
-type Tab = "radio" | "status" | "settings";
+type Tab = "radio" | "basket" | "status" | "settings";
 
 export function App() {
   const [tab, setTab] = useState<Tab>("radio");
@@ -20,6 +21,9 @@ export function App() {
           <TabButton active={tab === "radio"} onClick={() => setTab("radio")}>
             Radio
           </TabButton>
+          <TabButton active={tab === "basket"} onClick={() => setTab("basket")}>
+            Basket
+          </TabButton>
           <TabButton active={tab === "status"} onClick={() => setTab("status")}>
             Status
           </TabButton>
@@ -34,6 +38,7 @@ export function App() {
 
       <main style={{ marginTop: "1.5rem" }}>
         {tab === "radio" && <RadioView />}
+        {tab === "basket" && <BasketView />}
         {tab === "status" && <StatusView />}
         {tab === "settings" && <SettingsView />}
       </main>

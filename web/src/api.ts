@@ -1,5 +1,6 @@
 import type {
   AppSettings,
+  BasketItem,
   CreatePlaylistResponse,
   HealthResponse,
   LidarrOptions,
@@ -68,6 +69,37 @@ export async function createPlaylist(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, trackIds }),
+    }),
+  );
+}
+
+export async function getBasket(): Promise<BasketItem[]> {
+  return asJson(await fetch("/api/basket"));
+}
+
+export async function addToBasket(
+  artist: string,
+  album?: string,
+): Promise<BasketItem> {
+  return asJson(
+    await fetch("/api/basket", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ artist, album }),
+    }),
+  );
+}
+
+export async function removeFromBasket(id: string): Promise<void> {
+  await fetch(`/api/basket/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
+export async function requestBasket(ids?: string[]): Promise<BasketItem[]> {
+  return asJson(
+    await fetch("/api/basket/request", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids }),
     }),
   );
 }
