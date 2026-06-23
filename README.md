@@ -16,7 +16,7 @@ Built on **Plex Pass Sonic Analysis**: Resonarr consumes Plex's track-to-track
 sonic similarity rather than reinventing audio ML.
 
 - **Design:** [docs/DESIGN.md](docs/DESIGN.md)
-- **Roadmap:** [docs/ROADMAP.md](docs/ROADMAP.md)
+- **Roadmap (what's left):** [docs/ROADMAP.md](docs/ROADMAP.md)
 - **Unraid deploy guide:** [docs/DEPLOY-UNRAID.md](docs/DEPLOY-UNRAID.md)
 
 ## Features
@@ -156,7 +156,7 @@ cp .env.example .env        # then edit it
 # 2. Install workspace deps
 npm install
 
-# 3. (Optional) Connectivity spikes — the Phase 0 go/no-go gate
+# 3. (Optional) Connectivity check against your Plex / Lidarr
 npm run spike:plex          # proves Plex sonic 'nearest' returns neighbors
 npm run spike:lidarr        # proves Lidarr lookup + profiles are reachable
 
