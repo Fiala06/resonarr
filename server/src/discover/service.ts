@@ -1,0 +1,66 @@
+import type { DiscoverResponse, Track } from "@resonarr/shared";
+import { services } from "../services.ts";
+
+const MAX_SEEDS = 25; // seeds sampled from the source playlist
+const PER_SEED = 15; // neighbors fetched per seed
+const DEFAULT_LIMIT = 50; // fresh tracks returned
+
+/**
+ * "Fresh picks" from a playlist: sample tracks across the source list, expand
+ * each via Plex sonic similarity, drop anything already in the source, and rank
+ * the remainder by how many seeds independently surfaced it (a stronger sonic
+ * consensus floats to the top). Every result is owned and new to that playlist.
+ */
+export async function discoverFromPlaylist(
+  playlistId: string,
+  limit = DEFAULT_LIMIT,
+): Promise<DiscoverResponse> {
+  const plex = services.plex;
+  const sonic = services.sonic;
+  if (!plex || !sonic) throw new Error("Plex is not configured");
+
+  const source = (await plex.getPlaylists()).find((p) => p.id === playlistId);
+  if (!source) throw new Error("Playlist not found");
+
+  const sourceTracks = await plex.getPlaylistTracks(playlistId);
+  if (sourceTracks.length === 0) {
+    throw new Error("That playlist has no tracks to learn from.");
+  }
+
+  // Everything already in the playlist is excluded from the picks.
+  const ownedIds = new Set(sourceTracks.map((t) => t.id));
+  const seeds = sampleEvenly(sourceTracks, MAX_SEEDS);
+
+  // Candidate -> how many distinct seeds pointed at it.
+  const score = new Map<string, { track: Track; hits: number }>();
+  await Promise.all(
+    seeds.map(async (seed) => {
+      const neighbors = await sonic.similar(seed.id, PER_SEED);
+      for (const n of neighbors) {
+        if (ownedIds.has(n.id)) continue;
+        const cur = score.get(n.id);
+        if (cur) cur.hits += 1;
+        else score.set(n.id, { track: n, hits: 1 });
+      }
+    }),
+  );
+
+  const tracks = [...score.values()]
+    .sort((a, b) => b.hits - a.hits)
+    .slice(0, Math.max(1, Math.min(limit, 100)))
+    .map((s) => s.track);
+
+  return { source, tracks };
+}
+
+/** Pick up to `n` items spread evenly across the array (not just the head). */
+function sampleEvenly<T>(arr: T[], n: number): T[] {
+  if (arr.length <= n) return arr;
+  const step = arr.length / n;
+  const out: T[] = [];
+  for (let i = 0; i < n; i++) {
+    const item = arr[Math.floor(i * step)];
+    if (item !== undefined) out.push(item);
+  }
+  return out;
+}

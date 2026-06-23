@@ -70,6 +70,21 @@ export interface LibraryStats {
   artists: number;
 }
 
+/** Discover fresh, owned tracks sonically similar to a chosen playlist. */
+export interface DiscoverRequest {
+  /** Plex playlist to learn from (e.g. a "Loved" / "Liked Songs" list). */
+  playlistId: string;
+  /** Max fresh tracks to return (clamped server-side). */
+  limit?: number;
+}
+
+export interface DiscoverResponse {
+  /** The playlist the picks were seeded from. */
+  source: PlaylistSummary;
+  /** Owned tracks similar to the source but not already in it. */
+  tracks: Track[];
+}
+
 export interface SageRequest {
   prompt: string;
   /** Bias recommendations toward artists already owned. */

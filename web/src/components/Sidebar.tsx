@@ -7,6 +7,7 @@ export type Tab =
   | "sage"
   | "radio"
   | "mixes"
+  | "discover"
   | "adventure"
   | "basket"
   | "settings";
@@ -27,6 +28,12 @@ const ICONS: Record<Tab, ReactNode> = {
       <rect x="3" y="8" width="2.2" height="5" rx="1" fill="currentColor" />
       <rect x="7" y="4" width="2.2" height="9" rx="1" fill="currentColor" />
       <rect x="11" y="6" width="2.2" height="7" rx="1" fill="currentColor" />
+    </>
+  ),
+  discover: (
+    <>
+      <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M10.5 5.5 L9 9 L5.5 10.5 L7 7 Z" fill="currentColor" />
     </>
   ),
   adventure: (
@@ -55,6 +62,7 @@ const MAIN_TABS: { key: Tab; label: string }[] = [
   { key: "sage", label: "Sonic Sage" },
   { key: "radio", label: "Radio" },
   { key: "mixes", label: "Mixes" },
+  { key: "discover", label: "Discover" },
   { key: "adventure", label: "Adventure" },
   { key: "basket", label: "Basket" },
 ];

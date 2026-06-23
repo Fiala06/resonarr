@@ -5,6 +5,7 @@ import type {
   BasketItem,
   BulkAddBasketResponse,
   CreatePlaylistResponse,
+  DiscoverResponse,
   DiscoveryResult,
   AddToPlaylistResponse,
   HealthResponse,
@@ -77,6 +78,19 @@ export async function getRadio(
 
 export async function getMixes(): Promise<MixesResponse> {
   return asJson(await fetch("/api/mixes"));
+}
+
+export async function discoverFromPlaylist(
+  playlistId: string,
+  limit?: number,
+): Promise<DiscoverResponse> {
+  return asJson(
+    await fetch("/api/discover", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ playlistId, limit }),
+    }),
+  );
 }
 
 export async function getAdventure(

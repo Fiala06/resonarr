@@ -239,6 +239,15 @@ export class PlexClient {
     }));
   }
 
+  /** Tracks contained in a playlist (used as discovery seeds). */
+  async getPlaylistTracks(playlistId: string, limit = 600): Promise<Track[]> {
+    const data = await this.request<PlexContainer<PlexMetadata>>(
+      `/playlists/${playlistId}/items`,
+      { limit },
+    );
+    return (data.MediaContainer.Metadata ?? []).map(toTrack);
+  }
+
   /** Append tracks to an existing playlist. */
   async addToPlaylist(
     playlistId: string,

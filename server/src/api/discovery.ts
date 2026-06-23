@@ -2,6 +2,8 @@ import type { FastifyInstance } from "fastify";
 import type {
   AdventureRequest,
   AdventureResponse,
+  DiscoverRequest,
+  DiscoverResponse,
   LibraryStats,
   MixesResponse,
   RadioRequest,
@@ -11,6 +13,7 @@ import type {
 import { services } from "../services.ts";
 import { runMixes } from "../mixes/service.ts";
 import { runAdventure } from "../adventure/service.ts";
+import { discoverFromPlaylist } from "../discover/service.ts";
 
 export function registerDiscoveryRoutes(app: FastifyInstance): void {
   // Seed-track search for the pickers.
@@ -89,6 +92,27 @@ export function registerDiscoveryRoutes(app: FastifyInstance): void {
       }) as never;
     }
   });
+
+  // Discover: fresh owned tracks similar to a chosen playlist (not already in it).
+  app.post<{ Body: DiscoverRequest }>(
+    "/api/discover",
+    async (req, reply): Promise<DiscoverResponse> => {
+      const { playlistId, limit } = req.body ?? {};
+      if (!playlistId) {
+        return reply.code(400).send({ error: "playlistId is required" }) as never;
+      }
+      if (!services.plex) {
+        return reply.code(503).send({ error: "Plex is not configured" }) as never;
+      }
+      try {
+        return await discoverFromPlaylist(playlistId, limit);
+      } catch (err) {
+        return reply.code(502).send({
+          error: err instanceof Error ? err.message : String(err),
+        }) as never;
+      }
+    },
+  );
 
   // Sonic Adventure: a path from a start track to a destination track.
   app.post<{ Body: AdventureRequest }>(

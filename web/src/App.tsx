@@ -5,6 +5,7 @@ import type { Tab } from "./components/Sidebar";
 import { SageView } from "./views/SageView";
 import { RadioView } from "./views/RadioView";
 import { MixesView } from "./views/MixesView";
+import { DiscoverView } from "./views/DiscoverView";
 import { AdventureView } from "./views/AdventureView";
 import { BasketView } from "./views/BasketView";
 import { SettingsView } from "./views/SettingsView";
@@ -50,6 +51,7 @@ export function App() {
           {tab === "sage" && <SageView />}
           {tab === "radio" && <RadioView />}
           {tab === "mixes" && <MixesView />}
+          {tab === "discover" && <DiscoverView />}
           {tab === "adventure" && <AdventureView />}
           {tab === "basket" && <BasketView />}
           {tab === "settings" && <SettingsView />}
