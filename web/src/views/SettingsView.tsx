@@ -6,6 +6,7 @@ import type {
   LlmProvider,
 } from "@resonarr/shared";
 import { getLidarrOptions, getSettings, putSettings } from "../api";
+import { InfoHint } from "../components/InfoHint";
 import { colors } from "../theme";
 
 const inputStyle: CSSProperties = {
@@ -65,7 +66,10 @@ export function SettingsView() {
       </div>
 
       <Card title="Discovery">
-      <Field label="LLM provider (Sonic Sage)">
+      <Field
+        label="LLM provider (Sonic Sage)"
+        hint="The AI that turns your prompt into song suggestions. Claude and OpenAI run in the cloud (need an API key); Ollama runs on your own machine."
+      >
         <select
           style={inputStyle}
           value={form.llmProvider}
@@ -103,7 +107,10 @@ export function SettingsView() {
         </p>
       )}
 
-      <Field label="Root folder">
+      <Field
+        label="Root folder"
+        hint="Where Lidarr saves music it downloads for you. Pick the same folder Lidarr already manages your library in."
+      >
         <select
           style={inputStyle}
           disabled={!options}
@@ -119,7 +126,10 @@ export function SettingsView() {
         </select>
       </Field>
 
-      <Field label="Quality profile">
+      <Field
+        label="Quality profile"
+        hint="Lidarr's rule for what audio quality to grab (e.g. MP3 vs. lossless). Uses the profiles you set up in Lidarr."
+      >
         <select
           style={inputStyle}
           disabled={!options}
@@ -140,7 +150,10 @@ export function SettingsView() {
         </select>
       </Field>
 
-      <Field label="Metadata profile">
+      <Field
+        label="Metadata profile"
+        hint="Lidarr's rule for which album types to track (studio albums, EPs, singles…). Uses the profiles you set up in Lidarr."
+      >
         <select
           style={inputStyle}
           disabled={!options}
@@ -231,14 +244,19 @@ function Card({ title, children }: { title: string; children: ReactNode }) {
 
 function Field({
   label,
+  hint,
   children,
 }: {
   label: string;
+  hint?: string;
   children: ReactNode;
 }) {
   return (
     <label style={{ display: "grid", gap: 6 }}>
-      <span style={{ color: colors.muted, fontSize: "0.85rem" }}>{label}</span>
+      <span style={{ color: colors.muted, fontSize: "0.85rem", display: "flex", alignItems: "center", gap: 6 }}>
+        {label}
+        {hint && <InfoHint text={hint} />}
+      </span>
       {children}
     </label>
   );

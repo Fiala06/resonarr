@@ -104,26 +104,27 @@ export function Sidebar({
         ))}
       </div>
 
-      <div style={{ height: 1, background: colors.border, margin: "18px 6px" }} />
-      <div style={{ padding: "0 8px" }}>
-        <div style={{ fontSize: 11, letterSpacing: 1, color: colors.faint, fontWeight: 600 }}>
-          LIBRARY
-        </div>
-        {stats ? (
-          <>
-            <div style={{ fontSize: 13, color: colors.muted, marginTop: 8 }}>
-              {stats.tracks.toLocaleString()} tracks
-            </div>
-            <div style={{ fontSize: 13, color: colors.muted }}>
-              {stats.albums.toLocaleString()} albums · {stats.artists.toLocaleString()} artists
-            </div>
-          </>
-        ) : (
-          <div style={{ fontSize: 13, color: colors.muted, marginTop: 8 }}>—</div>
-        )}
-      </div>
-
       <div style={{ marginTop: "auto" }}>
+        <div style={{ padding: "0 8px 14px" }}>
+          <div style={{ fontSize: 11, letterSpacing: 1, color: colors.faint, fontWeight: 600 }}>
+            LIBRARY
+          </div>
+          {stats ? (
+            <>
+              <div style={{ fontSize: 13, color: colors.muted, marginTop: 8 }}>
+                {stats.tracks.toLocaleString()} tracks
+              </div>
+              <div style={{ fontSize: 13, color: colors.muted }}>
+                {stats.albums.toLocaleString()} albums · {stats.artists.toLocaleString()} artists
+              </div>
+            </>
+          ) : (
+            <div style={{ fontSize: 13, color: colors.muted, marginTop: 8 }}>—</div>
+          )}
+        </div>
+
+        <div style={{ height: 1, background: colors.border, margin: "0 6px 12px" }} />
+
         <NavItem
           tab="settings"
           label="Settings"

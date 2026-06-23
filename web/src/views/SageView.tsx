@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { DiscoveryResult } from "@resonarr/shared";
 import { bulkAddBasket, getSettings, runSage } from "../api";
 import { Art } from "../components/Art";
+import { InfoHint } from "../components/InfoHint";
 import { SavePlaylistBar } from "../components/SavePlaylistBar";
 import { colors } from "../theme";
 
@@ -137,6 +138,7 @@ export function SageView() {
         <label style={{ display: "flex", gap: 6, alignItems: "center", color: colors.muted }}>
           <input type="checkbox" checked={bias} onChange={(e) => setBias(e.target.checked)} />
           Bias toward artists I own
+          <InfoHint text="Nudges suggestions toward artists already in your library, so you get more playable tracks now and fewer items to download." />
         </label>
       </div>
 

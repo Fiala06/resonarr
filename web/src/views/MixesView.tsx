@@ -49,32 +49,13 @@ export function MixesView() {
       {mixes && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
           {mixes.map((m, i) => (
-            <div
+            <MixCardTile
               key={m.id}
+              mix={m}
+              tint={ART[i % ART.length] ?? colors.seedBg}
+              active={openId === m.id}
               onClick={() => setOpenId(openId === m.id ? null : m.id)}
-              style={{
-                background: colors.sidebar,
-                border: `1px solid ${openId === m.id ? colors.accent : colors.border}`,
-                borderRadius: 10,
-                overflow: "hidden",
-                cursor: "pointer",
-              }}
-            >
-              <div style={{ height: 110, background: ART[i % ART.length], position: "relative", overflow: "hidden" }}>
-                <svg width="120" height="120" viewBox="0 0 40 40" fill="none" style={{ position: "absolute", right: -18, bottom: -22, opacity: 0.4 }}>
-                  <circle cx="20" cy="20" r="9.5" stroke={colors.accentLight} strokeWidth="2" />
-                  <circle cx="20" cy="20" r="16" stroke={colors.accentLight} strokeWidth="2" opacity="0.6" />
-                </svg>
-              </div>
-              <div style={{ padding: "11px 13px" }}>
-                <div style={{ fontSize: 14, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {m.title}
-                </div>
-                <div style={{ fontSize: 12, color: colors.muted, marginTop: 2 }}>
-                  {m.tracks.length} tracks · all owned
-                </div>
-              </div>
-            </div>
+            />
           ))}
         </div>
       )}
@@ -91,6 +72,82 @@ export function MixesView() {
         </div>
       )}
     </section>
+  );
+}
+
+function MixCardTile({
+  mix,
+  tint,
+  active,
+  onClick,
+}: {
+  mix: MixCard;
+  tint: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  const [artFailed, setArtFailed] = useState(false);
+
+  // Distinct artists other than the seed's, for a "feat." style subtitle.
+  const seedArtist = mix.seed.artist.toLowerCase();
+  const featured: string[] = [];
+  const seen = new Set<string>([seedArtist]);
+  for (const t of mix.tracks) {
+    const key = t.artist.toLowerCase();
+    if (!t.artist || seen.has(key)) continue;
+    seen.add(key);
+    featured.push(t.artist);
+    if (featured.length >= 3) break;
+  }
+
+  const cover = mix.seed.thumb && !artFailed
+    ? `/api/art?path=${encodeURIComponent(mix.seed.thumb)}`
+    : null;
+
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        background: colors.sidebar,
+        border: `1px solid ${active ? colors.accent : colors.border}`,
+        borderRadius: 10,
+        overflow: "hidden",
+        cursor: "pointer",
+      }}
+    >
+      <div style={{ height: 110, background: tint, position: "relative", overflow: "hidden" }}>
+        {cover ? (
+          <img
+            src={cover}
+            alt=""
+            loading="lazy"
+            onError={() => setArtFailed(true)}
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          />
+        ) : (
+          <svg width="120" height="120" viewBox="0 0 40 40" fill="none" style={{ position: "absolute", right: -18, bottom: -22, opacity: 0.4 }}>
+            <circle cx="20" cy="20" r="9.5" stroke={colors.accentLight} strokeWidth="2" />
+            <circle cx="20" cy="20" r="16" stroke={colors.accentLight} strokeWidth="2" opacity="0.6" />
+          </svg>
+        )}
+      </div>
+      <div style={{ padding: "11px 13px" }}>
+        <div style={{ fontSize: 14, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          {mix.title}
+        </div>
+        <div style={{ fontSize: 12, color: colors.muted, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          {mix.seed.artist}
+        </div>
+        {featured.length > 0 && (
+          <div style={{ fontSize: 11, color: colors.faint, marginTop: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            with {featured.join(", ")}
+          </div>
+        )}
+        <div style={{ fontSize: 11, color: colors.faint, marginTop: 6 }}>
+          {mix.tracks.length} tracks · all owned
+        </div>
+      </div>
+    </div>
   );
 }
 
