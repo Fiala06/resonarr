@@ -9,6 +9,15 @@ const SEED_COUNT = 25; // most-played artists fed to the LLM
 const DEFAULT_COUNT = 12; // candidates returned
 const OVERSHOOT = 8; // ask for extra to survive owned/dedupe/lookup drops
 
+/** Run `fn`, retrying once on failure (transient network/5xx blips). */
+async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch {
+    return await fn();
+  }
+}
+
 /**
  * Artist-level discovery: "artists like the ones you love that you don't own
  * yet." Seeds from your most-played artists, expands via the LLM, drops anything
@@ -41,7 +50,17 @@ export async function discoverArtists(
   );
 
   log.info("artist-discovery", `Seeding from ${seeds.length} top artists`);
-  const raw = await provider.suggestArtists(seeds, want + OVERSHOOT);
+
+  // The LLM call is the most failure-prone outbound hop (transient network
+  // "fetch failed", brief 5xx); retry once before giving up.
+  let raw;
+  try {
+    raw = await withRetry(() => provider.suggestArtists(seeds, want + OVERSHOOT));
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    log.error("artist-discovery", `LLM suggestion failed: ${detail}`);
+    throw new Error(`Couldn't get suggestions from the LLM: ${detail}`);
+  }
 
   // Drop owned + duplicate suggestions before the (heavier) Lidarr lookups.
   const seen = new Set<string>();

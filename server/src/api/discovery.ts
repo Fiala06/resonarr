@@ -14,6 +14,7 @@ import type {
   Track,
 } from "@resonarr/shared";
 import { services } from "../services.ts";
+import { log } from "../log/service.ts";
 import { userPlexClient } from "../auth/service.ts";
 import { runMixes } from "../mixes/service.ts";
 import { runAdventure } from "../adventure/service.ts";
@@ -152,9 +153,9 @@ export function registerDiscoveryRoutes(app: FastifyInstance): void {
       try {
         return await discoverArtists(userPlexClient(req), count);
       } catch (err) {
-        return reply.code(502).send({
-          error: err instanceof Error ? err.message : String(err),
-        }) as never;
+        const detail = err instanceof Error ? err.message : String(err);
+        log.error("artist-discovery", `Run failed: ${detail}`);
+        return reply.code(502).send({ error: detail }) as never;
       }
     },
   );
