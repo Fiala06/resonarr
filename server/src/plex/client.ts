@@ -53,7 +53,7 @@ export class PlexClient {
   private async request<T>(
     path: string,
     params: Record<string, string | number | undefined> = {},
-    method: "GET" | "POST" | "PUT" = "GET",
+    method: "GET" | "POST" | "PUT" | "DELETE" = "GET",
   ): Promise<T> {
     const url = new URL(path, this.cfg.url);
     for (const [k, v] of Object.entries(params)) {
@@ -84,7 +84,9 @@ export class PlexClient {
         `Plex ${res.status} ${res.statusText} for ${url.pathname}`,
       );
     }
-    return (await res.json()) as T;
+    // Some endpoints (DELETE, item edits) return an empty body — don't choke.
+    const text = await res.text();
+    return (text ? JSON.parse(text) : undefined) as T;
   }
 
   /** Find the first music (artist-type) library section. */
@@ -296,6 +298,11 @@ export class PlexClient {
     const uri = `server://${machineId}/com.plexapp.plugins.library/library/metadata/${trackIds.join(",")}`;
     await this.request(`/playlists/${playlistId}/items`, { uri }, "PUT");
     return trackIds.length;
+  }
+
+  /** Delete a playlist (used when an auto-playlist rebuilds in "replace" mode). */
+  async deletePlaylist(playlistId: string): Promise<void> {
+    await this.request(`/playlists/${playlistId}`, {}, "DELETE");
   }
 
   /** Create an audio playlist from a list of track ratingKeys. */

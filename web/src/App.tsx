@@ -8,6 +8,7 @@ import { MixesView } from "./views/MixesView";
 import { DiscoverView } from "./views/DiscoverView";
 import { DeepCutsView } from "./views/DeepCutsView";
 import { ArtistDiscoveryView } from "./views/ArtistDiscoveryView";
+import { WeeklyView } from "./views/WeeklyView";
 import { AdventureView } from "./views/AdventureView";
 import { BasketView } from "./views/BasketView";
 import { LogsView } from "./views/LogsView";
@@ -22,6 +23,7 @@ const TABS: Tab[] = [
   "discover",
   "deepcuts",
   "artists",
+  "weekly",
   "adventure",
   "basket",
   "logs",
@@ -97,6 +99,7 @@ export function App({ authUser }: { authUser?: AuthUser }) {
           {tab === "discover" && <DiscoverView />}
           {tab === "deepcuts" && <DeepCutsView />}
           {tab === "artists" && <ArtistDiscoveryView />}
+          {tab === "weekly" && <WeeklyView />}
           {tab === "adventure" && <AdventureView />}
           {tab === "basket" && <BasketView onChange={refreshBasket} />}
           {tab === "logs" && <LogsView />}

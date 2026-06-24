@@ -124,6 +124,53 @@ export interface ArtistDiscoveryResponse {
   candidates: ArtistCandidate[];
 }
 
+/**
+ * Scheduled auto-playlists — a "Discover Weekly" equivalent that refreshes on a
+ * cadence. v1 has one kind (discover-weekly): seeds from recent listening,
+ * expands by sonic similarity, biases toward newly-added + not-recently-played
+ * tracks, and avoids repeats from recent runs.
+ */
+export type AutoPlaylistKind = "discover-weekly";
+
+/** replace = fresh set each run (like Discover Weekly); append = keep growing one list. */
+export type AutoPlaylistMode = "replace" | "append";
+
+export interface AutoPlaylist {
+  id: string;
+  name: string;
+  kind: AutoPlaylistKind;
+  mode: AutoPlaylistMode;
+  /** Target track count. */
+  size: number;
+  /** Refresh cadence in days. */
+  intervalDays: number;
+  enabled: boolean;
+  /** Plex playlist id, once it has been built at least once. */
+  plexPlaylistId?: string;
+  /** Epoch ms of the last run, if any. */
+  lastRunAt?: number;
+  /** Epoch ms the next scheduled run is due. */
+  nextRunAt: number;
+  /** Short human-readable result of the last run. */
+  lastStatus?: string;
+  createdAt: string;
+}
+
+export interface CreateAutoPlaylistRequest {
+  name?: string;
+  mode?: AutoPlaylistMode;
+  size?: number;
+  intervalDays?: number;
+}
+
+export interface UpdateAutoPlaylistRequest {
+  name?: string;
+  mode?: AutoPlaylistMode;
+  size?: number;
+  intervalDays?: number;
+  enabled?: boolean;
+}
+
 export interface SageRequest {
   prompt: string;
   /** Bias recommendations toward artists already owned. */

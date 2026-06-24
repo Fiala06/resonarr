@@ -15,6 +15,15 @@ Lidarr: Plexamp can recommend music but it can't go get it.
 
 ## Recently shipped
 
+- **Discover Weekly (scheduled auto-playlists)** — a "Weekly" tab to define
+  Discover-Weekly-style playlists that rebuild on a cadence. An in-process
+  scheduler (`startScheduler`, 5-min poll + boot catch-up) refreshes due
+  definitions; each seeds from recent listening, expands by sonic similarity,
+  biases toward newly-added + never-played tracks, and avoids repeats via a
+  per-definition track history. **replace** mode rebuilds a fresh list each
+  cycle; **append** grows one playlist. Manual "Refresh now" for testing.
+  (`server/src/autoplaylist/`, migration v6, `WeeklyView`.) v1 runs as the
+  owner account (per-user scheduling is a later refinement).
 - **Artist-level discovery → Lidarr** — an "Artists" tab: seeds from your
   most-played artists (Plex track play counts), asks the LLM for adjacent
   artists you don't own, validates every candidate against Lidarr (the
@@ -39,20 +48,6 @@ Import Spotify playlists (e.g. Liked Songs) into Plex. Pull the playlist via the
 Spotify API, fuzzy-match each track to the Plex library (reusing `matching/`):
 owned tracks → a Plex playlist, misses → the request basket via Lidarr lookup.
 Needs a Spotify OAuth flow + a new server-side secret.
-
-### Discover Weekly (scheduled auto-playlists)
-A Spotify-Discover-Weekly equivalent: a personalized playlist that **refreshes
-on a schedule** (default weekly). A background job seeds from recent listening
-history, expands via sonic similarity, and rebuilds the playlist with owned
-tracks that fit your taste — biased toward ones you haven't played lately and
-music **newly added to Plex** — avoiding repeats from recent weeks.
-
-Generalizes to any saved discovery definition (a Sage prompt or a Discover
-source playlist) on a schedule. Two refresh modes worth supporting: **replace**
-(a fresh set each week, like Discover Weekly) and **append** (keep growing one
-playlist as new matches appear). Needs: a scheduler, persisted auto-playlist
-definitions (builds on *Saved discovery runs* below), a "recently added /
-recently unplayed" bias, and history so weeks don't repeat.
 
 ---
 

@@ -14,6 +14,8 @@ import { registerBasketRoutes } from "./api/basket.ts";
 import { registerSageRoutes } from "./api/sage.ts";
 import { registerLogRoutes } from "./api/logs.ts";
 import { registerAuthRoutes } from "./api/auth.ts";
+import { registerAutoPlaylistRoutes } from "./api/autoplaylists.ts";
+import { startScheduler } from "./autoplaylist/service.ts";
 import {
   authEnabled,
   getSession,
@@ -73,6 +75,7 @@ registerPlaylistRoutes(app);
 registerBasketRoutes(app);
 registerSageRoutes(app);
 registerLogRoutes(app);
+registerAutoPlaylistRoutes(app);
 
 // --- Static web app (built SPA) ----------------------------------------------
 // Present in production / Docker; absent during `dev:web` (Vite serves it).
@@ -91,7 +94,11 @@ if (existsSync(webDist)) {
 
 app
   .listen({ port: config.port, host: "0.0.0.0" })
-  .then(() => app.log.info(`Resonarr listening on 0.0.0.0:${config.port}`))
+  .then(() => {
+    app.log.info(`Resonarr listening on 0.0.0.0:${config.port}`);
+    // Background refresh of scheduled auto-playlists (Discover Weekly).
+    startScheduler();
+  })
   .catch((err) => {
     app.log.error(err);
     process.exit(1);

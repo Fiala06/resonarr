@@ -86,6 +86,37 @@ const MIGRATIONS: Migration[] = [
     // Carry the user's Plex token on the session so the app can act as them.
     up: `ALTER TABLE auth_sessions ADD COLUMN token TEXT;`,
   },
+  {
+    version: 6,
+    // Scheduled auto-playlists (Discover Weekly) + per-definition track history
+    // so successive runs don't repeat recent picks.
+    up: `
+      CREATE TABLE IF NOT EXISTS auto_playlists (
+        id               TEXT PRIMARY KEY,
+        name             TEXT NOT NULL,
+        kind             TEXT NOT NULL,
+        mode             TEXT NOT NULL,
+        size             INTEGER NOT NULL,
+        interval_days    INTEGER NOT NULL,
+        enabled          INTEGER NOT NULL,
+        plex_playlist_id TEXT,
+        last_run_at      INTEGER,
+        next_run_at      INTEGER NOT NULL,
+        last_status      TEXT,
+        created_at       TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS auto_playlist_history (
+        auto_id  TEXT NOT NULL,
+        track_id TEXT NOT NULL,
+        used_at  INTEGER NOT NULL,
+        PRIMARY KEY (auto_id, track_id)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_aph_auto
+        ON auto_playlist_history (auto_id, used_at DESC);
+    `,
+  },
 ];
 
 export function runMigrations(db: DatabaseSync): void {

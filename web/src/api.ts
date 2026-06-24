@@ -13,6 +13,9 @@ import type {
   DiscoveryResult,
   AddToPlaylistResponse,
   ArtistDiscoveryResponse,
+  AutoPlaylist,
+  CreateAutoPlaylistRequest,
+  UpdateAutoPlaylistRequest,
   HealthResponse,
   LibraryStats,
   LidarrOptions,
@@ -153,6 +156,51 @@ export async function addToPlaylist(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ trackIds }),
+    }),
+  );
+}
+
+// --- Scheduled auto-playlists (Discover Weekly) ------------------------------
+
+export async function getAutoPlaylists(): Promise<AutoPlaylist[]> {
+  return asJson(await fetch("/api/auto-playlists"));
+}
+
+export async function createAutoPlaylist(
+  input: CreateAutoPlaylistRequest,
+): Promise<AutoPlaylist> {
+  return asJson(
+    await fetch("/api/auto-playlists", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    }),
+  );
+}
+
+export async function updateAutoPlaylist(
+  id: string,
+  patch: UpdateAutoPlaylistRequest,
+): Promise<AutoPlaylist> {
+  return asJson(
+    await fetch(`/api/auto-playlists/${encodeURIComponent(id)}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    }),
+  );
+}
+
+export async function deleteAutoPlaylist(id: string): Promise<void> {
+  await fetch(`/api/auto-playlists/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
+}
+
+export async function runAutoPlaylist(id: string): Promise<AutoPlaylist> {
+  return asJson(
+    await fetch(`/api/auto-playlists/${encodeURIComponent(id)}/run`, {
+      method: "POST",
     }),
   );
 }
