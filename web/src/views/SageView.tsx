@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { DiscoveryResult } from "@resonarr/shared";
-import { bulkAddBasket, getSettings, runSage } from "../api";
+import { bulkAddBasket, getSageExamples, getSettings, runSage } from "../api";
 import { AlbumArt } from "../components/AlbumArt";
 import { AuditionLinks } from "../components/AuditionLinks";
 import { InfoHint } from "../components/InfoHint";
@@ -20,6 +20,9 @@ export function SageView() {
   const [added, setAdded] = useState<Set<number>>(new Set());
   const [addingAll, setAddingAll] = useState(false);
 
+  const [examples, setExamples] = useState<string[]>([]);
+  const [examplesBusy, setExamplesBusy] = useState(false);
+
   useEffect(() => {
     getSettings()
       .then((s) => {
@@ -27,7 +30,19 @@ export function SageView() {
         setProvider(s.llmProvider);
       })
       .catch(() => {});
+    getSageExamples().then(setExamples).catch(() => {});
   }, []);
+
+  async function cycleExamples() {
+    setExamplesBusy(true);
+    try {
+      setExamples(await getSageExamples(true));
+    } catch {
+      /* keep the current set */
+    } finally {
+      setExamplesBusy(false);
+    }
+  }
 
   async function generate() {
     const p = prompt.trim();
@@ -117,6 +132,39 @@ export function SageView() {
           resize: "vertical",
         }}
       />
+
+      {examples.length > 0 && (
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <span style={{ fontSize: 12, color: colors.muted, flex: "none" }}>
+            Try one of these:
+          </span>
+          {examples.slice(0, 6).map((ex) => (
+            <button
+              key={ex}
+              onClick={() => setPrompt(ex)}
+              className="rsn-btn"
+              style={chip}
+              title="Use this prompt"
+            >
+              {ex}
+            </button>
+          ))}
+          <button
+            onClick={cycleExamples}
+            disabled={examplesBusy}
+            title="Fresh ideas"
+            style={{
+              ...chip,
+              color: colors.accentLight,
+              borderColor: colors.accent,
+              opacity: examplesBusy ? 0.6 : 1,
+            }}
+          >
+            {examplesBusy ? "…" : "↻ new ideas"}
+          </button>
+        </div>
+      )}
+
       <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
         <button
           onClick={generate}
@@ -250,6 +298,21 @@ export function SageView() {
 }
 
 const sub = { fontSize: 12, color: colors.muted };
+const chip = {
+  font: "inherit",
+  fontSize: 12,
+  fontWeight: 500,
+  background: colors.panel2,
+  color: colors.text,
+  border: `1px solid ${colors.border}`,
+  borderRadius: 999,
+  padding: "5px 11px",
+  cursor: "pointer",
+  whiteSpace: "nowrap" as const,
+  maxWidth: 280,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+};
 const ownedRow = {
   display: "flex",
   alignItems: "center",

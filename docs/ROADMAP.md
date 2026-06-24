@@ -15,6 +15,11 @@ Lidarr: Plexamp can recommend music but it can't go get it.
 
 ## Recently shipped
 
+- **Cycling prompt examples in Sonic Sage** — a "Try one of these" row of
+  clickable example prompts under the Sage box, LLM-generated and personalized
+  from your top artists (cached 3 days, "↻ new ideas" regenerates). Click to
+  fill the prompt. Reuses the LLM `chat()` primitive; falls back to a static set
+  when there's no history. (`server/src/sage/examples.ts`.)
 - **Like/dislike feedback loop** — thumbs up/down on track rows (Radio,
   Discover, Deep Cuts), persisted per track. A thumbs-down hides that track
   **and its artist** from every sonic-discovery surface (Radio, Mixes, Discover,
@@ -101,10 +106,8 @@ Needs a Spotify OAuth flow + a new server-side secret.
 - **Mood / activity presets** — focus, workout, dinner, wind-down — generated
   from Plex mood/genre tags + sonic similarity with smart ordering. Low effort,
   high everyday use.
-- **Cycling prompt examples in Sonic Sage** — like Plexamp's "Try one of these":
-  a rotating set of ~10 example prompts seeded from the user's play history / top
-  artists (e.g. "melancholic, haunting vocals, reminiscent of Evanescence"). Best
-  seeded from the *taste profile* below.
+- ~~**Cycling prompt examples in Sonic Sage**~~ — ✅ **shipped** (see Recently
+  shipped).
 
 ### Insight & delight
 

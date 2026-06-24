@@ -303,6 +303,13 @@ export async function clearLogs(): Promise<void> {
   await fetch("/api/logs", { method: "DELETE" });
 }
 
+export async function getSageExamples(refresh = false): Promise<string[]> {
+  const r = await asJson<{ examples: string[] }>(
+    await fetch(`/api/sage/examples${refresh ? "?refresh=1" : ""}`),
+  );
+  return r.examples;
+}
+
 export async function runSage(
   prompt: string,
   ownArtistBias: boolean,
