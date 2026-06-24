@@ -171,6 +171,32 @@ export interface UpdateAutoPlaylistRequest {
   enabled?: boolean;
 }
 
+/**
+ * Taste profile ("Resonarr Wrapped"): the LLM reads your most-played artists +
+ * library shape and writes a plain-language portrait of your sound.
+ */
+export interface TopArtistPlays {
+  artist: string;
+  plays: number;
+}
+
+export interface TasteProfile {
+  /** One-line "your sound" headline. */
+  soundline: string;
+  /** A short plain-language paragraph. */
+  summary: string;
+  /** Dominant genres, most-defining first. */
+  genres: string[];
+  /** Eras/decades that define the taste (e.g. "1990s"). */
+  eras: string[];
+  /** Mood/vibe words (e.g. "nostalgic", "anthemic"). */
+  vibes: string[];
+  /** The top artists (with play counts) the profile was built from. */
+  topArtists: TopArtistPlays[];
+  /** Library size, for flavor. */
+  stats: LibraryStats;
+}
+
 export interface SageRequest {
   prompt: string;
   /** Bias recommendations toward artists already owned. */

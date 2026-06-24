@@ -27,7 +27,7 @@ export class OpenAIAdapter implements SuggestProvider {
     return parseArtistSuggestions(text);
   }
 
-  private async chat(system: string, user: string): Promise<string> {
+  async chat(system: string, user: string): Promise<string> {
     const res = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {

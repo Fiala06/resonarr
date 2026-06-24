@@ -11,6 +11,7 @@ export type Tab =
   | "deepcuts"
   | "artists"
   | "weekly"
+  | "profile"
   | "adventure"
   | "basket"
   | "logs"
@@ -59,6 +60,15 @@ const ICONS: Record<Tab, ReactNode> = {
       <circle cx="8" cy="9.5" r="1.5" fill="currentColor" />
     </>
   ),
+  profile: (
+    <path
+      d="M2 8 H4 L5.5 4 L7.5 12 L9.5 6 L11 8 H14"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  ),
   adventure: (
     <path d="M8 2 L13.5 13 L8 10.5 L2.5 13 Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
   ),
@@ -95,6 +105,7 @@ const MAIN_TABS: { key: Tab; label: string }[] = [
   { key: "deepcuts", label: "Deep Cuts" },
   { key: "artists", label: "Artists" },
   { key: "weekly", label: "Weekly" },
+  { key: "profile", label: "Taste Profile" },
   { key: "adventure", label: "Adventure" },
   { key: "basket", label: "Basket" },
 ];

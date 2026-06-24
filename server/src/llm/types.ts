@@ -20,4 +20,6 @@ export interface SuggestProvider {
   suggest(prompt: string, opts: SuggestOptions): Promise<Suggestion[]>;
   /** Adjacent artists for a set of seed (loved) artists (Artist discovery). */
   suggestArtists(seeds: string[], count: number): Promise<ArtistSuggestion[]>;
+  /** Generic system+user completion, returning raw text (Taste profile, etc.). */
+  chat(system: string, user: string): Promise<string>;
 }

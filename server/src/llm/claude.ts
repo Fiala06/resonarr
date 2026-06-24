@@ -27,7 +27,7 @@ export class ClaudeAdapter implements SuggestProvider {
     return parseArtistSuggestions(text);
   }
 
-  private async chat(system: string, user: string): Promise<string> {
+  async chat(system: string, user: string): Promise<string> {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {

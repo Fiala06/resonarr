@@ -143,6 +143,15 @@ export class PlexClient {
    * Returns an empty array when nothing has been played yet.
    */
   async getTopArtists(sectionKey: string, limit = 25): Promise<string[]> {
+    const ranked = await this.getTopArtistsWithPlays(sectionKey, limit);
+    return ranked.map((r) => r.artist);
+  }
+
+  /** Like {@link getTopArtists} but keeps the aggregated play counts. */
+  async getTopArtistsWithPlays(
+    sectionKey: string,
+    limit = 25,
+  ): Promise<{ artist: string; plays: number }[]> {
     const tracks = await this.getTracks(sectionKey, "viewCount:desc", 400);
     const plays = new Map<string, number>();
     for (const t of tracks) {
@@ -153,7 +162,7 @@ export class PlexClient {
     return [...plays.entries()]
       .sort((a, b) => b[1] - a[1])
       .slice(0, limit)
-      .map(([name]) => name);
+      .map(([artist, p]) => ({ artist, plays: p }));
   }
 
   /** Fetch a handful of tracks from a section — useful as sonic seeds. */

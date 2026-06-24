@@ -24,6 +24,7 @@ import type {
   PlexPinStart,
   PlaylistSummary,
   RadioResponse,
+  TasteProfile,
   Track,
 } from "@resonarr/shared";
 
@@ -88,6 +89,10 @@ export async function getRadio(
 
 export async function getMixes(): Promise<MixesResponse> {
   return asJson(await fetch("/api/mixes"));
+}
+
+export async function getTasteProfile(): Promise<TasteProfile> {
+  return asJson(await fetch("/api/taste-profile"));
 }
 
 export async function discoverFromPlaylist(

@@ -28,7 +28,7 @@ export class OllamaAdapter implements SuggestProvider {
     return parseArtistSuggestions(text);
   }
 
-  private async chat(system: string, user: string): Promise<string> {
+  async chat(system: string, user: string): Promise<string> {
     const res = await fetch(new URL("/api/chat", this.baseUrl), {
       method: "POST",
       headers: { "content-type": "application/json" },

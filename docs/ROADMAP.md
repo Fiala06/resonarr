@@ -15,6 +15,12 @@ Lidarr: Plexamp can recommend music but it can't go get it.
 
 ## Recently shipped
 
+- **Taste profile / "Resonarr Wrapped"** — a "Taste Profile" tab: pulls your
+  most-played artists (with play counts) from Plex and has the LLM write a
+  one-line "your sound", a short summary, and genre/era/vibe chips, plus a
+  ranked most-played bar chart. The model infers genres/eras from the artist
+  names, so no Plex genre tags needed. Exposed a generic `chat()` on the LLM
+  providers (reused for future LLM features). (`server/src/taste/`, `ProfileView`.)
 - **Discover Weekly (scheduled auto-playlists)** — a "Weekly" tab to define
   Discover-Weekly-style playlists that rebuild on a cadence. An in-process
   scheduler (`startScheduler`, 5-min poll + boot catch-up) refreshes due
@@ -95,9 +101,9 @@ Needs a Spotify OAuth flow + a new server-side secret.
 
 ### Insight & delight
 
-- **Taste profile + "Resonarr Wrapped"** — analyze listening into top artists,
-  eras, genres, and a plain-language "your sound" summary; a yearly wrapped.
-  Shareable, delightful, and makes the LLM earn its keep.
+- ~~**Taste profile + "Resonarr Wrapped"**~~ — ✅ **shipped** (see Recently
+  shipped). Still future: a *yearly* wrapped (time-windowed to a calendar year)
+  and a shareable image/card export.
 - **Shared / collaborative household playlists** — now that multiple people log
   in, let them build playlists together or see "what she's into lately". The
   multi-user groundwork already exists.

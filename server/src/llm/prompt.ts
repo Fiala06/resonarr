@@ -78,7 +78,7 @@ export function parseArtistSuggestions(text: string): ArtistSuggestion[] {
   return out;
 }
 
-function extractJsonObject(text: string): Record<string, unknown> | null {
+export function extractJsonObject(text: string): Record<string, unknown> | null {
   const tryParse = (s: string): Record<string, unknown> | null => {
     try {
       const v: unknown = JSON.parse(s);

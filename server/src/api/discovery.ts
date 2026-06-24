@@ -11,6 +11,7 @@ import type {
   MixesResponse,
   RadioRequest,
   RadioResponse,
+  TasteProfile,
   Track,
 } from "@resonarr/shared";
 import { services } from "../services.ts";
@@ -21,6 +22,7 @@ import { runAdventure } from "../adventure/service.ts";
 import { discoverFromPlaylist } from "../discover/service.ts";
 import { getDeepCuts } from "../deepcuts/service.ts";
 import { discoverArtists } from "../artistdiscovery/service.ts";
+import { buildTasteProfile } from "../taste/service.ts";
 
 export function registerDiscoveryRoutes(app: FastifyInstance): void {
   // Seed-track search for the pickers.
@@ -159,6 +161,20 @@ export function registerDiscoveryRoutes(app: FastifyInstance): void {
       }
     },
   );
+
+  // Taste profile ("Resonarr Wrapped"): LLM portrait of your listening.
+  app.get("/api/taste-profile", async (req, reply): Promise<TasteProfile> => {
+    if (!services.plex) {
+      return reply.code(503).send({ error: "Plex is not configured" }) as never;
+    }
+    try {
+      return await buildTasteProfile(userPlexClient(req));
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err);
+      log.error("taste", `Profile failed: ${detail}`);
+      return reply.code(502).send({ error: detail }) as never;
+    }
+  });
 
   // Sonic Adventure: a path from a start track to a destination track.
   app.post<{ Body: AdventureRequest }>(
