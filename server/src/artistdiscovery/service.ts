@@ -52,41 +52,52 @@ export async function discoverArtists(
     return true;
   });
 
-  // Validate each candidate against Lidarr in parallel — only real MusicBrainz
-  // artists survive (the hallucination guard).
-  const validated = await Promise.all(
-    fresh.map(async (s): Promise<ArtistCandidate | null> => {
-      try {
-        const hits = await lidarr.artistLookup(s.name);
-        const match = hits[0];
-        if (!match) return null;
-        // A different resolved name might still be one we own.
-        if (owned.has(normalize(match.artistName))) return null;
-        return {
-          artist: match.artistName,
-          mbid: match.foreignArtistId,
-          disambiguation:
-            typeof match.disambiguation === "string" && match.disambiguation
-              ? match.disambiguation
-              : undefined,
-          reason: s.reason,
-        };
-      } catch {
-        return null; // lookup hiccup — skip rather than fail the whole run
-      }
-    }),
-  );
+  // Validate each candidate against Lidarr — only real MusicBrainz artists
+  // survive (the hallucination guard). Lidarr's lookup proxies to MusicBrainz,
+  // which is rate-limited to ~1 req/sec, so we go sequentially (a parallel burst
+  // gets throttled and most lookups fail). Stop as soon as we have enough.
+  const candidates: ArtistCandidate[] = [];
+  const seenMbid = new Set<string>();
+  let ownedResolved = 0;
+  let noMatch = 0;
+  let lookupFailed = 0;
 
-  // Dedupe on resolved mbid (two suggestions can resolve to one artist).
-  const byMbid = new Map<string, ArtistCandidate>();
-  for (const c of validated) {
-    if (c && !byMbid.has(c.mbid)) byMbid.set(c.mbid, c);
+  for (const s of fresh) {
+    if (candidates.length >= want) break;
+    let match;
+    try {
+      const hits = await lidarr.artistLookup(s.name);
+      match = hits[0];
+    } catch {
+      lookupFailed += 1;
+      continue;
+    }
+    if (!match) {
+      noMatch += 1;
+      continue;
+    }
+    // A different resolved name (or alias) might still be one we own.
+    if (owned.has(normalize(match.artistName))) {
+      ownedResolved += 1;
+      continue;
+    }
+    if (seenMbid.has(match.foreignArtistId)) continue; // two suggestions, one artist
+    seenMbid.add(match.foreignArtistId);
+    candidates.push({
+      artist: match.artistName,
+      mbid: match.foreignArtistId,
+      disambiguation:
+        typeof match.disambiguation === "string" && match.disambiguation
+          ? match.disambiguation
+          : undefined,
+      reason: s.reason,
+    });
   }
-  const candidates = [...byMbid.values()].slice(0, want);
 
   log.info(
     "artist-discovery",
-    `${candidates.length} validated candidates from ${raw.length} suggestions`,
+    `${candidates.length} candidates from ${fresh.length} fresh / ${raw.length} suggested ` +
+      `(owned-on-resolve ${ownedResolved}, no-match ${noMatch}, lookup-failed ${lookupFailed})`,
   );
   return { seeds, candidates };
 }

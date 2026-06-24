@@ -50,9 +50,12 @@ export function buildArtistPrompt(seeds: string[], count: number): string {
   return (
     `I love these artists: ${list}.\n\n` +
     `Suggest ${count} other real, existing artists or bands I would likely enjoy ` +
-    `but that are NOT in that list — adjacent in sound, scene, or era, the kind of ` +
-    `artists a fan of mine would discover next. For each, give a one-sentence reason ` +
-    `tied to which of my artists it resembles. Do not repeat any artist I listed.`
+    `but that are NOT in that list — adjacent in sound, scene, or era.\n\n` +
+    `I already own a very large, mainstream collection, so skip the most obvious ` +
+    `household-name neighbors I almost certainly already have. Lean toward deeper ` +
+    `cuts: lesser-known, underrated, cult-favorite, or influential-but-overlooked ` +
+    `artists a devoted fan would discover next. For each, give a one-sentence ` +
+    `reason tied to which of my artists it resembles. Do not repeat any artist I listed.`
   );
 }
 
