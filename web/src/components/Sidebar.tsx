@@ -13,6 +13,7 @@ export type Tab =
   | "artists"
   | "weekly"
   | "profile"
+  | "timemachine"
   | "adventure"
   | "spotify"
   | "basket"
@@ -79,6 +80,13 @@ const ICONS: Record<Tab, ReactNode> = {
       strokeLinejoin="round"
     />
   ),
+  timemachine: (
+    <>
+      <circle cx="8" cy="8" r="5.5" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M8 4.5 V8 L10.5 10" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M3 3 L1.5 1.5 M2.5 5.5 L1 5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+    </>
+  ),
   adventure: (
     <path d="M8 2 L13.5 13 L8 10.5 L2.5 13 Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
   ),
@@ -125,6 +133,7 @@ const MAIN_TABS: { key: Tab; label: string }[] = [
   { key: "artists", label: "Artists" },
   { key: "weekly", label: "Weekly" },
   { key: "profile", label: "Taste Profile" },
+  { key: "timemachine", label: "Time Machine" },
   { key: "adventure", label: "Adventure" },
   { key: "spotify", label: "Spotify Import" },
   { key: "basket", label: "Basket" },

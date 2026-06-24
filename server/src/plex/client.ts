@@ -207,6 +207,30 @@ export class PlexClient {
     return (data.MediaContainer.Metadata ?? []).map(toTrack);
   }
 
+  /**
+   * Tracks whose `lastViewedAt` falls within [fromEpoch, toEpoch] (epoch
+   * seconds). Plex's `>>` / `<<` filter operators are percent-encoded by
+   * URLSearchParams; Plex URL-decodes them server-side before parsing.
+   */
+  async getTracksViewedBetween(
+    sectionKey: string,
+    fromEpoch: number,
+    toEpoch: number,
+    limit = 50,
+  ): Promise<Track[]> {
+    const data = await this.request<PlexContainer<PlexMetadata>>(
+      `/library/sections/${sectionKey}/all`,
+      {
+        type: TRACK_TYPE,
+        sort: "viewCount:desc",
+        limit,
+        "lastViewedAt>>": fromEpoch,
+        "lastViewedAt<<": toEpoch,
+      },
+    );
+    return (data.MediaContainer.Metadata ?? []).map(toTrack);
+  }
+
   /** Recently played tracks from a section's play history (de-duplicated). */
   async getRecentlyPlayed(sectionKey: string, limit = 40): Promise<Track[]> {
     const data = await this.request<PlexContainer<PlexMetadata>>(

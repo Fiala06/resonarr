@@ -417,6 +417,28 @@ export interface HealthResponse {
 }
 
 // ---------------------------------------------------------------------------
+// Time machine
+// ---------------------------------------------------------------------------
+
+export interface TimeMachineGroup {
+  year: number;
+  tracks: Track[];
+}
+
+/** "On this day" — tracks from this week across past years, one group per year. */
+export interface OnThisDayResponse {
+  /** Today's month/day window used for filtering (display only). */
+  label: string;
+  groups: TimeMachineGroup[];
+}
+
+/** Top tracks from an entire calendar year, by play count. */
+export interface YearInReviewResponse {
+  year: number;
+  tracks: Track[];
+}
+
+// ---------------------------------------------------------------------------
 // Spotify import
 // ---------------------------------------------------------------------------
 

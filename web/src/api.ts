@@ -23,6 +23,7 @@ import type {
   LidarrOptions,
   LogEntry,
   MixesResponse,
+  OnThisDayResponse,
   PlexPinStart,
   PlaylistSummary,
   RadioResponse,
@@ -33,6 +34,7 @@ import type {
   SpotifyStatus,
   TasteProfile,
   Track,
+  YearInReviewResponse,
 } from "@resonarr/shared";
 
 async function asJson<T>(res: Response): Promise<T> {
@@ -354,6 +356,16 @@ export async function importSpotify(
       body: JSON.stringify(req),
     }),
   );
+}
+
+// --- Time machine ------------------------------------------------------------
+
+export async function getOnThisDay(): Promise<OnThisDayResponse> {
+  return asJson(await fetch("/api/timemachine/onthisday"));
+}
+
+export async function getYearInReview(year: number): Promise<YearInReviewResponse> {
+  return asJson(await fetch(`/api/timemachine/year/${year}`));
 }
 
 export async function importSpotifyFile(
