@@ -156,7 +156,7 @@ export class PlexClient {
     const plays = new Map<string, number>();
     for (const t of tracks) {
       const n = t.viewCount ?? 0;
-      if (n <= 0 || !t.artist) continue;
+      if (n <= 0 || !t.artist || isNonArtist(t.artist)) continue;
       plays.set(t.artist, (plays.get(t.artist) ?? 0) + n);
     }
     return [...plays.entries()]
@@ -340,6 +340,21 @@ export class PlexClient {
       trackCount: trackIds.length,
     };
   }
+}
+
+// Compilation / placeholder "artists" that pollute most-played aggregates and
+// make useless discovery seeds.
+const NON_ARTISTS = new Set([
+  "various artists",
+  "various",
+  "va",
+  "unknown artist",
+  "[unknown artist]",
+  "soundtrack",
+]);
+
+function isNonArtist(name: string): boolean {
+  return NON_ARTISTS.has(name.trim().toLowerCase());
 }
 
 function toTrack(m: PlexMetadata): Track {
