@@ -26,6 +26,11 @@ import type {
   PlexPinStart,
   PlaylistSummary,
   RadioResponse,
+  SpotifyFileImportRequest,
+  SpotifyImportRequest,
+  SpotifyImportResult,
+  SpotifyPlaylistSummary,
+  SpotifyStatus,
   TasteProfile,
   Track,
 } from "@resonarr/shared";
@@ -321,6 +326,44 @@ export async function runSage(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ prompt, ownArtistBias, count }),
+    }),
+  );
+}
+
+// --- Spotify import ----------------------------------------------------------
+
+export async function getSpotifyStatus(): Promise<SpotifyStatus> {
+  return asJson(await fetch("/api/spotify/auth/status"));
+}
+
+export async function disconnectSpotify(): Promise<void> {
+  await fetch("/api/spotify/auth/logout", { method: "DELETE" });
+}
+
+export async function getSpotifyPlaylists(): Promise<SpotifyPlaylistSummary[]> {
+  return asJson(await fetch("/api/spotify/playlists"));
+}
+
+export async function importSpotify(
+  req: SpotifyImportRequest,
+): Promise<SpotifyImportResult> {
+  return asJson(
+    await fetch("/api/spotify/import", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(req),
+    }),
+  );
+}
+
+export async function importSpotifyFile(
+  req: SpotifyFileImportRequest,
+): Promise<SpotifyImportResult> {
+  return asJson(
+    await fetch("/api/spotify/import/tracks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(req),
     }),
   );
 }

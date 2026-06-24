@@ -16,6 +16,7 @@ import { registerLogRoutes } from "./api/logs.ts";
 import { registerAuthRoutes } from "./api/auth.ts";
 import { registerAutoPlaylistRoutes } from "./api/autoplaylists.ts";
 import { registerFeedbackRoutes } from "./api/feedback.ts";
+import { registerSpotifyRoutes } from "./api/spotify.ts";
 import { startScheduler } from "./autoplaylist/service.ts";
 import {
   authEnabled,
@@ -40,7 +41,7 @@ if (config.auth) {
     "Basic " +
     Buffer.from(`${config.auth.user}:${config.auth.pass}`).toString("base64");
   app.addHook("onRequest", async (req, reply) => {
-    if (req.url === "/api/health") return;
+    if (req.url === "/api/health" || req.url.startsWith("/api/spotify/auth/")) return;
     if (req.headers.authorization !== expected) {
       reply
         .header("WWW-Authenticate", 'Basic realm="Resonarr"')
@@ -57,7 +58,12 @@ if (authEnabled()) {
   app.addHook("onRequest", async (req, reply) => {
     const path = req.url.split("?")[0] ?? req.url;
     if (!path.startsWith("/api/")) return; // SPA + static assets
-    if (path === "/api/health" || path.startsWith("/api/auth/")) return;
+    if (
+      path === "/api/health" ||
+      path.startsWith("/api/auth/") ||
+      path.startsWith("/api/spotify/auth/")
+    )
+      return;
     const sess = getSession(parseCookie(req.headers.cookie, SESSION_COOKIE));
     if (!sess) {
       reply.code(401).send({ error: "Not authenticated" });
@@ -78,6 +84,7 @@ registerSageRoutes(app);
 registerLogRoutes(app);
 registerAutoPlaylistRoutes(app);
 registerFeedbackRoutes(app);
+registerSpotifyRoutes(app);
 
 // --- Static web app (built SPA) ----------------------------------------------
 // Present in production / Docker; absent during `dev:web` (Vite serves it).

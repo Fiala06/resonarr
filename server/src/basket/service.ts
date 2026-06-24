@@ -26,6 +26,7 @@ interface BasketRow {
 const KNOWN_SOURCES: BasketItemSource[] = [
   "sonic-sage",
   "artist-discovery",
+  "spotify-import",
   "manual",
 ];
 

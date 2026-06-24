@@ -11,6 +11,7 @@ import { DeepCutsView } from "./views/DeepCutsView";
 import { ArtistDiscoveryView } from "./views/ArtistDiscoveryView";
 import { WeeklyView } from "./views/WeeklyView";
 import { ProfileView } from "./views/ProfileView";
+import { SpotifyView } from "./views/SpotifyView";
 import { AdventureView } from "./views/AdventureView";
 import { BasketView } from "./views/BasketView";
 import { LogsView } from "./views/LogsView";
@@ -30,6 +31,7 @@ const TABS: Tab[] = [
   "weekly",
   "profile",
   "adventure",
+  "spotify",
   "basket",
   "logs",
   "settings",
@@ -109,6 +111,7 @@ export function App({ authUser }: { authUser?: AuthUser }) {
           {tab === "weekly" && <WeeklyView />}
           {tab === "profile" && <ProfileView />}
           {tab === "adventure" && <AdventureView />}
+          {tab === "spotify" && <SpotifyView />}
           {tab === "basket" && <BasketView onChange={refreshBasket} />}
           {tab === "logs" && <LogsView />}
           {tab === "settings" && <SettingsView />}

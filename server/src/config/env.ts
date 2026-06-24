@@ -24,6 +24,11 @@ export interface LidarrConfig {
   apiKey: string;
 }
 
+export interface SpotifyConfig {
+  clientId: string;
+  clientSecret: string;
+}
+
 export const config = {
   port: Number(optional("PORT") ?? "8080"),
 
@@ -74,6 +79,13 @@ export const config = {
     openaiApiKey: optional("OPENAI_API_KEY"),
     ollamaUrl: optional("OLLAMA_URL"),
   },
+
+  /** Present only when both client id and secret are configured. */
+  spotify: ((): SpotifyConfig | undefined => {
+    const clientId = optional("SPOTIFY_CLIENT_ID");
+    const clientSecret = optional("SPOTIFY_CLIENT_SECRET");
+    return clientId && clientSecret ? { clientId, clientSecret } : undefined;
+  })(),
 } as const;
 
 /** Throw a clear error if a required service is not configured. */

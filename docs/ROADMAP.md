@@ -69,13 +69,20 @@ Lidarr: Plexamp can recommend music but it can't go get it.
 
 ---
 
-## Next
+## Recently shipped (continued)
 
-### Spotify import
-Import Spotify playlists (e.g. Liked Songs) into Plex. Pull the playlist via the
-Spotify API, fuzzy-match each track to the Plex library (reusing `matching/`):
-owned tracks → a Plex playlist, misses → the request basket via Lidarr lookup.
-Needs a Spotify OAuth flow + a new server-side secret.
+- **Spotify import** — a "Spotify Import" tab: drop a Spotify data-export
+  JSON file (`YourLibrary.json` for Liked Songs or any `Playlist*.json`) and
+  run a match. No Spotify account connection or Premium subscription required —
+  the browser parses the file, the server fuzzy-matches each track against Plex
+  (reusing `matching/`), and unmatched artists go to the Lidarr basket. Matched
+  tracks can be saved as a Plex playlist. OAuth flow also ships for Premium
+  users (needs `SPOTIFY_CLIENT_ID` + `SPOTIFY_CLIENT_SECRET` in `.env`).
+  (`server/src/spotify/`, `SpotifyView`.)
+
+---
+
+## Next
 
 ---
 

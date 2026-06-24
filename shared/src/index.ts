@@ -299,7 +299,11 @@ export type BasketItemType = "artist" | "album";
  */
 export type BasketItemStatus = "pending" | "requested" | "done" | "failed";
 
-export type BasketItemSource = "sonic-sage" | "artist-discovery" | "manual";
+export type BasketItemSource =
+  | "sonic-sage"
+  | "artist-discovery"
+  | "spotify-import"
+  | "manual";
 
 export interface BasketItem {
   id: string;
@@ -410,4 +414,67 @@ export interface HealthResponse {
   app: "ok";
   plex: ServiceStatus;
   lidarr: ServiceStatus;
+}
+
+// ---------------------------------------------------------------------------
+// Spotify import
+// ---------------------------------------------------------------------------
+
+export interface SpotifyUser {
+  id: string;
+  name: string;
+}
+
+export interface SpotifyStatus {
+  configured: boolean;
+  connected: boolean;
+  user?: SpotifyUser;
+}
+
+export interface SpotifyPlaylistSummary {
+  id: string;
+  name: string;
+  trackCount: number;
+  owner: string;
+}
+
+/** One unmatched Spotify track (no Plex equivalent found). */
+export interface SpotifyMiss {
+  title: string;
+  artist: string;
+  album: string;
+}
+
+/** A parsed track from a Spotify data-export JSON file. */
+export interface SpotifyTrack {
+  title: string;
+  artist: string;
+  album: string;
+}
+
+export interface SpotifyImportRequest {
+  /** "liked" for Liked Songs, or a Spotify playlist id. */
+  source: string;
+  /** Human-readable name used as the Plex playlist title. */
+  name: string;
+  /** When true, save matched tracks as a Plex playlist. */
+  savePlaylist?: boolean;
+}
+
+/** Import from a pre-parsed Spotify data-export file (no OAuth required). */
+export interface SpotifyFileImportRequest {
+  tracks: SpotifyTrack[];
+  name: string;
+  savePlaylist?: boolean;
+}
+
+export interface SpotifyImportResult {
+  sourceName: string;
+  spotifyTotal: number;
+  matched: Track[];
+  misses: SpotifyMiss[];
+  /** Artists from misses that were added to the request basket. */
+  basketedArtists: string[];
+  /** Plex playlist created, when savePlaylist=true and matches exist. */
+  plexPlaylist?: { id: string; name: string; trackCount: number };
 }

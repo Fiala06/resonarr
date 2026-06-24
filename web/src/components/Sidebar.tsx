@@ -14,6 +14,7 @@ export type Tab =
   | "weekly"
   | "profile"
   | "adventure"
+  | "spotify"
   | "basket"
   | "logs"
   | "settings";
@@ -81,6 +82,14 @@ const ICONS: Record<Tab, ReactNode> = {
   adventure: (
     <path d="M8 2 L13.5 13 L8 10.5 L2.5 13 Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
   ),
+  spotify: (
+    <>
+      <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M5 6.3 a 5 5 0 0 1 6 0.6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+      <path d="M5.6 8.3 a 3.5 3.5 0 0 1 4.6 0.4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+      <path d="M6.2 10.2 a 2 2 0 0 1 3.2 0.2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+    </>
+  ),
   basket: (
     <>
       <path d="M3 5 H13 L12 13 H4 Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
@@ -117,6 +126,7 @@ const MAIN_TABS: { key: Tab; label: string }[] = [
   { key: "weekly", label: "Weekly" },
   { key: "profile", label: "Taste Profile" },
   { key: "adventure", label: "Adventure" },
+  { key: "spotify", label: "Spotify Import" },
   { key: "basket", label: "Basket" },
 ];
 
