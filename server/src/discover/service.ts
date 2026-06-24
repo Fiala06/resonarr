@@ -3,6 +3,7 @@ import type { PlexClient } from "../plex/client.ts";
 import { services } from "../services.ts";
 import { log } from "../log/service.ts";
 import { filterDisliked } from "../feedback/service.ts";
+import { normalize } from "../matching/match.ts";
 
 const MAX_SEEDS = 25; // seeds sampled from the source playlist
 const PER_SEED = 15; // neighbors fetched per seed
@@ -18,6 +19,7 @@ export async function discoverFromPlaylist(
   plex: PlexClient,
   playlistId: string,
   limit = DEFAULT_LIMIT,
+  newArtistsOnly = false,
 ): Promise<DiscoverResponse> {
   const sonic = services.sonic;
   if (!sonic) throw new Error("Plex is not configured");
@@ -33,6 +35,10 @@ export async function discoverFromPlaylist(
 
   // Everything already in the playlist is excluded from the picks.
   const ownedIds = new Set(sourceTracks.map((t) => t.id));
+  // For "new artists only", also exclude any artist already in the source.
+  const sourceArtists = newArtistsOnly
+    ? new Set(sourceTracks.map((t) => normalize(t.artist)))
+    : null;
   const seeds = sampleEvenly(sourceTracks, MAX_SEEDS);
 
   // Candidate -> how many distinct seeds pointed at it.
@@ -42,6 +48,7 @@ export async function discoverFromPlaylist(
       const neighbors = await sonic.similar(seed.id, PER_SEED);
       for (const n of neighbors) {
         if (ownedIds.has(n.id)) continue;
+        if (sourceArtists?.has(normalize(n.artist))) continue;
         const cur = score.get(n.id);
         if (cur) cur.hits += 1;
         else score.set(n.id, { track: n, hits: 1 });

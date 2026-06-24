@@ -15,6 +15,11 @@ Lidarr: Plexamp can recommend music but it can't go get it.
 
 ## Recently shipped
 
+- **New-artist discovery mode** — a "New artists only" option that excludes
+  candidates by artists you already have/play. Available as a per-run toggle in
+  **Discover** (excludes artists in the source playlist) and a per-definition
+  option in **Discover Weekly** (excludes artists from recent listening, for
+  true new-artist discovery on a schedule). (migration v8, `new_artists_only`.)
 - **Mood / activity presets** — a "Moods" tab: one-click cards (Focus, Workout,
   Wind-down, Dinner, Road trip, Rainy day) that run a Sage generation tuned to
   favor owned, ready-to-play tracks, then surface a saveable playlist. Reuses
@@ -98,9 +103,8 @@ Needs a Spotify OAuth flow + a new server-side secret.
 - **On-this-day / time machine** — "what you were into last summer", decade or
   year-added playlists. Nostalgia is core to music lovers and nearly free to
   build from date-added / play history.
-- **Discover: "new artists only"** — optional mode that excludes candidates whose
-  artist already appears in the source, for true new-artist discovery rather than
-  new-tracks-by-known-artists.
+- ~~**Discover: "new artists only"**~~ — ✅ **shipped** (see Recently shipped),
+  in both Discover and Discover Weekly.
 
 ### Smarter, learning recommendations
 

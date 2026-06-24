@@ -23,6 +23,7 @@ export function WeeklyView() {
   const [size, setSize] = useState(30);
   const [intervalDays, setIntervalDays] = useState(7);
   const [mode, setMode] = useState<AutoPlaylistMode>("replace");
+  const [newArtistsOnly, setNewArtistsOnly] = useState(false);
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
@@ -44,7 +45,13 @@ export function WeeklyView() {
     setCreating(true);
     setError(null);
     try {
-      const made = await createAutoPlaylist({ name, size, intervalDays, mode });
+      const made = await createAutoPlaylist({
+        name,
+        size,
+        intervalDays,
+        mode,
+        newArtistsOnly,
+      });
       setItems((prev) => [...(prev ?? []), made]);
       // Build it immediately so there's something to look at right away.
       void refresh(made.id);
@@ -113,6 +120,7 @@ export function WeeklyView() {
                 <div style={{ fontSize: 15, fontWeight: 600 }}>{ap.name}</div>
                 <div style={{ fontSize: 12, color: colors.muted }}>
                   every {ap.intervalDays}d · {ap.mode} · {ap.size} tracks
+                  {ap.newArtistsOnly ? " · new artists" : ""}
                 </div>
                 <span
                   style={{
@@ -204,6 +212,15 @@ export function WeeklyView() {
               <option value="append">append</option>
             </select>
             <InfoHint text="Replace builds a fresh set each cycle (like Discover Weekly). Append keeps growing one playlist as new matches appear." />
+          </label>
+          <label style={label}>
+            <input
+              type="checkbox"
+              checked={newArtistsOnly}
+              onChange={(e) => setNewArtistsOnly(e.target.checked)}
+            />
+            New artists only
+            <InfoHint text="Excludes tracks by artists you've recently played, so the playlist surfaces genuinely new artists instead of more from your rotation." />
           </label>
           <button
             onClick={create}

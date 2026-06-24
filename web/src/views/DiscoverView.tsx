@@ -9,6 +9,7 @@ import { colors, fx } from "../theme";
 export function DiscoverView() {
   const [playlists, setPlaylists] = useState<PlaylistSummary[] | null>(null);
   const [playlistId, setPlaylistId] = useState("");
+  const [newArtistsOnly, setNewArtistsOnly] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<DiscoverResponse | null>(null);
@@ -28,7 +29,7 @@ export function DiscoverView() {
     setError(null);
     setResult(null);
     try {
-      setResult(await discoverFromPlaylist(playlistId));
+      setResult(await discoverFromPlaylist(playlistId, undefined, newArtistsOnly));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -87,6 +88,15 @@ export function DiscoverView() {
         >
           {loading ? "Finding…" : "Find fresh picks"}
         </button>
+        <label style={{ display: "flex", gap: 6, alignItems: "center", color: colors.muted, fontSize: 13 }}>
+          <input
+            type="checkbox"
+            checked={newArtistsOnly}
+            onChange={(e) => setNewArtistsOnly(e.target.checked)}
+          />
+          New artists only
+          <InfoHint text="Excludes tracks by artists already in the source playlist, so you discover genuinely new artists rather than more songs by ones you already have." />
+        </label>
       </div>
 
       {error && <p style={{ color: colors.red, margin: 0 }}>Error: {error}</p>}

@@ -4,6 +4,7 @@ import { services } from "../services.ts";
 import { getSettings } from "../settings/service.ts";
 import { log } from "../log/service.ts";
 import { filterDisliked } from "../feedback/service.ts";
+import { normalize } from "../matching/match.ts";
 import {
   DAY_MS,
   getAutoPlaylist,
@@ -68,6 +69,10 @@ async function buildDiscoverWeekly(
   const recentIds = new Set(recent.map((t) => t.id));
   const sinceMs = Date.now() - ap.intervalDays * HISTORY_CYCLES * DAY_MS;
   const usedRecently = getRecentHistoryIds(ap.id, sinceMs);
+  // "New artists only": exclude anything by an artist you've recently played.
+  const recentArtists = ap.newArtistsOnly
+    ? new Set(recent.map((t) => normalize(t.artist)))
+    : null;
 
   // Candidate consensus: how many seeds independently surfaced each neighbor.
   const score = new Map<string, { track: Track; hits: number }>();
@@ -76,6 +81,7 @@ async function buildDiscoverWeekly(
       const neighbors = filterDisliked(await sonic.similar(seed.id, PER_SEED));
       for (const n of neighbors) {
         if (recentIds.has(n.id) || usedRecently.has(n.id)) continue;
+        if (recentArtists?.has(normalize(n.artist))) continue;
         const cur = score.get(n.id);
         if (cur) cur.hits += 1;
         else score.set(n.id, { track: n, hits: 1 });

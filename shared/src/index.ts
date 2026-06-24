@@ -80,6 +80,8 @@ export interface DiscoverRequest {
   playlistId: string;
   /** Max fresh tracks to return (clamped server-side). */
   limit?: number;
+  /** Exclude tracks whose artist already appears in the source playlist. */
+  newArtistsOnly?: boolean;
 }
 
 export interface DiscoverResponse {
@@ -144,6 +146,8 @@ export interface AutoPlaylist {
   size: number;
   /** Refresh cadence in days. */
   intervalDays: number;
+  /** Exclude tracks by artists you've recently listened to (true new artists). */
+  newArtistsOnly: boolean;
   enabled: boolean;
   /** Plex playlist id, once it has been built at least once. */
   plexPlaylistId?: string;
@@ -161,6 +165,7 @@ export interface CreateAutoPlaylistRequest {
   mode?: AutoPlaylistMode;
   size?: number;
   intervalDays?: number;
+  newArtistsOnly?: boolean;
 }
 
 export interface UpdateAutoPlaylistRequest {
@@ -168,6 +173,7 @@ export interface UpdateAutoPlaylistRequest {
   mode?: AutoPlaylistMode;
   size?: number;
   intervalDays?: number;
+  newArtistsOnly?: boolean;
   enabled?: boolean;
 }
 

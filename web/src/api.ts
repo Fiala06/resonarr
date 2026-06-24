@@ -100,12 +100,13 @@ export async function getTasteProfile(): Promise<TasteProfile> {
 export async function discoverFromPlaylist(
   playlistId: string,
   limit?: number,
+  newArtistsOnly?: boolean,
 ): Promise<DiscoverResponse> {
   return asJson(
     await fetch("/api/discover", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ playlistId, limit }),
+      body: JSON.stringify({ playlistId, limit, newArtistsOnly }),
     }),
   );
 }

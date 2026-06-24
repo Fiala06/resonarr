@@ -132,6 +132,11 @@ const MIGRATIONS: Migration[] = [
       CREATE INDEX IF NOT EXISTS idx_feedback_rating ON feedback (rating);
     `,
   },
+  {
+    version: 8,
+    // Opt-in "true new-artist discovery" for scheduled auto-playlists.
+    up: `ALTER TABLE auto_playlists ADD COLUMN new_artists_only INTEGER NOT NULL DEFAULT 0;`,
+  },
 ];
 
 export function runMigrations(db: DatabaseSync): void {

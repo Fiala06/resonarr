@@ -107,7 +107,7 @@ export function registerDiscoveryRoutes(app: FastifyInstance): void {
   app.post<{ Body: DiscoverRequest }>(
     "/api/discover",
     async (req, reply): Promise<DiscoverResponse> => {
-      const { playlistId, limit } = req.body ?? {};
+      const { playlistId, limit, newArtistsOnly } = req.body ?? {};
       if (!playlistId) {
         return reply.code(400).send({ error: "playlistId is required" }) as never;
       }
@@ -115,7 +115,12 @@ export function registerDiscoveryRoutes(app: FastifyInstance): void {
         return reply.code(503).send({ error: "Plex is not configured" }) as never;
       }
       try {
-        return await discoverFromPlaylist(userPlexClient(req), playlistId, limit);
+        return await discoverFromPlaylist(
+          userPlexClient(req),
+          playlistId,
+          limit,
+          newArtistsOnly,
+        );
       } catch (err) {
         return reply.code(502).send({
           error: err instanceof Error ? err.message : String(err),

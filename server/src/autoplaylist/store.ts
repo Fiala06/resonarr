@@ -15,6 +15,7 @@ interface AutoPlaylistRow {
   mode: string;
   size: number;
   interval_days: number;
+  new_artists_only: number;
   enabled: number;
   plex_playlist_id: string | null;
   last_run_at: number | null;
@@ -41,6 +42,7 @@ function rowToItem(r: AutoPlaylistRow): AutoPlaylist {
     mode: r.mode === "append" ? "append" : "replace",
     size: r.size,
     intervalDays: r.interval_days,
+    newArtistsOnly: r.new_artists_only === 1,
     enabled: r.enabled === 1,
     plexPlaylistId: r.plex_playlist_id ?? undefined,
     lastRunAt: r.last_run_at ?? undefined,
@@ -76,6 +78,7 @@ export function createAutoPlaylist(input: CreateAutoPlaylistRequest): AutoPlayli
     mode: input.mode === "append" ? "append" : DEFAULTS.mode,
     size: clampSize(input.size ?? DEFAULTS.size),
     intervalDays: clampInterval(input.intervalDays ?? DEFAULTS.intervalDays),
+    newArtistsOnly: input.newArtistsOnly ?? false,
     enabled: true,
     // Due immediately so the first build happens on the next scheduler tick.
     nextRunAt: now,
@@ -85,9 +88,9 @@ export function createAutoPlaylist(input: CreateAutoPlaylistRequest): AutoPlayli
   getDb()
     .prepare(
       `INSERT INTO auto_playlists
-         (id, name, kind, mode, size, interval_days, enabled,
+         (id, name, kind, mode, size, interval_days, new_artists_only, enabled,
           plex_playlist_id, last_run_at, next_run_at, last_status, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?, NULL, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?, NULL, ?)`,
     )
     .run(
       item.id,
@@ -96,6 +99,7 @@ export function createAutoPlaylist(input: CreateAutoPlaylistRequest): AutoPlayli
       item.mode,
       item.size,
       item.intervalDays,
+      item.newArtistsOnly ? 1 : 0,
       item.enabled ? 1 : 0,
       item.nextRunAt,
       item.createdAt,
@@ -117,16 +121,27 @@ export function updateAutoPlaylist(
     size: patch.size !== undefined ? clampSize(patch.size) : cur.size,
     intervalDays:
       patch.intervalDays !== undefined ? clampInterval(patch.intervalDays) : cur.intervalDays,
+    newArtistsOnly:
+      patch.newArtistsOnly !== undefined ? patch.newArtistsOnly : cur.newArtistsOnly,
     enabled: patch.enabled !== undefined ? patch.enabled : cur.enabled,
   };
 
   getDb()
     .prepare(
       `UPDATE auto_playlists
-         SET name = ?, mode = ?, size = ?, interval_days = ?, enabled = ?
+         SET name = ?, mode = ?, size = ?, interval_days = ?,
+             new_artists_only = ?, enabled = ?
        WHERE id = ?`,
     )
-    .run(next.name, next.mode, next.size, next.intervalDays, next.enabled ? 1 : 0, id);
+    .run(
+      next.name,
+      next.mode,
+      next.size,
+      next.intervalDays,
+      next.newArtistsOnly ? 1 : 0,
+      next.enabled ? 1 : 0,
+      id,
+    );
   return getAutoPlaylist(id);
 }
 
