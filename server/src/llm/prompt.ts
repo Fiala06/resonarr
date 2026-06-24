@@ -1,5 +1,5 @@
 import type { Suggestion } from "@resonarr/shared";
-import type { SuggestOptions } from "./types.ts";
+import type { ArtistSuggestion, SuggestOptions } from "./types.ts";
 
 /** Shared across all providers so suggestions are uniform + parseable. */
 export const SYSTEM_PROMPT = `You are a music recommendation engine for a personal music library.
@@ -30,6 +30,44 @@ export function parseSuggestions(text: string): Suggestion[] {
           artist: o.artist.trim(),
           title: typeof o.title === "string" ? o.title.trim() : undefined,
           album: typeof o.album === "string" ? o.album.trim() : undefined,
+        });
+      }
+    }
+  }
+  return out;
+}
+
+// --- Artist-level discovery --------------------------------------------------
+
+export const ARTIST_SYSTEM_PROMPT = `You are a music discovery engine for a collector growing their library.
+Given artists someone already loves, suggest other real, existing artists or bands they'd likely enjoy but probably don't own yet.
+Respond with ONLY a JSON object of exactly this shape and nothing else:
+{"artists":[{"name":"Artist Name","reason":"one short sentence"}]}
+No prose, no markdown, no code fences. Never invent artists that don't exist.`;
+
+export function buildArtistPrompt(seeds: string[], count: number): string {
+  const list = seeds.slice(0, 30).join(", ");
+  return (
+    `I love these artists: ${list}.\n\n` +
+    `Suggest ${count} other real, existing artists or bands I would likely enjoy ` +
+    `but that are NOT in that list — adjacent in sound, scene, or era, the kind of ` +
+    `artists a fan of mine would discover next. For each, give a one-sentence reason ` +
+    `tied to which of my artists it resembles. Do not repeat any artist I listed.`
+  );
+}
+
+export function parseArtistSuggestions(text: string): ArtistSuggestion[] {
+  const obj = extractJsonObject(text);
+  const arr = obj && Array.isArray(obj.artists) ? obj.artists : [];
+  const out: ArtistSuggestion[] = [];
+  for (const x of arr) {
+    if (x && typeof x === "object") {
+      const o = x as Record<string, unknown>;
+      const name = typeof o.name === "string" ? o.name.trim() : "";
+      if (name) {
+        out.push({
+          name,
+          reason: typeof o.reason === "string" ? o.reason.trim() : undefined,
         });
       }
     }

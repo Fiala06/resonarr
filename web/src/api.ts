@@ -7,9 +7,12 @@ import type {
   BasketItem,
   BulkAddBasketResponse,
   CreatePlaylistResponse,
+  DeepCutsMode,
+  DeepCutsResponse,
   DiscoverResponse,
   DiscoveryResult,
   AddToPlaylistResponse,
+  ArtistDiscoveryResponse,
   HealthResponse,
   LibraryStats,
   LidarrOptions,
@@ -95,6 +98,19 @@ export async function discoverFromPlaylist(
       body: JSON.stringify({ playlistId, limit }),
     }),
   );
+}
+
+export async function getDeepCuts(
+  mode: DeepCutsMode,
+): Promise<DeepCutsResponse> {
+  return asJson(await fetch(`/api/deepcuts?mode=${mode}`));
+}
+
+export async function discoverArtists(
+  count?: number,
+): Promise<ArtistDiscoveryResponse> {
+  const q = count ? `?count=${count}` : "";
+  return asJson(await fetch(`/api/artist-discovery${q}`));
 }
 
 export async function getAdventure(

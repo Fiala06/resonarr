@@ -18,6 +18,10 @@ export interface Track {
   durationMs?: number;
   /** Relative Plex art path, proxied through the server when displayed. */
   thumb?: string;
+  /** Lifetime play count from Plex (when the feature needs it). */
+  viewCount?: number;
+  /** Epoch seconds of the last play, from Plex `lastViewedAt` (when known). */
+  lastPlayedAt?: number;
 }
 
 /** An LLM suggestion before it has been matched against the library. */
@@ -83,6 +87,41 @@ export interface DiscoverResponse {
   source: PlaylistSummary;
   /** Owned tracks similar to the source but not already in it. */
   tracks: Track[];
+}
+
+/**
+ * Deep cuts & rediscovery: owned tracks you rarely or never play.
+ *  - "never" — buried treasure you've never pressed play on.
+ *  - "faded" — proven favorites you played a lot but have drifted from.
+ */
+export type DeepCutsMode = "never" | "faded";
+
+export interface DeepCutsResponse {
+  mode: DeepCutsMode;
+  /** Tracks carry viewCount / lastPlayedAt so the UI can explain each pick. */
+  tracks: Track[];
+}
+
+/**
+ * Artist-level discovery: "artists like the ones you love that you don't own
+ * yet." Seeded from your most-played artists, expanded by the LLM, and every
+ * candidate validated against Lidarr so only real, requestable artists show up.
+ */
+export interface ArtistCandidate {
+  /** Artist name as resolved by Lidarr's MusicBrainz lookup. */
+  artist: string;
+  /** MusicBrainz artist id (proves it is real and requestable). */
+  mbid: string;
+  /** Lidarr disambiguation, when present (e.g. "US indie band"). */
+  disambiguation?: string;
+  /** One-line LLM rationale tying it back to your taste. */
+  reason?: string;
+}
+
+export interface ArtistDiscoveryResponse {
+  /** The most-played owned artists the suggestions were seeded from. */
+  seeds: string[];
+  candidates: ArtistCandidate[];
 }
 
 export interface SageRequest {
@@ -160,7 +199,7 @@ export type BasketItemType = "artist" | "album";
  */
 export type BasketItemStatus = "pending" | "requested" | "done" | "failed";
 
-export type BasketItemSource = "sonic-sage" | "manual";
+export type BasketItemSource = "sonic-sage" | "artist-discovery" | "manual";
 
 export interface BasketItem {
   id: string;

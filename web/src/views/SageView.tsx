@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { DiscoveryResult } from "@resonarr/shared";
 import { bulkAddBasket, getSettings, runSage } from "../api";
 import { AlbumArt } from "../components/AlbumArt";
+import { AuditionLinks } from "../components/AuditionLinks";
 import { InfoHint } from "../components/InfoHint";
 import { SavePlaylistBar } from "../components/SavePlaylistBar";
 import { colors, fx } from "../theme";
@@ -228,6 +229,7 @@ export function SageView() {
                       </div>
                       {m.album && <div style={sub}>{m.album}</div>}
                     </div>
+                    <AuditionLinks artist={m.artist} album={m.album} title={m.title} />
                     {added.has(i) ? (
                       <span style={{ fontSize: 11, color: colors.green }}>✓ in basket</span>
                     ) : (

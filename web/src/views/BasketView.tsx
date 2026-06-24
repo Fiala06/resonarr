@@ -8,6 +8,7 @@ import {
   requestBasket,
 } from "../api";
 import { AlbumArt } from "../components/AlbumArt";
+import { AuditionLinks } from "../components/AuditionLinks";
 import { colors, fx } from "../theme";
 
 const STATUS_COLOR: Record<BasketItemStatus, string> = {
@@ -273,6 +274,7 @@ export function BasketView({ onChange }: { onChange?: () => void }) {
                   {it.type} · {it.source}
                 </div>
               </div>
+              <AuditionLinks artist={it.artist} album={it.album} mbid={it.mbid} />
               <span
                 style={{
                   color: STATUS_COLOR[it.status],

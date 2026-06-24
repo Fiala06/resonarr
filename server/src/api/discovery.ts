@@ -2,6 +2,9 @@ import type { FastifyInstance } from "fastify";
 import type {
   AdventureRequest,
   AdventureResponse,
+  ArtistDiscoveryResponse,
+  DeepCutsMode,
+  DeepCutsResponse,
   DiscoverRequest,
   DiscoverResponse,
   LibraryStats,
@@ -15,6 +18,8 @@ import { userPlexClient } from "../auth/service.ts";
 import { runMixes } from "../mixes/service.ts";
 import { runAdventure } from "../adventure/service.ts";
 import { discoverFromPlaylist } from "../discover/service.ts";
+import { getDeepCuts } from "../deepcuts/service.ts";
+import { discoverArtists } from "../artistdiscovery/service.ts";
 
 export function registerDiscoveryRoutes(app: FastifyInstance): void {
   // Seed-track search for the pickers.
@@ -107,6 +112,45 @@ export function registerDiscoveryRoutes(app: FastifyInstance): void {
       }
       try {
         return await discoverFromPlaylist(userPlexClient(req), playlistId, limit);
+      } catch (err) {
+        return reply.code(502).send({
+          error: err instanceof Error ? err.message : String(err),
+        }) as never;
+      }
+    },
+  );
+
+  // Deep cuts: owned tracks you rarely (never) or no-longer (faded) play.
+  app.get<{ Querystring: { mode?: string } }>(
+    "/api/deepcuts",
+    async (req, reply): Promise<DeepCutsResponse> => {
+      const mode: DeepCutsMode = req.query.mode === "faded" ? "faded" : "never";
+      if (!services.plex) {
+        return reply.code(503).send({ error: "Plex is not configured" }) as never;
+      }
+      try {
+        return await getDeepCuts(userPlexClient(req), mode);
+      } catch (err) {
+        return reply.code(502).send({
+          error: err instanceof Error ? err.message : String(err),
+        }) as never;
+      }
+    },
+  );
+
+  // Artist discovery: adjacent artists you don't own yet, validated via Lidarr.
+  app.get<{ Querystring: { count?: string } }>(
+    "/api/artist-discovery",
+    async (req, reply): Promise<ArtistDiscoveryResponse> => {
+      const count = req.query.count ? Number(req.query.count) : undefined;
+      if (!services.plex) {
+        return reply.code(503).send({ error: "Plex is not configured" }) as never;
+      }
+      if (!services.lidarr) {
+        return reply.code(503).send({ error: "Lidarr is not configured" }) as never;
+      }
+      try {
+        return await discoverArtists(userPlexClient(req), count);
       } catch (err) {
         return reply.code(502).send({
           error: err instanceof Error ? err.message : String(err),

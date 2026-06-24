@@ -13,6 +13,25 @@ Lidarr: Plexamp can recommend music but it can't go get it.
 
 ---
 
+## Recently shipped
+
+- **Artist-level discovery → Lidarr** — an "Artists" tab: seeds from your
+  most-played artists (Plex track play counts), asks the LLM for adjacent
+  artists you don't own, validates every candidate against Lidarr (the
+  hallucination guard), and drops them in the basket with a distinct
+  `artist-discovery` source. Each row carries the LLM's one-line reason +
+  audition links. (`server/src/artistdiscovery/`, `ArtistDiscoveryView`, new
+  `suggestArtists` on the LLM providers.)
+- **Deep cuts & rediscovery** — a "Deep Cuts" tab with two modes: *Buried
+  treasure* (owned tracks never played, reshuffled each visit) and *Faded
+  favorites* (proven favorites not heard in 60+ days, longest-forgotten first).
+  Pure play history — Plex `viewCount` / `lastViewedAt`, capped per artist for
+  spread, saveable as a playlist. (`server/src/deepcuts/`, `DeepCutsView`.)
+- **Audition links** — YouTube + MusicBrainz links on basket rows and Sonic
+  Sage misses (see Ideas → Grow the library).
+
+---
+
 ## Next
 
 ### Spotify import
@@ -35,32 +54,19 @@ playlist as new matches appear). Needs: a scheduler, persisted auto-playlist
 definitions (builds on *Saved discovery runs* below), a "recently added /
 recently unplayed" bias, and history so weeks don't repeat.
 
-### Artist-level discovery → Lidarr
-The most on-brand idea here: "artists *like* the ones you love that you don't own
-yet." Take your top/most-played artists, find adjacent artists (LLM and/or sonic
-adjacency), validate via Lidarr lookup, and drop them in the basket. Today the
-basket fills from track-level misses; this makes discovery deliberately about
-**expanding the collection** — the one thing Plexamp can't do.
-
-### Deep cuts & rediscovery
-Surface owned tracks you rarely or never play, or loved a year ago and drifted
-from. Plexamp is strong at *new* sonic neighbors but weak at "rediscover your own
-shelf" — and with tens of thousands of tracks, most are probably unplayed. Cheap
-to build: uses play counts + `lastViewedAt` Plex already exposes.
-
 ---
 
 ## Ideas
 
 ### Grow & complete the library (Lidarr synergy)
 
-- **Audition links for unowned items** *(quick win)* — on basket rows and Sonic
-  Sage misses, add small links to **YouTube** (search URL — "let me hear it")
-  and **MusicBrainz** (free: the artist `mbid` is already resolved at lookup),
-  optionally Bandcamp/Last.fm. Lets you evaluate a recommendation before
-  spending a Lidarr request. Pure outbound links — no API or secrets. (Album-
-  level MB links would need the release-group id, which isn't stored yet, so v1
-  is artist-direct + a YouTube track search.)
+- ~~**Audition links for unowned items** *(quick win)*~~ — ✅ **shipped.**
+  `AuditionLinks` component adds **YouTube** (search URL — "let me hear it") and
+  **MusicBrainz** links to basket rows and Sonic Sage misses. Basket rows use
+  the resolved artist `mbid` for a direct MB page; Sage misses fall back to an
+  MB artist search. Pure outbound links — no API or secrets. (Album-level MB
+  links would need a release-group id, not stored yet, so v1 is artist-direct +
+  a YouTube track search. Bandcamp/Last.fm could be added similarly later.)
 - **New releases from artists you play** — watch owned artists, surface new
   albums, and queue them to Lidarr + a "New from your artists" playlist once
   downloaded. Lidarr monitors releases but doesn't know *which* artists you

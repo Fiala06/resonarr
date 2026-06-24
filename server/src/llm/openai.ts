@@ -1,6 +1,13 @@
 import type { Suggestion } from "@resonarr/shared";
-import type { SuggestOptions, SuggestProvider } from "./types.ts";
-import { SYSTEM_PROMPT, buildUserPrompt, parseSuggestions } from "./prompt.ts";
+import type { ArtistSuggestion, SuggestOptions, SuggestProvider } from "./types.ts";
+import {
+  ARTIST_SYSTEM_PROMPT,
+  SYSTEM_PROMPT,
+  buildArtistPrompt,
+  buildUserPrompt,
+  parseArtistSuggestions,
+  parseSuggestions,
+} from "./prompt.ts";
 
 const TIMEOUT_MS = 60_000;
 
@@ -11,6 +18,16 @@ export class OpenAIAdapter implements SuggestProvider {
   ) {}
 
   async suggest(prompt: string, opts: SuggestOptions): Promise<Suggestion[]> {
+    const text = await this.chat(SYSTEM_PROMPT, buildUserPrompt(prompt, opts));
+    return parseSuggestions(text);
+  }
+
+  async suggestArtists(seeds: string[], count: number): Promise<ArtistSuggestion[]> {
+    const text = await this.chat(ARTIST_SYSTEM_PROMPT, buildArtistPrompt(seeds, count));
+    return parseArtistSuggestions(text);
+  }
+
+  private async chat(system: string, user: string): Promise<string> {
     const res = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -20,8 +37,8 @@ export class OpenAIAdapter implements SuggestProvider {
       body: JSON.stringify({
         model: this.model,
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: buildUserPrompt(prompt, opts) },
+          { role: "system", content: system },
+          { role: "user", content: user },
         ],
         response_format: { type: "json_object" },
       }),
@@ -36,6 +53,6 @@ export class OpenAIAdapter implements SuggestProvider {
     const data = (await res.json()) as {
       choices?: { message?: { content?: string } }[];
     };
-    return parseSuggestions(data.choices?.[0]?.message?.content ?? "");
+    return data.choices?.[0]?.message?.content ?? "";
   }
 }

@@ -8,6 +8,8 @@ export type Tab =
   | "radio"
   | "mixes"
   | "discover"
+  | "deepcuts"
+  | "artists"
   | "adventure"
   | "basket"
   | "logs"
@@ -35,6 +37,18 @@ const ICONS: Record<Tab, ReactNode> = {
     <>
       <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.4" />
       <path d="M10.5 5.5 L9 9 L5.5 10.5 L7 7 Z" fill="currentColor" />
+    </>
+  ),
+  deepcuts: (
+    <>
+      <path d="M2.5 5 L13.5 5 M2.5 8 L13.5 8 M2.5 11 L9.5 11" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <circle cx="12" cy="11" r="2" stroke="currentColor" strokeWidth="1.4" />
+    </>
+  ),
+  artists: (
+    <>
+      <circle cx="8" cy="5.5" r="2.6" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M3.2 13 a4.8 4.8 0 0 1 9.6 0" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
     </>
   ),
   adventure: (
@@ -70,6 +84,8 @@ const MAIN_TABS: { key: Tab; label: string }[] = [
   { key: "radio", label: "Radio" },
   { key: "mixes", label: "Mixes" },
   { key: "discover", label: "Discover" },
+  { key: "deepcuts", label: "Deep Cuts" },
+  { key: "artists", label: "Artists" },
   { key: "adventure", label: "Adventure" },
   { key: "basket", label: "Basket" },
 ];

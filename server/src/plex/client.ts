@@ -31,6 +31,8 @@ interface PlexMetadata {
   parentThumb?: string; // album art
   grandparentThumb?: string; // artist art
   leafCount?: number; // playlist track count
+  viewCount?: number; // lifetime play count
+  lastViewedAt?: number; // epoch seconds of last play
   type?: string;
 }
 
@@ -133,11 +135,47 @@ export class PlexClient {
       .filter((t): t is string => Boolean(t));
   }
 
+  /**
+   * Artists you actually listen to, most-played first — derived from track play
+   * counts (Plex doesn't aggregate viewCount reliably at the artist level).
+   * Returns an empty array when nothing has been played yet.
+   */
+  async getTopArtists(sectionKey: string, limit = 25): Promise<string[]> {
+    const tracks = await this.getTracks(sectionKey, "viewCount:desc", 400);
+    const plays = new Map<string, number>();
+    for (const t of tracks) {
+      const n = t.viewCount ?? 0;
+      if (n <= 0 || !t.artist) continue;
+      plays.set(t.artist, (plays.get(t.artist) ?? 0) + n);
+    }
+    return [...plays.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, limit)
+      .map(([name]) => name);
+  }
+
   /** Fetch a handful of tracks from a section — useful as sonic seeds. */
   async getSampleTracks(sectionKey: string, limit = 5): Promise<Track[]> {
     const data = await this.request<PlexContainer<PlexMetadata>>(
       `/library/sections/${sectionKey}/all`,
       { type: TRACK_TYPE, limit },
+    );
+    return (data.MediaContainer.Metadata ?? []).map(toTrack);
+  }
+
+  /**
+   * A page of section tracks under a given Plex sort (e.g. `random`,
+   * `viewCount:desc`, `lastViewedAt:asc`). Returned tracks carry viewCount /
+   * lastPlayedAt for play-history features (Deep cuts).
+   */
+  async getTracks(
+    sectionKey: string,
+    sort: string,
+    limit = 100,
+  ): Promise<Track[]> {
+    const data = await this.request<PlexContainer<PlexMetadata>>(
+      `/library/sections/${sectionKey}/all`,
+      { type: TRACK_TYPE, sort, limit },
     );
     return (data.MediaContainer.Metadata ?? []).map(toTrack);
   }
@@ -296,5 +334,7 @@ function toTrack(m: PlexMetadata): Track {
     album: m.parentTitle ?? "",
     durationMs: m.duration,
     thumb: m.thumb ?? m.parentThumb ?? m.grandparentThumb,
+    viewCount: m.viewCount,
+    lastPlayedAt: m.lastViewedAt,
   };
 }

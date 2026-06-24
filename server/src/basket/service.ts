@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type {
   AddBasketItemRequest,
   BasketItem,
+  BasketItemSource,
   BasketItemStatus,
   BasketItemType,
 } from "@resonarr/shared";
@@ -22,6 +23,12 @@ interface BasketRow {
   created_at: string;
 }
 
+const KNOWN_SOURCES: BasketItemSource[] = [
+  "sonic-sage",
+  "artist-discovery",
+  "manual",
+];
+
 function rowToItem(r: BasketRow): BasketItem {
   return {
     id: r.id,
@@ -29,7 +36,9 @@ function rowToItem(r: BasketRow): BasketItem {
     artist: r.artist,
     album: r.album ?? undefined,
     mbid: r.mbid ?? undefined,
-    source: r.source === "sonic-sage" ? "sonic-sage" : "manual",
+    source: (KNOWN_SOURCES as string[]).includes(r.source)
+      ? (r.source as BasketItemSource)
+      : "manual",
     status: r.status as BasketItemStatus,
     createdAt: r.created_at,
   };
