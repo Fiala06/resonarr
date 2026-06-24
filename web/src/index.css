@@ -68,6 +68,36 @@ textarea {
 }
 .rsn-rise { animation: resonarr-rise 0.42s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
 
+/* Indeterminate progress bar (Artist discovery, while Lidarr lookups run). */
+@keyframes resonarr-slide {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(360%); }
+}
+.rsn-loader {
+  position: relative;
+  height: 3px;
+  border-radius: 3px;
+  background: rgba(124, 92, 255, 0.12);
+  overflow: hidden;
+}
+.rsn-loader::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 32%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, transparent, #8d6dff, transparent);
+  animation: resonarr-slide 1.15s ease-in-out infinite;
+}
+
+/* Shimmering skeleton placeholder rows. */
+@keyframes resonarr-shimmer {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.7; }
+}
+.rsn-skeleton { animation: resonarr-shimmer 1.3s ease-in-out infinite; }
+
 /* Hover lift helpers - add the class, the inline styles set base look. */
 .rsn-row { transition: transform 0.15s ease, border-color 0.15s ease; }
 .rsn-row:hover { transform: translateY(-3px); border-color: rgba(124, 92, 255, 0.55); }
@@ -110,5 +140,7 @@ textarea {
   [data-tip] .tip,
   .rsn-row,
   .rsn-btn,
-  .rsn-card { animation: none !important; transition: none !important; }
+  .rsn-card,
+  .rsn-loader::after,
+  .rsn-skeleton { animation: none !important; transition: none !important; }
 }
