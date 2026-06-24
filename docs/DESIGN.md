@@ -26,7 +26,7 @@
 | Backend | **Node + TypeScript**, Fastify | Lightweight, fast, great HTTP-client story for Plex/Lidarr |
 | Frontend | **React + Vite + TypeScript** | SPA served by the same container |
 | Design system | **Claude Design** (claude.ai/design) synced via `DesignSync` / `/design-sync` | Component library authored as a design system, synced into `/web` one component at a time |
-| Persistence | **SQLite** (better-sqlite3) | Single-file DB on the `/config` volume; zero external services |
+| Persistence | **SQLite** (Node's built-in `node:sqlite`) | Single-file DB on the `/config` volume; no native module to compile in Alpine |
 | Shared types | TS package `/shared` | One source of truth for DTOs across server + web |
 | Packaging | Single **multi-stage Docker** image | One container on Unraid, one mounted volume |
 | LLM | **Pluggable** adapter layer | Claude (default) · OpenAI · local Ollama, user-selectable |
@@ -39,8 +39,13 @@ resonarr/
 │  ├─ src/
 │  │  ├─ plex/        Plex client + PIN auth: search, nearest, history, playlists
 │  │  ├─ lidarr/      Lidarr client: lookup, add artist/album, search, stats
-│  │  ├─ llm/         SuggestProvider interface + Claude/OpenAI/Ollama adapters
-│  │  ├─ sage/ radio/ mixes/ discover/ adventure/   discovery features
+│  │  ├─ llm/         SuggestProvider (suggest/suggestArtists/chat) + Claude/OpenAI/Ollama adapters
+│  │  ├─ sage/ radio/ mixes/ discover/ adventure/   discovery features (+ sage/examples)
+│  │  ├─ deepcuts/    rarely/never-played rediscovery
+│  │  ├─ artistdiscovery/  adjacent-artist discovery → Lidarr basket
+│  │  ├─ autoplaylist/ scheduled auto-playlists (Discover Weekly) + in-process scheduler
+│  │  ├─ taste/       LLM "taste profile" / Resonarr Wrapped
+│  │  ├─ feedback/    like/dislike store + discovery filter
 │  │  ├─ matching/    normalize + fuzzy Plex matching
 │  │  ├─ basket/      Lidarr request basket (SQLite-backed)
 │  │  ├─ auth/        Plex-login sessions + per-request user client
@@ -88,16 +93,26 @@ become container environment variables.
   generated Plex client-identifier under `_plexClientId`).
 - **basket_items** — Lidarr request basket: `id`, `type` (artist|album),
   `artist`, `album`, `mbid` (resolved via Lidarr lookup), `source`
-  (sonic-sage|manual), `status` (pending|requested|**done**|failed),
+  (sonic-sage|artist-discovery|manual), `status` (pending|requested|**done**|failed),
   `created_at`. Lookup-verified before insert so hallucinated items can't enter
   the basket. `done` is set when Lidarr's statistics show files on disk.
 - **sonic_cache** — cache of Plex `nearest` results keyed by seed track +
-  params, with TTL; avoids hammering Plex for repeated queries.
+  params, with TTL; avoids hammering Plex for repeated queries. Also holds the
+  cached Sonic Sage example prompts (`sage:examples`).
 - **event_log** — activity log (`ts`, `level`, `source`, `message`, `detail`),
   bounded to the last 1000 rows; mirrored to stdout.
 - **auth_sessions** — Plex-login sessions (`id`, `name`, `token`, `expires_at`)
   when `AUTH_PLEX` is enabled. The session `token` lets the app act as the
   signed-in user.
+- **profiles** — known Plex users seen by the app (`id`, `name`, `token`).
+- **auto_playlists** — scheduled auto-playlist definitions (Discover Weekly):
+  `name`, `kind`, `mode` (replace|append), `size`, `interval_days`,
+  `new_artists_only`, `enabled`, `plex_playlist_id`, `last_run_at`,
+  `next_run_at`, `last_status`.
+- **auto_playlist_history** — `(auto_id, track_id, used_at)`; lets successive
+  runs of a definition avoid repeating recent picks.
+- **feedback** — per-track thumbs (`track_id`, `artist`, `title`, `rating`
+  up|down); biases discovery (dislikes hidden, likes hinted to Sage).
 - **sessions** — reserved for saved discovery runs (not yet wired up).
 
 ## 6. Feature mechanics
@@ -131,12 +146,54 @@ into the request basket. Optional **own-artist bias** injects the user's owned
 artist list into the prompt to favor artists already in the library.
 
 ### Bulk request
-Selected basket items submitted to Lidarr **artist-first**
-(`artist/lookup` → `POST artist`), then album monitored with search
-(`POST/monitor album` + `searchForNewAlbum`). Every miss was already
-lookup-validated, so requests map to real MusicBrainz entities. A status
-refresh re-checks `requested` items against Lidarr download statistics and
-flips them to **done** once files are on disk.
+Selected basket items submitted to Lidarr **artist-first**: add the artist if
+missing (`artist/lookup` → `POST artist` with `searchForMissingAlbums`), else
+trigger an `ArtistSearch`. Requests are artist-level for now (album text is
+stored/displayed; album-level monitoring is a deferred refinement). Every miss
+was already lookup-validated, so requests map to real MusicBrainz entities. A
+status refresh re-checks `requested` items against Lidarr download statistics
+and flips them to **done** once files are on disk.
+
+### Deep cuts & rediscovery
+Owned tracks you rarely or never play, from Plex play data (`viewCount` /
+`lastViewedAt`). Two modes: *Buried treasure* (never-played, random sample,
+reshuffled each visit) and *Faded favorites* (played 2+ times but not heard in
+60+ days, longest-forgotten first). Capped per artist for spread.
+
+### Artist-level discovery → Lidarr
+"Artists like the ones you love that you don't own yet." Seeds from your
+most-played artists (Plex track play counts), asks the LLM (`suggestArtists`)
+for adjacent artists, drops anything you own, and validates each survivor via
+**Lidarr lookup** — sequentially, since Lidarr proxies MusicBrainz (~1 req/s) and
+a parallel burst gets throttled. Survivors go to the basket (`artist-discovery`
+source).
+
+### Discover Weekly (scheduled auto-playlists)
+Persisted definitions (`auto_playlists`) refreshed by an **in-process scheduler**
+(5-min poll + boot catch-up). Each run seeds from recent listening, expands by
+sonic similarity, biases toward newly-added + never-played tracks, drops
+dislikes and recent-run repeats (`auto_playlist_history`), and writes to Plex —
+**replace** (fresh list each cycle, via `deletePlaylist` + recreate) or
+**append** (grow one list). Optional **new-artists-only** excludes artists from
+recent listening. Runs as the owner account; failures land in the definition's
+status, never throw.
+
+### Taste profile ("Resonarr Wrapped")
+Most-played artists (with counts) + library stats → the LLM (`chat`) writes a
+one-line "your sound", a summary, and genre/era/vibe chips. The model infers
+genres/eras from artist names, so no Plex genre tags are needed.
+
+### Like/dislike feedback loop
+Thumbs up/down on track rows, stored in `feedback`. A dislike hides that track
+**and its artist** across every sonic-discovery surface (Radio, Mixes, Discover,
+Deep Cuts, Discover Weekly) via `filterDisliked`; liked/disliked artists are also
+fed into the Sonic Sage prompt.
+
+### Moods & cycling Sage prompts
+**Moods** are one-click preset cards that run a mood-tuned Sage generation
+(owned-biased) into a saveable playlist — pure reuse of the Sage pipeline.
+**Cycling prompts** are personalized "Try one of these" example prompts for
+Sonic Sage, LLM-generated from your top artists and cached (`sage:examples`).
 
 ### Activity log
 A small `log.info/warn/error` service writes structured events (discovery runs,
@@ -156,8 +213,21 @@ GET  /api/art?path=              cover-art proxy (token stays server-side)
 POST /api/radio                  { seedTrackId } → similar tracks
 POST /api/adventure              { startTrackId, endTrackId, length } → path
 GET  /api/mixes                  → mix(es) from recent listening
-POST /api/discover               { playlistId } → fresh owned picks
-POST /api/sage                   { prompt, ownArtistBias } → { matches, misses }
+POST /api/discover               { playlistId, newArtistsOnly } → fresh owned picks
+GET  /api/deepcuts?mode=         never|faded → rarely/never-played owned tracks
+GET  /api/artist-discovery?count= adjacent artists you don't own (Lidarr-validated)
+GET  /api/taste-profile          LLM portrait of your listening
+POST /api/sage                   { prompt, ownArtistBias, count } → { matches, misses }
+GET  /api/sage/examples          personalized example prompts (?refresh=1 rebuilds)
+
+GET  /api/auto-playlists         list scheduled auto-playlists
+POST /api/auto-playlists         create a Discover-Weekly definition
+PUT  /api/auto-playlists/:id     update (enable/disable, cadence, mode…)
+DEL  /api/auto-playlists/:id     delete
+POST /api/auto-playlists/:id/run build now (manual refresh)
+
+GET  /api/feedback               list track thumbs
+PUT  /api/feedback               set/clear a track's rating
 
 GET  /api/playlists              list audio playlists
 POST /api/playlists              { name, trackIds } → create Plex playlist
