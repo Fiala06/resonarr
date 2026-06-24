@@ -7,6 +7,7 @@ export type Tab =
   | "sage"
   | "radio"
   | "mixes"
+  | "moods"
   | "discover"
   | "deepcuts"
   | "artists"
@@ -33,6 +34,14 @@ const ICONS: Record<Tab, ReactNode> = {
       <rect x="3" y="8" width="2.2" height="5" rx="1" fill="currentColor" />
       <rect x="7" y="4" width="2.2" height="9" rx="1" fill="currentColor" />
       <rect x="11" y="6" width="2.2" height="7" rx="1" fill="currentColor" />
+    </>
+  ),
+  moods: (
+    <>
+      <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M5.6 9.3 a 2.8 2.8 0 0 0 4.8 0" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" fill="none" />
+      <circle cx="6" cy="6.3" r="0.9" fill="currentColor" />
+      <circle cx="10" cy="6.3" r="0.9" fill="currentColor" />
     </>
   ),
   discover: (
@@ -101,6 +110,7 @@ const MAIN_TABS: { key: Tab; label: string }[] = [
   { key: "sage", label: "Sonic Sage" },
   { key: "radio", label: "Radio" },
   { key: "mixes", label: "Mixes" },
+  { key: "moods", label: "Moods" },
   { key: "discover", label: "Discover" },
   { key: "deepcuts", label: "Deep Cuts" },
   { key: "artists", label: "Artists" },

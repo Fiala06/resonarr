@@ -5,6 +5,7 @@ import type { Tab } from "./components/Sidebar";
 import { SageView } from "./views/SageView";
 import { RadioView } from "./views/RadioView";
 import { MixesView } from "./views/MixesView";
+import { MoodsView } from "./views/MoodsView";
 import { DiscoverView } from "./views/DiscoverView";
 import { DeepCutsView } from "./views/DeepCutsView";
 import { ArtistDiscoveryView } from "./views/ArtistDiscoveryView";
@@ -22,6 +23,7 @@ const TABS: Tab[] = [
   "sage",
   "radio",
   "mixes",
+  "moods",
   "discover",
   "deepcuts",
   "artists",
@@ -100,6 +102,7 @@ export function App({ authUser }: { authUser?: AuthUser }) {
           {tab === "sage" && <SageView />}
           {tab === "radio" && <RadioView />}
           {tab === "mixes" && <MixesView />}
+          {tab === "moods" && <MoodsView />}
           {tab === "discover" && <DiscoverView />}
           {tab === "deepcuts" && <DeepCutsView />}
           {tab === "artists" && <ArtistDiscoveryView />}

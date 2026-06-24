@@ -15,6 +15,10 @@ Lidarr: Plexamp can recommend music but it can't go get it.
 
 ## Recently shipped
 
+- **Mood / activity presets** — a "Moods" tab: one-click cards (Focus, Workout,
+  Wind-down, Dinner, Road trip, Rainy day) that run a Sage generation tuned to
+  favor owned, ready-to-play tracks, then surface a saveable playlist. Reuses
+  the Sage pipeline end-to-end (incl. the feedback filter). (`MoodsView`.)
 - **Cycling prompt examples in Sonic Sage** — a "Try one of these" row of
   clickable example prompts under the Sage box, LLM-generated and personalized
   from your top artists (cached 3 days, "↻ new ideas" regenerates). Click to
@@ -103,9 +107,9 @@ Needs a Spotify OAuth flow + a new server-side secret.
 - ~~**Like/dislike feedback loop**~~ — ✅ **shipped** (see Recently shipped).
   Still future: boosting approved sonic neighborhoods (not just suppressing
   rejected ones) and writing back to Plex star ratings.
-- **Mood / activity presets** — focus, workout, dinner, wind-down — generated
-  from Plex mood/genre tags + sonic similarity with smart ordering. Low effort,
-  high everyday use.
+- ~~**Mood / activity presets**~~ — ✅ **shipped** (see Recently shipped). v1
+  drives moods through the LLM (Sage) rather than Plex mood/genre tags + sonic
+  similarity; a tag/sonic-based version with smart ordering is a future option.
 - ~~**Cycling prompt examples in Sonic Sage**~~ — ✅ **shipped** (see Recently
   shipped).
 
