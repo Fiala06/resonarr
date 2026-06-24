@@ -1,6 +1,7 @@
 import type { DeepCutsMode, DeepCutsResponse, Track } from "@resonarr/shared";
 import type { PlexClient } from "../plex/client.ts";
 import { log } from "../log/service.ts";
+import { filterDisliked } from "../feedback/service.ts";
 
 // "Never played" is a random sample so each visit surfaces different buried
 // treasure; we over-fetch then keep the unplayed ones.
@@ -30,7 +31,7 @@ export async function getDeepCuts(
   if (mode === "never") {
     const sample = await plex.getTracks(section.key, "random", NEVER_OVERFETCH);
     picks = capPerArtist(
-      sample.filter((t) => (t.viewCount ?? 0) === 0),
+      filterDisliked(sample.filter((t) => (t.viewCount ?? 0) === 0)),
       PER_ARTIST_CAP,
     ).slice(0, cap);
   } else {
@@ -43,7 +44,7 @@ export async function getDeepCuts(
     );
     const cutoff = nowSeconds() - FADED_STALE_DAYS * 86_400;
     picks = capPerArtist(
-      top
+      filterDisliked(top)
         .filter(
           (t) =>
             (t.viewCount ?? 0) >= FADED_MIN_PLAYS &&

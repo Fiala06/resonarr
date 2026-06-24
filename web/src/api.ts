@@ -10,6 +10,8 @@ import type {
   DeepCutsMode,
   DeepCutsResponse,
   DiscoverResponse,
+  FeedbackItem,
+  SetFeedbackRequest,
   DiscoveryResult,
   AddToPlaylistResponse,
   ArtistDiscoveryResponse,
@@ -206,6 +208,24 @@ export async function runAutoPlaylist(id: string): Promise<AutoPlaylist> {
   return asJson(
     await fetch(`/api/auto-playlists/${encodeURIComponent(id)}/run`, {
       method: "POST",
+    }),
+  );
+}
+
+// --- Like/dislike feedback ---------------------------------------------------
+
+export async function getFeedback(): Promise<FeedbackItem[]> {
+  return asJson(await fetch("/api/feedback"));
+}
+
+export async function putFeedback(
+  req: SetFeedbackRequest,
+): Promise<FeedbackItem[]> {
+  return asJson(
+    await fetch("/api/feedback", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(req),
     }),
   );
 }

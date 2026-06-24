@@ -197,6 +197,27 @@ export interface TasteProfile {
   stats: LibraryStats;
 }
 
+/**
+ * Like/dislike feedback. A thumbs-down hides a track (and biases away from its
+ * artist) across discovery; a thumbs-up nudges toward it. Persisted per track.
+ */
+export type FeedbackRating = "up" | "down";
+
+export interface FeedbackItem {
+  trackId: string;
+  artist: string;
+  title?: string;
+  rating: FeedbackRating;
+}
+
+/** Set (or clear, when rating is null) the feedback for one track. */
+export interface SetFeedbackRequest {
+  trackId: string;
+  artist: string;
+  title?: string;
+  rating: FeedbackRating | null;
+}
+
 export interface SageRequest {
   prompt: string;
   /** Bias recommendations toward artists already owned. */

@@ -3,6 +3,7 @@ import { services } from "../services.ts";
 import { getProvider } from "../llm/index.ts";
 import { log } from "../log/service.ts";
 import { tracksMatch } from "../matching/match.ts";
+import { filterDisliked, getFeedbackArtists } from "../feedback/service.ts";
 import type { PlexClient } from "../plex/client.ts";
 
 /**
@@ -31,11 +32,15 @@ export async function runSage(
     ownedArtists = await plex.getArtistNames(section.key, 200);
   }
 
+  const { liked, disliked } = getFeedbackArtists();
+
   let suggestions: Suggestion[];
   try {
     suggestions = await provider.suggest(prompt, {
       count: suggestionCount,
       ownedArtists,
+      likedArtists: liked,
+      dislikedArtists: disliked,
     });
   } catch (err) {
     log.error("sage", "LLM suggestion failed", {
@@ -64,11 +69,12 @@ export async function runSage(
     }
   }
 
+  const keptMatches = filterDisliked(matches);
   log.info(
     "sage",
-    `${matches.length} owned matches, ${misses.length} misses from ${suggestions.length} suggestions`,
+    `${keptMatches.length} owned matches, ${misses.length} misses from ${suggestions.length} suggestions`,
   );
-  return { matches, misses };
+  return { matches: keptMatches, misses };
 }
 
 function truncate(s: string, n: number): string {

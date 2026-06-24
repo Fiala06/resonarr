@@ -2,6 +2,7 @@ import type { DiscoverResponse, Track } from "@resonarr/shared";
 import type { PlexClient } from "../plex/client.ts";
 import { services } from "../services.ts";
 import { log } from "../log/service.ts";
+import { filterDisliked } from "../feedback/service.ts";
 
 const MAX_SEEDS = 25; // seeds sampled from the source playlist
 const PER_SEED = 15; // neighbors fetched per seed
@@ -48,10 +49,9 @@ export async function discoverFromPlaylist(
     }),
   );
 
-  const tracks = [...score.values()]
-    .sort((a, b) => b.hits - a.hits)
-    .slice(0, Math.max(1, Math.min(limit, 100)))
-    .map((s) => s.track);
+  const tracks = filterDisliked(
+    [...score.values()].sort((a, b) => b.hits - a.hits).map((s) => s.track),
+  ).slice(0, Math.max(1, Math.min(limit, 100)));
 
   log.info(
     "discover",

@@ -15,6 +15,7 @@ import { BasketView } from "./views/BasketView";
 import { LogsView } from "./views/LogsView";
 import { SettingsView } from "./views/SettingsView";
 import { getBasket, getHealth, getLibraryStats, logout } from "./api";
+import { loadFeedback } from "./feedback";
 import { fx } from "./theme";
 
 const TABS: Tab[] = [
@@ -75,6 +76,7 @@ export function App({ authUser }: { authUser?: AuthUser }) {
     getLibraryStats()
       .then(setStats)
       .catch(() => {});
+    loadFeedback();
   }, []);
 
   // Keep the basket badge fresh as you move around the app.

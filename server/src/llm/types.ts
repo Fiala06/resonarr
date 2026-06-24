@@ -5,6 +5,10 @@ export interface SuggestOptions {
   count: number;
   /** When set, the model is asked to favor these owned artists. */
   ownedArtists?: string[];
+  /** Artists the user has thumbed up — nudge toward them. */
+  likedArtists?: string[];
+  /** Artists the user has thumbed down — avoid them. */
+  dislikedArtists?: string[];
 }
 
 /** A single adjacent-artist suggestion (before Lidarr validation). */

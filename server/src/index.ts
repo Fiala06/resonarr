@@ -15,6 +15,7 @@ import { registerSageRoutes } from "./api/sage.ts";
 import { registerLogRoutes } from "./api/logs.ts";
 import { registerAuthRoutes } from "./api/auth.ts";
 import { registerAutoPlaylistRoutes } from "./api/autoplaylists.ts";
+import { registerFeedbackRoutes } from "./api/feedback.ts";
 import { startScheduler } from "./autoplaylist/service.ts";
 import {
   authEnabled,
@@ -76,6 +77,7 @@ registerBasketRoutes(app);
 registerSageRoutes(app);
 registerLogRoutes(app);
 registerAutoPlaylistRoutes(app);
+registerFeedbackRoutes(app);
 
 // --- Static web app (built SPA) ----------------------------------------------
 // Present in production / Docker; absent during `dev:web` (Vite serves it).

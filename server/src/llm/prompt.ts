@@ -14,6 +14,12 @@ export function buildUserPrompt(prompt: string, opts: SuggestOptions): string {
     const sample = opts.ownedArtists.slice(0, 200).join(", ");
     p += `\n\nWhen they genuinely fit the request, prefer songs by artists I already own: ${sample}.`;
   }
+  if (opts.likedArtists && opts.likedArtists.length > 0) {
+    p += `\n\nI've thumbed up these artists — lean toward their sound: ${opts.likedArtists.slice(0, 50).join(", ")}.`;
+  }
+  if (opts.dislikedArtists && opts.dislikedArtists.length > 0) {
+    p += `\n\nAvoid these artists entirely — I've thumbed them down: ${opts.dislikedArtists.slice(0, 50).join(", ")}.`;
+  }
   p += `\n\nReturn specific tracks: exact artist and title, plus album when known.`;
   return p;
 }

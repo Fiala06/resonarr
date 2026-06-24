@@ -2,6 +2,7 @@ import type { MixCard, MixesResponse, Track } from "@resonarr/shared";
 import type { PlexClient } from "../plex/client.ts";
 import { services } from "../services.ts";
 import { log } from "../log/service.ts";
+import { filterDisliked } from "../feedback/service.ts";
 
 const MIX_COUNT = 6; // how many mixes to generate
 const PER_MIX = 30; // tracks per mix
@@ -34,7 +35,7 @@ export async function runMixes(plex: PlexClient): Promise<MixesResponse> {
 
   const mixes: MixCard[] = await Promise.all(
     seeds.map(async (seed) => {
-      const neighbors = await sonic.similar(seed.id, PER_MIX);
+      const neighbors = filterDisliked(await sonic.similar(seed.id, PER_MIX));
       // Play-history entries carry an art path that doesn't resolve through our
       // art proxy, so always re-fetch the seed from canonical track metadata
       // (the same source the neighbors come from) — otherwise the first row /

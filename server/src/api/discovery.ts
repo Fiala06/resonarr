@@ -23,6 +23,7 @@ import { discoverFromPlaylist } from "../discover/service.ts";
 import { getDeepCuts } from "../deepcuts/service.ts";
 import { discoverArtists } from "../artistdiscovery/service.ts";
 import { buildTasteProfile } from "../taste/service.ts";
+import { filterDisliked } from "../feedback/service.ts";
 
 export function registerDiscoveryRoutes(app: FastifyInstance): void {
   // Seed-track search for the pickers.
@@ -52,7 +53,7 @@ export function registerDiscoveryRoutes(app: FastifyInstance): void {
         return reply.code(503).send({ error: "Plex is not configured" }) as never;
       }
       const tracks = await services.sonic.similar(seedTrackId, limit ?? 25);
-      return { tracks };
+      return { tracks: filterDisliked(tracks) };
     },
   );
 

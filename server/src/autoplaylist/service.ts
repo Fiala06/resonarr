@@ -3,6 +3,7 @@ import type { PlexClient } from "../plex/client.ts";
 import { services } from "../services.ts";
 import { getSettings } from "../settings/service.ts";
 import { log } from "../log/service.ts";
+import { filterDisliked } from "../feedback/service.ts";
 import {
   DAY_MS,
   getAutoPlaylist,
@@ -57,7 +58,9 @@ async function buildDiscoverWeekly(
   }
 
   // Newly-added pool — a sonic neighbor that's also new to Plex gets a boost.
-  const recentlyAdded = await plex.getTracks(section.key, "addedAt:desc", RECENT_ADDED);
+  const recentlyAdded = filterDisliked(
+    await plex.getTracks(section.key, "addedAt:desc", RECENT_ADDED),
+  );
   const addedIds = new Set(recentlyAdded.map((t) => t.id));
 
   // Exclusions: tracks played very recently (the seeds/history we just pulled)
@@ -70,7 +73,7 @@ async function buildDiscoverWeekly(
   const score = new Map<string, { track: Track; hits: number }>();
   await Promise.all(
     seeds.map(async (seed) => {
-      const neighbors = await sonic.similar(seed.id, PER_SEED);
+      const neighbors = filterDisliked(await sonic.similar(seed.id, PER_SEED));
       for (const n of neighbors) {
         if (recentIds.has(n.id) || usedRecently.has(n.id)) continue;
         const cur = score.get(n.id);

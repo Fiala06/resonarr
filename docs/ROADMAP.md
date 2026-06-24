@@ -15,6 +15,14 @@ Lidarr: Plexamp can recommend music but it can't go get it.
 
 ## Recently shipped
 
+- **Like/dislike feedback loop** — thumbs up/down on track rows (Radio,
+  Discover, Deep Cuts), persisted per track. A thumbs-down hides that track
+  **and its artist** from every sonic-discovery surface (Radio, Mixes, Discover,
+  Deep Cuts, Discover Weekly); likes/dislikes are also fed into Sonic Sage's
+  prompt. (`server/src/feedback/`, `web/src/feedback.ts`, thumbs in `TrackRow`.)
+  Still future: actively *boosting* liked sonic neighborhoods (not just
+  filtering dislikes), thumbs on Sage/Mixes rows, and writing back to Plex star
+  ratings.
 - **Taste profile / "Resonarr Wrapped"** — a "Taste Profile" tab: pulls your
   most-played artists (with play counts) from Plex and has the LLM write a
   one-line "your sound", a short summary, and genre/era/vibe chips, plus a
@@ -87,10 +95,9 @@ Needs a Spotify OAuth flow + a new server-side secret.
 
 ### Smarter, learning recommendations
 
-- **Like/dislike feedback loop** — thumbs on any track that bias future
-  Sage/Radio/Discover (boost approved sonic neighborhoods, suppress rejected
-  ones). Turns one-shot discovery into a system that learns your taste; could
-  write back to Plex star ratings. The sleeper — it makes everything else better.
+- ~~**Like/dislike feedback loop**~~ — ✅ **shipped** (see Recently shipped).
+  Still future: boosting approved sonic neighborhoods (not just suppressing
+  rejected ones) and writing back to Plex star ratings.
 - **Mood / activity presets** — focus, workout, dinner, wind-down — generated
   from Plex mood/genre tags + sonic similarity with smart ordering. Low effort,
   high everyday use.

@@ -117,6 +117,21 @@ const MIGRATIONS: Migration[] = [
         ON auto_playlist_history (auto_id, used_at DESC);
     `,
   },
+  {
+    version: 7,
+    // Per-track thumbs up/down — biases discovery (drop dislikes, favor likes).
+    up: `
+      CREATE TABLE IF NOT EXISTS feedback (
+        track_id   TEXT PRIMARY KEY,
+        artist     TEXT NOT NULL,
+        title      TEXT,
+        rating     TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_feedback_rating ON feedback (rating);
+    `,
+  },
 ];
 
 export function runMigrations(db: DatabaseSync): void {
