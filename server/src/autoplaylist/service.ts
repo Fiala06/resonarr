@@ -1,5 +1,6 @@
 import type { AutoPlaylist, Track } from "@resonarr/shared";
-import type { PlexClient } from "../plex/client.ts";
+import { PlexClient } from "../plex/client.ts";
+import { config } from "../config/env.ts";
 import { services } from "../services.ts";
 import { getSettings } from "../settings/service.ts";
 import { log } from "../log/service.ts";
@@ -8,6 +9,7 @@ import { normalize } from "../matching/match.ts";
 import {
   DAY_MS,
   getAutoPlaylist,
+  getAutoPlaylistOwner,
   getRecentHistoryIds,
   listAutoPlaylists,
   markRun,
@@ -166,8 +168,15 @@ async function writePlaylist(
 export async function runAutoPlaylist(id: string): Promise<AutoPlaylist> {
   const ap = getAutoPlaylist(id);
   if (!ap) throw new Error("Auto-playlist not found");
-  const plex = services.plex;
-  if (!plex) throw new Error("Plex is not configured");
+  if (!config.plex || !services.plex) throw new Error("Plex is not configured");
+
+  // Build (and write the playlist) as the user who created it, so it lands on
+  // THEIR Plex account and is seeded from THEIR listening — falling back to the
+  // owner token for legacy rows with no stored per-user token.
+  const owner = getAutoPlaylistOwner(id);
+  const plex = owner?.ownerToken
+    ? new PlexClient({ url: config.plex.url, token: owner.ownerToken })
+    : services.plex;
 
   const nextRunAt = Date.now() + ap.intervalDays * DAY_MS;
   try {

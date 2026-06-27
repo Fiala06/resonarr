@@ -137,6 +137,19 @@ const MIGRATIONS: Migration[] = [
     // Opt-in "true new-artist discovery" for scheduled auto-playlists.
     up: `ALTER TABLE auto_playlists ADD COLUMN new_artists_only INTEGER NOT NULL DEFAULT 0;`,
   },
+  {
+    version: 9,
+    // Per-user scoping. Sessions carry the Plex account id so we can tell users
+    // apart; auto-playlists record their creator (owner_id) plus the per-server
+    // token to build with (owner_token) so the background scheduler can rebuild
+    // each one on the right user's Plex account. NULL owner_id = legacy rows
+    // created before scoping (treated as the server owner's).
+    up: `
+      ALTER TABLE auth_sessions ADD COLUMN user_id TEXT;
+      ALTER TABLE auto_playlists ADD COLUMN owner_id TEXT;
+      ALTER TABLE auto_playlists ADD COLUMN owner_token TEXT;
+    `,
+  },
 ];
 
 export function runMigrations(db: DatabaseSync): void {

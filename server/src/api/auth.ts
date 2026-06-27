@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import type { AuthLoginStatus, AuthStatus, PlexPinStart } from "@resonarr/shared";
-import { buildAuthUrl, checkPin, createPin, getAccountName } from "../plex/auth.ts";
+import { buildAuthUrl, checkPin, createPin, getAccount } from "../plex/auth.ts";
 import { log } from "../log/service.ts";
 import {
   authEnabled,
@@ -66,14 +66,15 @@ export function registerAuthRoutes(app: FastifyInstance): void {
           }) as never;
         }
 
-        // Display name comes from the account token; the session stores the
-        // token that actually authenticates to the server as this user (their
-        // per-server access token for shared/Home users, else the account token).
-        const name = await getAccountName(accountToken);
-        const sid = createSession(name, access.token);
+        // Identity (name + account id) comes from the account token; the session
+        // stores the token that actually authenticates to the server as this
+        // user (their per-server access token for shared/Home users, else the
+        // account token) and their account id so we can scope per-user data.
+        const account = await getAccount(accountToken);
+        const sid = createSession(account.name, access.token, account.id ?? null);
         reply.header("Set-Cookie", sessionCookie(sid, isHttps(req)));
-        log.info("auth", `Signed in: ${name}`);
-        return { pending: false, user: { name } };
+        log.info("auth", `Signed in: ${account.name}`);
+        return { pending: false, user: { name: account.name } };
       } catch (err) {
         return reply.code(502).send({
           error: err instanceof Error ? err.message : String(err),

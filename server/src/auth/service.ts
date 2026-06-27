@@ -3,7 +3,7 @@ import type { FastifyRequest } from "fastify";
 import { getDb } from "../db/database.ts";
 import { config } from "../config/env.ts";
 import { PlexClient } from "../plex/client.ts";
-import { getAccessibleServers } from "../plex/auth.ts";
+import { getAccessibleServers, getAccount } from "../plex/auth.ts";
 import { log } from "../log/service.ts";
 
 /**
@@ -106,15 +106,26 @@ async function getServerMachineId(): Promise<string | null> {
   }
 }
 
-export function createSession(name: string, token: string): string {
+export function createSession(
+  name: string,
+  token: string,
+  userId: string | null,
+): string {
   const id = randomBytes(32).toString("hex");
   const now = Date.now();
   getDb()
     .prepare(
-      `INSERT INTO auth_sessions (id, name, token, created_at, expires_at)
-       VALUES (?, ?, ?, ?, ?)`,
+      `INSERT INTO auth_sessions (id, name, token, user_id, created_at, expires_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
     )
-    .run(id, name, token, new Date(now).toISOString(), now + SESSION_TTL_MS);
+    .run(
+      id,
+      name,
+      token,
+      userId,
+      new Date(now).toISOString(),
+      now + SESSION_TTL_MS,
+    );
   return id;
 }
 
@@ -122,21 +133,80 @@ export interface Session {
   name: string;
   /** The user's Plex token (may be null for legacy sessions). */
   token: string | null;
+  /** The user's Plex account id (may be null for legacy sessions). */
+  userId: string | null;
 }
 
 export function getSession(id: string | undefined): Session | null {
   if (!id) return null;
   const row = getDb()
-    .prepare("SELECT name, token, expires_at FROM auth_sessions WHERE id = ?")
+    .prepare(
+      "SELECT name, token, user_id, expires_at FROM auth_sessions WHERE id = ?",
+    )
     .get(id) as
-    | { name: string; token: string | null; expires_at: number }
+    | {
+        name: string;
+        token: string | null;
+        user_id: string | null;
+        expires_at: number;
+      }
     | undefined;
   if (!row) return null;
   if (row.expires_at < Date.now()) {
     deleteSession(id);
     return null;
   }
-  return { name: row.name, token: row.token };
+  return { name: row.name, token: row.token, userId: row.user_id };
+}
+
+/** The session for a request, if any (login may be off, or no cookie). */
+export function requestSession(req: FastifyRequest): Session | null {
+  return getSession(parseCookie(req.headers.cookie, SESSION_COOKIE));
+}
+
+/**
+ * The Plex account id of the request's user, or null when login is off / there
+ * is no session. Legacy sessions created before per-user scoping have no stored
+ * id; we resolve it from their token once and persist it (works for the owner;
+ * shared users with an old session simply re-log in via the visible button).
+ */
+export async function currentUserId(
+  req: FastifyRequest,
+): Promise<string | null> {
+  if (!authEnabled()) return null;
+  const sid = parseCookie(req.headers.cookie, SESSION_COOKIE);
+  const sess = getSession(sid);
+  if (!sess) return null;
+  if (sess.userId) return sess.userId;
+  if (!sess.token || !sid) return null;
+  try {
+    const acct = await getAccount(sess.token);
+    if (acct.id) {
+      getDb()
+        .prepare("UPDATE auth_sessions SET user_id = ? WHERE id = ?")
+        .run(acct.id, sid);
+      return acct.id;
+    }
+  } catch {
+    /* per-server tokens can't read /api/v2/user — user must re-login */
+  }
+  return null;
+}
+
+let ownerIdCache: string | null = null;
+let ownerIdResolved = false;
+
+/** The server owner's Plex account id (the account behind PLEX_TOKEN), cached. */
+export async function ownerAccountId(): Promise<string | null> {
+  if (ownerIdResolved) return ownerIdCache;
+  if (!config.plex) return null;
+  try {
+    ownerIdCache = (await getAccount(config.plex.token)).id ?? null;
+    ownerIdResolved = true;
+  } catch {
+    /* leave unresolved so we retry on the next call */
+  }
+  return ownerIdCache;
 }
 
 export function deleteSession(id: string): void {

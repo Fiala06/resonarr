@@ -22,6 +22,16 @@ interface AutoPlaylistRow {
   next_run_at: number;
   last_status: string | null;
   created_at: string;
+  owner_id: string | null;
+  owner_token: string | null;
+}
+
+/** Who a definition belongs to, and the token to build it with. */
+export interface AutoPlaylistOwner {
+  /** Plex account id of the creator; null for legacy (server-owner) rows. */
+  ownerId: string | null;
+  /** Per-server token to act as that user; null = fall back to owner token. */
+  ownerToken: string | null;
 }
 
 const DEFAULTS = {
@@ -52,10 +62,27 @@ function rowToItem(r: AutoPlaylistRow): AutoPlaylist {
   };
 }
 
+/** Every definition, unscoped — for the scheduler, which runs them all. */
 export function listAutoPlaylists(): AutoPlaylist[] {
   const rows = getDb()
     .prepare("SELECT * FROM auto_playlists ORDER BY created_at ASC")
     .all() as unknown as AutoPlaylistRow[];
+  return rows.map(rowToItem);
+}
+
+/**
+ * Definitions visible to one user: their own, plus legacy (NULL-owner) rows when
+ * they're the server owner. `viewerId` null means login is off → show all.
+ */
+export function listAutoPlaylistsForViewer(
+  viewerId: string | null,
+  isOwner: boolean,
+): AutoPlaylist[] {
+  if (viewerId === null) return listAutoPlaylists();
+  const sql = isOwner
+    ? "SELECT * FROM auto_playlists WHERE owner_id = ? OR owner_id IS NULL ORDER BY created_at ASC"
+    : "SELECT * FROM auto_playlists WHERE owner_id = ? ORDER BY created_at ASC";
+  const rows = getDb().prepare(sql).all(viewerId) as unknown as AutoPlaylistRow[];
   return rows.map(rowToItem);
 }
 
@@ -66,10 +93,22 @@ export function getAutoPlaylist(id: string): AutoPlaylist | null {
   return row ? rowToItem(row) : null;
 }
 
+/** The owner + build token for a definition (server-internal; never sent out). */
+export function getAutoPlaylistOwner(id: string): AutoPlaylistOwner | null {
+  const row = getDb()
+    .prepare("SELECT owner_id, owner_token FROM auto_playlists WHERE id = ?")
+    .get(id) as { owner_id: string | null; owner_token: string | null } | undefined;
+  if (!row) return null;
+  return { ownerId: row.owner_id, ownerToken: row.owner_token };
+}
+
 const clampSize = (n: number) => Math.max(5, Math.min(100, Math.round(n)));
 const clampInterval = (n: number) => Math.max(1, Math.min(30, Math.round(n)));
 
-export function createAutoPlaylist(input: CreateAutoPlaylistRequest): AutoPlaylist {
+export function createAutoPlaylist(
+  input: CreateAutoPlaylistRequest,
+  owner: AutoPlaylistOwner = { ownerId: null, ownerToken: null },
+): AutoPlaylist {
   const now = Date.now();
   const item: AutoPlaylist = {
     id: randomUUID(),
@@ -89,8 +128,9 @@ export function createAutoPlaylist(input: CreateAutoPlaylistRequest): AutoPlayli
     .prepare(
       `INSERT INTO auto_playlists
          (id, name, kind, mode, size, interval_days, new_artists_only, enabled,
-          plex_playlist_id, last_run_at, next_run_at, last_status, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?, NULL, ?)`,
+          plex_playlist_id, last_run_at, next_run_at, last_status, created_at,
+          owner_id, owner_token)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?, NULL, ?, ?, ?)`,
     )
     .run(
       item.id,
@@ -103,6 +143,8 @@ export function createAutoPlaylist(input: CreateAutoPlaylistRequest): AutoPlayli
       item.enabled ? 1 : 0,
       item.nextRunAt,
       item.createdAt,
+      owner.ownerId,
+      owner.ownerToken,
     );
   return item;
 }
