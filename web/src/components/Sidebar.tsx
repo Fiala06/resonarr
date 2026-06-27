@@ -288,24 +288,44 @@ export function Sidebar({
         </div>
 
         {authUser && onLogout && (
-          <div
-            onClick={onLogout}
-            title={`Signed in as ${authUser.name}`}
-            style={{
-              marginTop: 10,
-              padding: "0 8px",
-              fontSize: 12,
-              color: colors.faint,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-            }}
-          >
-            <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-              {authUser.name}
-            </span>
-            <span style={{ color: colors.accentLight }}>· Log out</span>
+          <div style={{ marginTop: 12, padding: "0 4px" }}>
+            <div
+              style={{
+                fontSize: 11,
+                color: colors.faint,
+                marginBottom: 6,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              Signed in as {authUser.name}
+            </div>
+            <button
+              onClick={onLogout}
+              style={{
+                width: "100%",
+                background: "transparent",
+                color: colors.text,
+                border: `1px solid ${colors.border}`,
+                borderRadius: 8,
+                padding: "8px 12px",
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+              Log out
+            </button>
           </div>
         )}
       </div>
