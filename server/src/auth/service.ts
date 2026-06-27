@@ -5,6 +5,7 @@ import { config } from "../config/env.ts";
 import { PlexClient } from "../plex/client.ts";
 import { getAccessibleServers, getAccount } from "../plex/auth.ts";
 import { log } from "../log/service.ts";
+import { safeJsonParse } from "../util/json.ts";
 
 /**
  * Session-cookie auth gated on Plex server access. A user proves they belong by
@@ -247,11 +248,16 @@ export function getClientId(): string {
   const row = db
     .prepare("SELECT value FROM settings WHERE key = '_plexClientId'")
     .get() as { value: string } | undefined;
-  if (row) return JSON.parse(row.value) as string;
+  if (row) {
+    const existing = safeJsonParse<string>(row.value, "");
+    if (existing) return existing;
+    // Corrupt value — regenerate (upsert) below rather than crash.
+  }
 
   const id = randomUUID();
   db.prepare(
-    "INSERT INTO settings (key, value) VALUES ('_plexClientId', ?)",
+    `INSERT INTO settings (key, value) VALUES ('_plexClientId', ?)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
   ).run(JSON.stringify(id));
   return id;
 }

@@ -1,6 +1,7 @@
 import type { Track } from "@resonarr/shared";
 import { getDb } from "../db/database.ts";
 import type { PlexClient } from "../plex/client.ts";
+import { safeJsonParse } from "../util/json.ts";
 
 /** Sonic neighbor lists change rarely; cache them for a day. */
 const SONIC_TTL_MS = 1000 * 60 * 60 * 24;
@@ -16,7 +17,12 @@ function cacheGet<T>(key: string): T | null {
     db.prepare("DELETE FROM sonic_cache WHERE cache_key = ?").run(key);
     return null;
   }
-  return JSON.parse(row.payload) as T;
+  const parsed = safeJsonParse<T | null>(row.payload, null);
+  if (parsed === null) {
+    // Corrupt entry — drop it and treat as a miss so the caller refetches.
+    db.prepare("DELETE FROM sonic_cache WHERE cache_key = ?").run(key);
+  }
+  return parsed;
 }
 
 function cacheSet(key: string, payload: unknown, ttlMs: number): void {

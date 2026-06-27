@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyRequest } from "fastify";
 import type { AuthLoginStatus, AuthStatus, PlexPinStart } from "@resonarr/shared";
 import { buildAuthUrl, checkPin, createPin, getAccount } from "../plex/auth.ts";
 import { log } from "../log/service.ts";
+import { rateLimit } from "../util/ratelimit.ts";
 import {
   authEnabled,
   clearSessionCookie,
@@ -33,9 +34,15 @@ export function registerAuthRoutes(app: FastifyInstance): void {
   });
 
   // Start a Plex login PIN.
-  app.post("/api/auth/login", async (_req, reply): Promise<PlexPinStart> => {
+  app.post("/api/auth/login", async (req, reply): Promise<PlexPinStart> => {
     if (!authEnabled()) {
       return reply.code(400).send({ error: "Login is not enabled" }) as never;
+    }
+    // Creating PINs is rare; cap it hard to blunt abuse.
+    if (!rateLimit(`login-start:${req.ip}`, 10, 5 * 60_000)) {
+      return reply
+        .code(429)
+        .send({ error: "Too many login attempts. Try again in a few minutes." }) as never;
     }
     try {
       const clientId = getClientId();
@@ -54,6 +61,13 @@ export function registerAuthRoutes(app: FastifyInstance): void {
     async (req, reply): Promise<AuthLoginStatus> => {
       if (!authEnabled()) {
         return reply.code(400).send({ error: "Login is not enabled" }) as never;
+      }
+      // The client polls this every ~2s during login (≈30/min); allow headroom
+      // for a couple of concurrent logins behind one IP, but cap runaway loops.
+      if (!rateLimit(`login-poll:${req.ip}`, 90, 60_000)) {
+        return reply
+          .code(429)
+          .send({ error: "Too many requests. Slow down." }) as never;
       }
       try {
         const accountToken = await checkPin(getClientId(), Number(req.params.id));
