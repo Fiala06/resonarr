@@ -410,8 +410,17 @@ export type ServiceStatus =
   | { configured: true; ok: true; detail?: string }
   | { configured: true; ok: false; error: string };
 
+/** Build identity baked into the image, so the UI can show what's running. */
+export interface AppVersion {
+  /** Git short SHA the image was built from, or "unknown" / "dev". */
+  commit: string;
+  /** ISO 8601 build timestamp, or null when unknown (e.g. local dev). */
+  builtAt: string | null;
+}
+
 export interface HealthResponse {
   app: "ok";
+  version: AppVersion;
   plex: ServiceStatus;
   lidarr: ServiceStatus;
 }

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { AuthUser, LibraryStats } from "@resonarr/shared";
+import type { AppVersion, AuthUser, LibraryStats } from "@resonarr/shared";
 import { Logo } from "./Logo";
 import { colors, fx } from "../theme";
 
@@ -151,6 +151,7 @@ export function Sidebar({
   basketCount,
   stats,
   lidarrOk,
+  version,
   authUser,
   onLogout,
 }: {
@@ -159,6 +160,7 @@ export function Sidebar({
   basketCount: number;
   stats: LibraryStats | null;
   lidarrOk: boolean | null;
+  version: AppVersion | null;
   authUser?: AuthUser;
   onLogout?: () => void;
 }) {
@@ -326,6 +328,28 @@ export function Sidebar({
               </svg>
               Log out
             </button>
+          </div>
+        )}
+
+        {version && (
+          <div
+            title={
+              version.builtAt
+                ? `Built ${new Date(version.builtAt).toLocaleString()}`
+                : "Local dev build"
+            }
+            style={{
+              marginTop: 10,
+              padding: "0 4px",
+              fontSize: 10,
+              color: colors.faint,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {version.commit === "dev" ? "dev build" : `v ${version.commit}`}
+            {version.builtAt ? ` · ${version.builtAt.slice(0, 10)}` : ""}
           </div>
         )}
       </div>

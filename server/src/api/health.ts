@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import type { HealthResponse, ServiceStatus } from "@resonarr/shared";
 import { services } from "../services.ts";
+import { appVersion } from "../version.ts";
 
 /**
  * Best-effort reachability probe for the two upstreams. Never throws — the UI
@@ -10,6 +11,7 @@ export function registerHealthRoutes(app: FastifyInstance): void {
   app.get("/api/health", async (): Promise<HealthResponse> => {
     return {
       app: "ok",
+      version: appVersion,
       plex: await probe(services.plex !== null, async () => {
         const section = await services.plex!.getMusicSection();
         return `music section: ${section.title}`;

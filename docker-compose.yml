@@ -1,7 +1,12 @@
 # Dev / self-host convenience. On Unraid these map to the container template.
 services:
   resonarr:
-    build: .
+    build:
+      context: .
+      args:
+        # Stamp the image with the commit it was built from so the GUI can show
+        # it. Build with:  GIT_SHA=$(git rev-parse --short HEAD) docker compose up -d --build
+        GIT_SHA: ${GIT_SHA:-unknown}
     container_name: resonarr
     ports:
       - "8080:8080"

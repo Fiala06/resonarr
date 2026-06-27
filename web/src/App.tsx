@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import type { AuthUser, LibraryStats } from "@resonarr/shared";
+import type { AppVersion, AuthUser, LibraryStats } from "@resonarr/shared";
 import { Sidebar } from "./components/Sidebar";
 import type { Tab } from "./components/Sidebar";
 import { SageView } from "./views/SageView";
@@ -50,6 +50,7 @@ export function App({ authUser }: { authUser?: AuthUser }) {
   const [tab, setTab] = useState<Tab>(tabFromHash);
   const [lidarrOk, setLidarrOk] = useState<boolean | null>(null);
   const [stats, setStats] = useState<LibraryStats | null>(null);
+  const [version, setVersion] = useState<AppVersion | null>(null);
   const [basketCount, setBasketCount] = useState(0);
 
   const navigate = useCallback((t: Tab) => {
@@ -77,7 +78,10 @@ export function App({ authUser }: { authUser?: AuthUser }) {
 
   useEffect(() => {
     getHealth()
-      .then((h) => setLidarrOk(h.lidarr.configured && h.lidarr.ok))
+      .then((h) => {
+        setLidarrOk(h.lidarr.configured && h.lidarr.ok);
+        setVersion(h.version);
+      })
       .catch(() => setLidarrOk(false));
     getLibraryStats()
       .then(setStats)
@@ -98,6 +102,7 @@ export function App({ authUser }: { authUser?: AuthUser }) {
         basketCount={basketCount}
         stats={stats}
         lidarrOk={lidarrOk}
+        version={version}
         authUser={authUser}
         onLogout={onLogout}
       />
