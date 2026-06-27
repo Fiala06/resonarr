@@ -49,11 +49,8 @@ export async function runImport(
         seenIds.add(found.id);
         matched.push(found);
       } else if (!found) {
-        misses.push({
-          title: batch[j].title,
-          artist: batch[j].artist,
-          album: batch[j].album,
-        });
+        const t = batch[j]!;
+        misses.push({ title: t.title, artist: t.artist, album: t.album });
       }
     }
   }

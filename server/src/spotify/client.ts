@@ -109,7 +109,7 @@ export class SpotifyClient {
         if (!track || !track.name || !track.artists?.length) continue;
         out.push({
           title: track.name,
-          artist: track.artists[0].name ?? "",
+          artist: track.artists[0]?.name ?? "",
           album: track.album?.name ?? "",
           isrc: track.external_ids?.isrc,
         });
