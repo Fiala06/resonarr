@@ -207,9 +207,11 @@ export async function updateAutoPlaylist(
 }
 
 export async function deleteAutoPlaylist(id: string): Promise<void> {
-  await fetch(`/api/auto-playlists/${encodeURIComponent(id)}`, {
-    method: "DELETE",
-  });
+  await asJson<{ ok: true }>(
+    await fetch(`/api/auto-playlists/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    }),
+  );
 }
 
 export async function runAutoPlaylist(id: string): Promise<AutoPlaylist> {

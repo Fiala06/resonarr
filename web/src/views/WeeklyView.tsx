@@ -76,13 +76,30 @@ export function WeeklyView() {
   }
 
   async function toggle(ap: AutoPlaylist) {
-    const updated = await updateAutoPlaylist(ap.id, { enabled: !ap.enabled });
-    setItems((prev) => prev?.map((p) => (p.id === ap.id ? updated : p)) ?? null);
+    setBusyFor(ap.id, true);
+    setError(null);
+    try {
+      const updated = await updateAutoPlaylist(ap.id, { enabled: !ap.enabled });
+      setItems((prev) => prev?.map((p) => (p.id === ap.id ? updated : p)) ?? null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusyFor(ap.id, false);
+    }
   }
 
   async function remove(id: string) {
-    await deleteAutoPlaylist(id);
-    setItems((prev) => prev?.filter((p) => p.id !== id) ?? null);
+    setBusyFor(id, true);
+    setError(null);
+    try {
+      await deleteAutoPlaylist(id);
+      // Only drop it from the UI once the server confirms the delete.
+      setItems((prev) => prev?.filter((p) => p.id !== id) ?? null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusyFor(id, false);
+    }
   }
 
   return (
@@ -155,11 +172,17 @@ export function WeeklyView() {
                 >
                   {busy.has(ap.id) ? "Refreshing…" : "Refresh now"}
                 </button>
-                <button onClick={() => toggle(ap)} className="rsn-btn" style={ghostBtn}>
+                <button
+                  onClick={() => toggle(ap)}
+                  disabled={busy.has(ap.id)}
+                  className="rsn-btn"
+                  style={ghostBtn}
+                >
                   {ap.enabled ? "Pause" : "Resume"}
                 </button>
                 <button
                   onClick={() => remove(ap.id)}
+                  disabled={busy.has(ap.id)}
                   className="rsn-btn"
                   style={{ ...ghostBtn, color: colors.muted, marginLeft: "auto" }}
                 >

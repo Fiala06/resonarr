@@ -150,6 +150,11 @@ const MIGRATIONS: Migration[] = [
       ALTER TABLE auto_playlists ADD COLUMN owner_token TEXT;
     `,
   },
+  {
+    version: 10,
+    // Auto-playlists are now listed filtered by creator, so index that column.
+    up: `CREATE INDEX IF NOT EXISTS idx_auto_playlists_owner ON auto_playlists (owner_id);`,
+  },
 ];
 
 export function runMigrations(db: DatabaseSync): void {

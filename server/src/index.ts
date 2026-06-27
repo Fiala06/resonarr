@@ -35,6 +35,39 @@ const app = Fastify({ logger: true });
 getDb();
 app.log.info(`data dir: ${config.dataDir}`);
 
+// Fail fast on a misconfigured LLM provider; warn (don't crash) on optional
+// upstreams so the operator sees the problem at boot, not on first use.
+function failConfig(msg: string): never {
+  app.log.error(`Config error: ${msg}`);
+  process.exit(1);
+}
+if (!["claude", "openai", "ollama"].includes(config.llm.provider)) {
+  failConfig(
+    `Unknown LLM_PROVIDER "${config.llm.provider}" (expected claude | openai | ollama).`,
+  );
+}
+if (config.llm.provider === "claude" && !config.llm.anthropicApiKey) {
+  failConfig("LLM_PROVIDER=claude but ANTHROPIC_API_KEY is not set.");
+}
+if (config.llm.provider === "openai" && !config.llm.openaiApiKey) {
+  failConfig("LLM_PROVIDER=openai but OPENAI_API_KEY is not set.");
+}
+if (!config.plex) {
+  app.log.warn(
+    "Plex not configured (PLEX_URL/PLEX_TOKEN) — discovery, playlists, and Plex login are unavailable.",
+  );
+}
+if (!config.lidarr) {
+  app.log.warn(
+    "Lidarr not configured (LIDARR_URL/LIDARR_API_KEY) — requesting new music is unavailable.",
+  );
+}
+if (config.authPlex && !config.plex) {
+  app.log.warn(
+    "AUTH_PLEX is set but Plex isn't configured — login stays DISABLED until PLEX_URL/PLEX_TOKEN are set.",
+  );
+}
+
 // Optional HTTP Basic auth (opt-in via AUTH_USER/AUTH_PASS). /api/health is
 // exempt so the container healthcheck works without credentials.
 if (config.auth) {
@@ -44,7 +77,7 @@ if (config.auth) {
   app.addHook("onRequest", async (req, reply) => {
     if (req.url === "/api/health" || req.url.startsWith("/api/spotify/auth/")) return;
     if (req.headers.authorization !== expected) {
-      reply
+      return reply
         .header("WWW-Authenticate", 'Basic realm="Resonarr"')
         .code(401)
         .send({ error: "Unauthorized" });
@@ -67,7 +100,7 @@ if (authEnabled()) {
       return;
     const sess = getSession(parseCookie(req.headers.cookie, SESSION_COOKIE));
     if (!sess) {
-      reply.code(401).send({ error: "Not authenticated" });
+      return reply.code(401).send({ error: "Not authenticated" });
     }
   });
   app.log.info("Plex login required (AUTH_PLEX)");
