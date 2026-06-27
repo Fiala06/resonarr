@@ -17,8 +17,9 @@ import {
 } from "../spotify/auth.ts";
 import { SpotifyClient } from "../spotify/client.ts";
 import { runImport } from "../spotify/import.ts";
+import type { PlexClient } from "../plex/client.ts";
 import { services } from "../services.ts";
-import { parseCookie } from "../auth/service.ts";
+import { parseCookie, userPlexClient } from "../auth/service.ts";
 import { log } from "../log/service.ts";
 import { getSettings } from "../settings/service.ts";
 
@@ -43,15 +44,16 @@ function getSpotifySessionId(req: FastifyRequest): string | undefined {
 }
 
 async function maybeSavePlaylist(
+  plex: PlexClient,
   name: string,
   trackIds: string[],
 ): Promise<SpotifyImportResult["plexPlaylist"]> {
-  if (!services.plex || trackIds.length === 0) return undefined;
+  if (trackIds.length === 0) return undefined;
   try {
     const settings = getSettings();
     const prefix = settings.playlistPrefix ?? "Resonarr";
     const playlistName = prefix ? `${prefix} — ${name}` : name;
-    const created = await services.plex.createPlaylist(playlistName, trackIds);
+    const created = await plex.createPlaylist(playlistName, trackIds);
     return { id: created.playlistId, name: created.title, trackCount: created.trackCount };
   } catch (err) {
     log.warn("spotify", `Playlist creation failed: ${err instanceof Error ? err.message : String(err)}`);
@@ -161,7 +163,7 @@ export function registerSpotifyRoutes(app: FastifyInstance): void {
 
       const result = await runImport(spotifyTracks, name);
       const plexPlaylist = savePlaylist
-        ? await maybeSavePlaylist(name, result.matched.map((t) => t.id))
+        ? await maybeSavePlaylist(userPlexClient(req), name, result.matched.map((t) => t.id))
         : undefined;
 
       return {
@@ -196,7 +198,7 @@ export function registerSpotifyRoutes(app: FastifyInstance): void {
 
       const result = await runImport(tracks, name);
       const plexPlaylist = savePlaylist
-        ? await maybeSavePlaylist(name, result.matched.map((t) => t.id))
+        ? await maybeSavePlaylist(userPlexClient(req), name, result.matched.map((t) => t.id))
         : undefined;
 
       return {
