@@ -2,7 +2,8 @@ import type { DiscoverResponse, Track } from "@resonarr/shared";
 import type { PlexClient } from "../plex/client.ts";
 import { services } from "../services.ts";
 import { log } from "../log/service.ts";
-import { filterDisliked } from "../feedback/service.ts";
+import { filterDisliked, getFeedbackSets } from "../feedback/service.ts";
+import { likedNeighborIds } from "../feedback/boost.ts";
 import { normalize } from "../matching/match.ts";
 
 const MAX_SEEDS = 25; // seeds sampled from the source playlist
@@ -56,8 +57,20 @@ export async function discoverFromPlaylist(
     }),
   );
 
+  // Bias toward your taste: a candidate that's a sonic neighbor of something
+  // you liked (or by a liked artist) ranks above one with equal seed consensus.
+  const likedNeighbors = await likedNeighborIds(sonic);
+  const { likedArtists } = getFeedbackSets();
   const tracks = filterDisliked(
-    [...score.values()].sort((a, b) => b.hits - a.hits).map((s) => s.track),
+    [...score.values()]
+      .map(({ track, hits }) => {
+        let weight = hits;
+        if (likedNeighbors.has(track.id)) weight += 2;
+        if (likedArtists.has(normalize(track.artist))) weight += 1;
+        return { track, weight };
+      })
+      .sort((a, b) => b.weight - a.weight)
+      .map((s) => s.track),
   ).slice(0, Math.max(1, Math.min(limit, 100)));
 
   log.info(

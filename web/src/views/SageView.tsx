@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { DiscoveryResult } from "@resonarr/shared";
 import { bulkAddBasket, getSageExamples, getSettings, runSage } from "../api";
 import { AlbumArt } from "../components/AlbumArt";
+import { TrackRow } from "../components/TrackRow";
 import { AuditionLinks } from "../components/AuditionLinks";
 import { InfoHint } from "../components/InfoHint";
 import { SavePlaylistBar } from "../components/SavePlaylistBar";
@@ -220,21 +221,11 @@ export function SageView() {
                 <SavePlaylistBar defaultName={name} trackIds={result.matches.map((t) => t.id)} />
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   {result.matches.map((t) => (
-                    <div key={t.id} className="rsn-row" style={ownedRow}>
-                      <AlbumArt
-                        thumb={t.thumb}
-                        tint={colors.seedBg}
-                        album={t.album}
-                        artist={t.artist}
-                        line="In your library"
-                        tone="owned"
-                      />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 14 }}>{t.title}</div>
-                        <div style={sub}>{t.artist}{t.album ? ` — ${t.album}` : ""}</div>
-                      </div>
-                      <span style={{ fontSize: 11, color: colors.green }}>✓ In library</span>
-                    </div>
+                    <TrackRow
+                      key={t.id}
+                      track={t}
+                      right={<span style={{ fontSize: 11, color: colors.green }}>✓ In library</span>}
+                    />
                   ))}
                 </div>
               </>

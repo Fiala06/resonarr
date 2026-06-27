@@ -4,7 +4,8 @@ import { config } from "../config/env.ts";
 import { services } from "../services.ts";
 import { getSettings } from "../settings/service.ts";
 import { log } from "../log/service.ts";
-import { filterDisliked } from "../feedback/service.ts";
+import { filterDisliked, getFeedbackSets } from "../feedback/service.ts";
+import { likedNeighborIds } from "../feedback/boost.ts";
 import { normalize } from "../matching/match.ts";
 import {
   DAY_MS,
@@ -91,11 +92,17 @@ async function buildDiscoverWeekly(
     }),
   );
 
+  // Taste bias from the feedback loop: float tracks near your likes (and by
+  // liked artists) above equally-surfaced candidates.
+  const likedNeighbors = await likedNeighborIds(sonic);
+  const { likedArtists } = getFeedbackSets();
   const ranked = [...score.values()]
     .map(({ track, hits }) => {
       let weight = hits;
       if (addedIds.has(track.id)) weight += 2; // new-to-Plex bias
       if ((track.viewCount ?? 0) === 0) weight += 1; // haven't-played-it bias
+      if (likedNeighbors.has(track.id)) weight += 2; // near something you liked
+      if (likedArtists.has(normalize(track.artist))) weight += 1; // liked artist
       return { track, weight };
     })
     .sort((a, b) => b.weight - a.weight);

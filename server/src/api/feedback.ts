@@ -1,6 +1,9 @@
 import type { FastifyInstance } from "fastify";
 import type { FeedbackItem, SetFeedbackRequest } from "@resonarr/shared";
 import { listFeedback, setFeedback } from "../feedback/service.ts";
+import { userPlexClient } from "../auth/service.ts";
+import { config } from "../config/env.ts";
+import { log } from "../log/service.ts";
 
 export function registerFeedbackRoutes(app: FastifyInstance): void {
   app.get("/api/feedback", async (): Promise<FeedbackItem[]> => {
@@ -19,7 +22,22 @@ export function registerFeedbackRoutes(app: FastifyInstance): void {
       }
       const rating =
         body.rating === "up" || body.rating === "down" ? body.rating : null;
-      return setFeedback({ ...body, rating });
+      const list = setFeedback({ ...body, rating });
+
+      // Best-effort write-back to the user's Plex star rating: up = 5★, down =
+      // 1★, cleared = unset. Never fails the request — it's a convenience mirror.
+      if (config.plex) {
+        const plexRating = rating === "up" ? 10 : rating === "down" ? 2 : 0;
+        try {
+          await userPlexClient(req).rateTrack(body.trackId, plexRating);
+        } catch (err) {
+          log.warn(
+            "feedback",
+            `Plex rating write-back failed: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      }
+      return list;
     },
   );
 }

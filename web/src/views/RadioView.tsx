@@ -3,6 +3,7 @@ import type { Track } from "@resonarr/shared";
 import { getRadio, searchTracks } from "../api";
 import { SavePlaylistBar } from "../components/SavePlaylistBar";
 import { AlbumArt } from "../components/AlbumArt";
+import { TrackRow } from "../components/TrackRow";
 import { Logo } from "../components/Logo";
 import { colors, fx } from "../theme";
 
@@ -203,21 +204,11 @@ export function RadioView() {
               <SavePlaylistBar defaultName={`${seed.title} Radio`} trackIds={[seed.id, ...neighbors.map((t) => t.id)]} />
               <div style={{ display: "grid", gap: 6 }}>
                 {neighbors.map((t, i) => (
-                  <div key={t.id} className="rsn-row" style={rowStyle}>
-                    <AlbumArt
-                      thumb={t.thumb}
-                      tint={colors.seedBg}
-                      album={t.album}
-                      artist={t.artist}
-                      line="In your library"
-                      tone="owned"
-                    />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 14 }}>{t.title}</div>
-                      <div style={sub}>{t.artist}{t.album ? ` — ${t.album}` : ""}</div>
-                    </div>
-                    <span style={matchBadge}>{matchFor(i, neighbors.length)}% match</span>
-                  </div>
+                  <TrackRow
+                    key={t.id}
+                    track={t}
+                    right={<span style={matchBadge}>{matchFor(i, neighbors.length)}% match</span>}
+                  />
                 ))}
               </div>
             </>

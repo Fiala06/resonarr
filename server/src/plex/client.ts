@@ -89,6 +89,18 @@ export class PlexClient {
     return (text ? JSON.parse(text) : undefined) as T;
   }
 
+  /**
+   * Set this account's star rating for a track (Plex `userRating`, 0–10; 0
+   * clears it). Plex returns an empty body on success.
+   */
+  async rateTrack(ratingKey: string, rating: number): Promise<void> {
+    await this.request(
+      "/:/rate",
+      { key: ratingKey, rating, identifier: "com.plexapp.plugins.library" },
+      "PUT",
+    );
+  }
+
   /** Find the first music (artist-type) library section. */
   async getMusicSection(): Promise<{ key: string; title: string }> {
     const data = await this.request<PlexContainer<PlexDirectory>>(
