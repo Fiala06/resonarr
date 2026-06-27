@@ -3,6 +3,8 @@ import type { FastifyRequest } from "fastify";
 import { getDb } from "../db/database.ts";
 import { config } from "../config/env.ts";
 import { PlexClient } from "../plex/client.ts";
+import { getAccessibleServers } from "../plex/auth.ts";
+import { log } from "../log/service.ts";
 
 /**
  * Session-cookie auth gated on Plex server access. A user proves they belong by
@@ -19,8 +21,57 @@ export function authEnabled(): boolean {
   return Boolean(config.authPlex && config.plex);
 }
 
-/** True if the token can read the owner's Plex server library (= has access). */
-export async function verifyServerAccess(token: string): Promise<boolean> {
+/**
+ * Decide whether an account (identified by its Plex account token) may use this
+ * Resonarr instance, and return the token to act AS that user against the Plex
+ * server. Returns null when the account has no access.
+ *
+ * Two paths, because a plain account token behaves differently for the owner vs
+ * shared users:
+ *   1. The owner's token can read the server's library over its (LAN) URL
+ *      directly — fast path, store the account token as-is.
+ *   2. A shared / Plex Home user's account token can NOT authenticate to that
+ *      LAN URL directly even when they have full library access. We ask plex.tv
+ *      which servers their token can reach, match our machine id, and store the
+ *      per-server access token plex.tv hands back — that's the token that
+ *      actually works against the server for them.
+ */
+export async function resolveServerAccess(
+  accountToken: string,
+): Promise<{ token: string } | null> {
+  if (!config.plex) return null;
+
+  // Owner / direct-access path: account token already reads the library.
+  if (await canReadLibrary(accountToken)) return { token: accountToken };
+
+  const machineId = await getServerMachineId();
+  if (!machineId) {
+    log.warn(
+      "auth",
+      "Access check: could not resolve this server's machine identifier",
+    );
+    return null;
+  }
+
+  try {
+    const servers = await getAccessibleServers(accountToken, getClientId());
+    const match = servers.find((s) => s.clientId === machineId);
+    if (match) return { token: match.accessToken ?? accountToken };
+    log.warn(
+      "auth",
+      "Login denied: account has no access to this Plex server (not the owner, and plex.tv lists no matching shared server)",
+    );
+  } catch (err) {
+    log.warn(
+      "auth",
+      `Access check (plex.tv) errored: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+  return null;
+}
+
+/** Fast path: can this token read the server's library over its direct URL? */
+async function canReadLibrary(token: string): Promise<boolean> {
   if (!config.plex) return false;
   try {
     const res = await fetch(new URL("/library/sections", config.plex.url), {
@@ -28,8 +79,30 @@ export async function verifyServerAccess(token: string): Promise<boolean> {
       signal: AbortSignal.timeout(10_000),
     });
     return res.ok;
-  } catch {
+  } catch (err) {
+    log.warn(
+      "auth",
+      `Library reachability check errored: ${err instanceof Error ? err.message : String(err)}`,
+    );
     return false;
+  }
+}
+
+/** This server's Plex machine identifier (used to match plex.tv resources). */
+async function getServerMachineId(): Promise<string | null> {
+  if (!config.plex) return null;
+  try {
+    const res = await fetch(new URL("/identity", config.plex.url), {
+      headers: { Accept: "application/json", "X-Plex-Token": config.plex.token },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      MediaContainer?: { machineIdentifier?: string };
+    };
+    return data.MediaContainer?.machineIdentifier ?? null;
+  } catch {
+    return null;
   }
 }
 

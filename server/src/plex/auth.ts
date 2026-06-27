@@ -66,8 +66,17 @@ export async function checkPin(
   return data.authToken ?? null;
 }
 
-/** Resolve the display name for an account token. */
-export async function getAccountName(token: string): Promise<string> {
+/** A Plex account's identity, enough to match it against a Home/friends list. */
+export interface PlexAccount {
+  name: string;
+  id?: string;
+  uuid?: string;
+  username?: string;
+  email?: string;
+}
+
+/** Resolve the identity + display name for an account token. */
+export async function getAccount(token: string): Promise<PlexAccount> {
   const res = await fetch(new URL("/api/v2/user", PLEX_TV), {
     headers: {
       Accept: "application/json",
@@ -78,12 +87,73 @@ export async function getAccountName(token: string): Promise<string> {
   });
   if (!res.ok) throw new Error(`Plex account lookup failed: ${res.status}`);
   const data = (await res.json()) as {
+    id?: number | string;
+    uuid?: string;
     title?: string;
     username?: string;
     friendlyName?: string;
     email?: string;
   };
-  return (
-    data.friendlyName || data.title || data.username || data.email || "Plex user"
+  return {
+    name:
+      data.friendlyName ||
+      data.title ||
+      data.username ||
+      data.email ||
+      "Plex user",
+    id: data.id != null ? String(data.id) : undefined,
+    uuid: data.uuid,
+    username: data.username,
+    email: data.email,
+  };
+}
+
+/** Resolve just the display name for an account token. */
+export async function getAccountName(token: string): Promise<string> {
+  return (await getAccount(token)).name;
+}
+
+/** A Plex server this account can reach, with the token to act on it as them. */
+export interface AccessibleServer {
+  /** The server's machine identifier (matches its /identity machineIdentifier). */
+  clientId: string;
+  /** Per-user, per-server access token — the one that authenticates to it. */
+  accessToken: string | null;
+}
+
+/**
+ * Every Plex server this token can reach, per plex.tv. This is how Plex apps
+ * discover shared servers: a shared/Home user's account token authenticates to
+ * plex.tv (here) even though it can't hit the owner's LAN server URL directly.
+ * Each entry carries the per-server access token to actually use against it.
+ * Match an entry's clientId against the owner server's machine id to decide
+ * access. Requires a stable X-Plex-Client-Identifier.
+ */
+export async function getAccessibleServers(
+  token: string,
+  clientId: string,
+): Promise<AccessibleServer[]> {
+  const res = await fetch(
+    new URL("/api/v2/resources?includeHttps=1", PLEX_TV),
+    {
+      headers: { ...headers(clientId), "X-Plex-Token": token },
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    },
   );
+  if (!res.ok) throw new Error(`Plex resources lookup failed: ${res.status}`);
+  const data = (await res.json()) as Array<{
+    clientIdentifier?: string;
+    provides?: string;
+    accessToken?: string;
+  }>;
+  return data
+    .filter(
+      (r) =>
+        Boolean(r.clientIdentifier) &&
+        (r.provides ?? "").split(",").includes("server"),
+    )
+    .map((r) => ({
+      clientId: r.clientIdentifier as string,
+      accessToken: r.accessToken ?? null,
+    }));
 }

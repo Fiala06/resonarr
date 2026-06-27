@@ -10,12 +10,20 @@ const POLL_TIMEOUT_MS = 5 * 60 * 1000;
 export function LoginScreen({ onSignedIn }: { onSignedIn: () => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Kept around so we can offer a manual "open Plex" link when a popup is
+  // blocked (common on mobile browsers) — otherwise the poll just spins until
+  // it times out because authorization never happened.
+  const [authUrl, setAuthUrl] = useState<string | null>(null);
 
   async function login() {
     setBusy(true);
     setError(null);
     try {
       const { pinId, authUrl } = await startLogin();
+      setAuthUrl(authUrl);
+      // May be null if the browser blocked the popup (common on mobile). We keep
+      // polling regardless and show a manual link below, so she can open the
+      // Plex auth page in a new tab — the poll picks up the token either way.
       const popup = window.open(authUrl, "plex-auth", "width=600,height=720");
       const start = Date.now();
       await new Promise<void>((resolve, reject) => {
@@ -43,6 +51,7 @@ export function LoginScreen({ onSignedIn }: { onSignedIn: () => void }) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setBusy(false);
+      setAuthUrl(null);
     }
   }
 
@@ -91,6 +100,19 @@ export function LoginScreen({ onSignedIn }: { onSignedIn: () => void }) {
         >
           {busy ? "Waiting for Plex…" : "Log in with Plex"}
         </button>
+        {busy && authUrl && (
+          <div style={{ marginTop: 12, fontSize: 12, color: colors.muted }}>
+            Plex window didn't open?{" "}
+            <a
+              href={authUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: colors.accentLight, fontWeight: 600 }}
+            >
+              Open Plex sign-in
+            </a>
+          </div>
+        )}
         {error && (
           <div style={{ marginTop: 14, fontSize: 12, color: colors.red }}>{error}</div>
         )}

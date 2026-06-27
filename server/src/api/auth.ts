@@ -10,9 +10,9 @@ import {
   getClientId,
   getSession,
   parseCookie,
+  resolveServerAccess,
   sessionCookie,
   SESSION_COOKIE,
-  verifyServerAccess,
 } from "../auth/service.ts";
 
 function isHttps(req: FastifyRequest): boolean {
@@ -56,19 +56,21 @@ export function registerAuthRoutes(app: FastifyInstance): void {
         return reply.code(400).send({ error: "Login is not enabled" }) as never;
       }
       try {
-        const token = await checkPin(getClientId(), Number(req.params.id));
-        if (!token) return { pending: true };
+        const accountToken = await checkPin(getClientId(), Number(req.params.id));
+        if (!accountToken) return { pending: true };
 
-        const allowed = await verifyServerAccess(token);
-        if (!allowed) {
-          log.warn("auth", "Login denied: no access to this Plex server");
+        const access = await resolveServerAccess(accountToken);
+        if (!access) {
           return reply.code(403).send({
             error: "That Plex account doesn't have access to this server.",
           }) as never;
         }
 
-        const name = await getAccountName(token);
-        const sid = createSession(name, token);
+        // Display name comes from the account token; the session stores the
+        // token that actually authenticates to the server as this user (their
+        // per-server access token for shared/Home users, else the account token).
+        const name = await getAccountName(accountToken);
+        const sid = createSession(name, access.token);
         reply.header("Set-Cookie", sessionCookie(sid, isHttps(req)));
         log.info("auth", `Signed in: ${name}`);
         return { pending: false, user: { name } };
