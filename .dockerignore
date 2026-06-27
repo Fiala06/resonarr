@@ -1,6 +1,7 @@
 node_modules
 **/node_modules
-.git
+# .git is intentionally NOT ignored: the build reads the commit SHA from it for
+# the version stamp, then deletes it before the runtime image is assembled.
 .env
 .env.local
 **/dist

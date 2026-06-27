@@ -24,13 +24,21 @@ RUN test -f server/src/config/env.ts \
 
 RUN npm run build -w web
 
-# Bake build identity into the image. GIT_SHA is passed as a build arg (the .git
-# dir is excluded from the context, so it can't be read here); the timestamp is
-# always generated, so even an arg-less build records WHEN it was built.
-#   docker compose build --build-arg GIT_SHA=$(git rev-parse --short HEAD)
-ARG GIT_SHA=unknown
-RUN printf '{"commit":"%s","builtAt":"%s"}\n' \
-      "$GIT_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > /app/build-info.json
+# Bake build identity into the image. The commit is taken from the GIT_SHA build
+# arg if set, else auto-detected from .git in the build context (so Unraid / GUI
+# builds that can't pass an arg still get it); the timestamp is always generated.
+# .git is then removed so it doesn't bloat the runtime image.
+ARG GIT_SHA=
+RUN SHA="${GIT_SHA}"; \
+    if [ -z "$SHA" ] && [ -d .git ]; then \
+      apk add --no-cache git >/dev/null 2>&1 \
+        && SHA="$(git rev-parse --short HEAD 2>/dev/null)"; \
+    fi; \
+    [ -z "$SHA" ] && SHA="unknown"; \
+    printf '{"commit":"%s","builtAt":"%s"}\n' \
+      "$SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > /app/build-info.json; \
+    cat /app/build-info.json; \
+    rm -rf /app/.git
 
 # --- Runtime stage -----------------------------------------------------------
 # The server runs TypeScript directly via tsx (no server compile step), and

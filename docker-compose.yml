@@ -4,9 +4,10 @@ services:
     build:
       context: .
       args:
-        # Stamp the image with the commit it was built from so the GUI can show
-        # it. Build with:  GIT_SHA=$(git rev-parse --short HEAD) docker compose up -d --build
-        GIT_SHA: ${GIT_SHA:-unknown}
+        # Commit stamp for the GUI version line. Left empty by default so the
+        # Dockerfile auto-detects it from .git; override explicitly if you build
+        # from a non-git source:  GIT_SHA=abc1234 docker compose up -d --build
+        GIT_SHA: ${GIT_SHA:-}
     container_name: resonarr
     ports:
       - "8080:8080"
