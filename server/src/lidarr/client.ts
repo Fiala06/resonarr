@@ -134,6 +134,24 @@ export class LidarrClient {
     return this.request<LidarrSystemStatus>("/api/v1/system/status");
   }
 
+  /**
+   * Fetch a Lidarr image (e.g. a `/MediaCover/...` artist poster) with the API
+   * key, so the browser can show it without ever seeing the key. Mirrors the
+   * Plex art proxy.
+   */
+  async fetchImage(path: string): Promise<{ contentType: string; body: Buffer }> {
+    const url = new URL(path, this.cfg.url);
+    const res = await fetch(url, {
+      headers: { "X-Api-Key": this.cfg.apiKey },
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
+    if (!res.ok) throw new Error(`Lidarr image ${res.status} for ${url.pathname}`);
+    return {
+      contentType: res.headers.get("content-type") ?? "image/jpeg",
+      body: Buffer.from(await res.arrayBuffer()),
+    };
+  }
+
   rootFolders(): Promise<LidarrRootFolder[]> {
     return this.request<LidarrRootFolder[]>("/api/v1/rootfolder");
   }

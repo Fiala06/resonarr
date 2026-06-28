@@ -25,13 +25,24 @@ interface BasketRow {
   cover_url: string | null;
 }
 
-/** Pick a public (http) artwork URL from a Lidarr images array, if any. */
-function pickCoverUrl(images: unknown): string | undefined {
+/**
+ * Turn a Lidarr images array into a browser-loadable cover URL.
+ * Library artists expose a local `/MediaCover/...` path (needs the API key), so
+ * we route those through our proxy; lookup results expose a public `remoteUrl`.
+ */
+function coverFromImages(images: unknown): string | undefined {
   if (!Array.isArray(images)) return undefined;
   const imgs = images as LidarrImage[];
   const pick = imgs.find((i) => i?.coverType === "poster") ?? imgs[0];
-  const url = pick?.remoteUrl;
-  return typeof url === "string" && url.startsWith("http") ? url : undefined;
+  if (!pick) return undefined;
+  if (typeof pick.url === "string" && pick.url.startsWith("/MediaCover")) {
+    return `/api/lidarr/art?path=${encodeURIComponent(pick.url)}`;
+  }
+  if (typeof pick.remoteUrl === "string" && pick.remoteUrl.startsWith("http")) {
+    return pick.remoteUrl;
+  }
+  if (typeof pick.url === "string" && pick.url.startsWith("http")) return pick.url;
+  return undefined;
 }
 
 const KNOWN_SOURCES: BasketItemSource[] = [
@@ -109,7 +120,7 @@ export async function addToBasket(
     source: input.source ?? "manual",
     status: "pending",
     createdAt: new Date().toISOString(),
-    coverUrl: pickCoverUrl(match.images),
+    coverUrl: coverFromImages(match.images),
   };
 
   db.prepare(
@@ -305,9 +316,22 @@ export async function refreshBasketStatuses(): Promise<BasketItem[]> {
   );
 
   // Backfill artwork for existing items (e.g. added before we captured covers).
+  let covered = 0;
   for (const item of needsCover) {
-    const url = pickCoverUrl(artistsByMbid.get(item.mbid as string)?.images);
-    if (url) setCoverUrl(item.id, url);
+    const artist = artistsByMbid.get(item.mbid as string);
+    const url = coverFromImages(artist?.images);
+    if (url) {
+      setCoverUrl(item.id, url);
+      covered += 1;
+    }
+  }
+  if (needsCover.length > 0) {
+    log.info(
+      "basket",
+      `Cover backfill: ${covered}/${needsCover.length} resolved (matched ${
+        needsCover.filter((i) => artistsByMbid.has(i.mbid as string)).length
+      } in Lidarr)`,
+    );
   }
 
   // Album lookups are per-artist; cache within this pass.

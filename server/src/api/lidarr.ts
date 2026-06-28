@@ -34,4 +34,24 @@ export function registerLidarrRoutes(app: FastifyInstance): void {
       }) as never;
     }
   });
+
+  // Image proxy: serve Lidarr MediaCover art with the API key so the browser
+  // (wishlist rows) can show artwork without the key. Restricted to art paths.
+  app.get<{ Querystring: { path?: string } }>("/api/lidarr/art", async (req, reply) => {
+    const path = req.query.path ?? "";
+    if (!path.startsWith("/MediaCover")) {
+      return reply.code(400).send({ error: "invalid art path" });
+    }
+    if (!services.lidarr) {
+      return reply.code(503).send({ error: "Lidarr is not configured" });
+    }
+    try {
+      const { contentType, body } = await services.lidarr.fetchImage(path);
+      reply.header("content-type", contentType);
+      reply.header("cache-control", "public, max-age=86400");
+      return reply.send(body);
+    } catch {
+      return reply.code(404).send();
+    }
+  });
 }
