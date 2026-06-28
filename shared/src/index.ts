@@ -86,6 +86,26 @@ export interface StatsSummary {
   tracksRatedTotal: number;
 }
 
+/** An artist or track with how many times it was played in a window. */
+export interface PlayedItem {
+  artist: string;
+  /** Present for tracks; omitted for artist aggregates. */
+  title?: string;
+  plays: number;
+}
+
+/** Listening activity derived from Plex's play history (streak, this week). */
+export interface ListeningStats {
+  /** Consecutive days with at least one play, ending today or yesterday. */
+  streakDays: number;
+  /** Total track plays in the last 7 days. */
+  weekPlays: number;
+  /** Most-played artists in the last 7 days, most first. */
+  topArtists: PlayedItem[];
+  /** Most-played tracks in the last 7 days, most first. */
+  topTracks: PlayedItem[];
+}
+
 /** Discover fresh, owned tracks sonically similar to a chosen playlist. */
 export interface DiscoverRequest {
   /** Plex playlist to learn from (e.g. a "Loved" / "Liked Songs" list). */

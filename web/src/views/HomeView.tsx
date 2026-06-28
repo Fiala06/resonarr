@@ -1,7 +1,19 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
-import type { AutoPlaylist, LibraryStats, StatsSummary, TasteProfile } from "@resonarr/shared";
+import type {
+  AutoPlaylist,
+  LibraryStats,
+  ListeningStats,
+  StatsSummary,
+  TasteProfile,
+} from "@resonarr/shared";
 import type { Tab } from "../components/Sidebar";
-import { getAutoPlaylists, getCachedTasteProfile, getFeedback, getStatsSummary } from "../api";
+import {
+  getAutoPlaylists,
+  getCachedTasteProfile,
+  getFeedback,
+  getListeningStats,
+  getStatsSummary,
+} from "../api";
 import { colors, fx } from "../theme";
 
 /**
@@ -59,6 +71,7 @@ export function HomeView({
   const [hasFeedback, setHasFeedback] = useState<boolean | null>(null);
   const [summary, setSummary] = useState<StatsSummary | null>(null);
   const [taste, setTaste] = useState<TasteProfile | null>(null);
+  const [listening, setListening] = useState<ListeningStats | null>(null);
 
   useEffect(() => {
     getAutoPlaylists().then(setAutoPlaylists).catch(() => setAutoPlaylists([]));
@@ -67,6 +80,8 @@ export function HomeView({
       .catch(() => setHasFeedback(null));
     // Honest engagement counts derived from persisted rows (wishlist + ratings).
     getStatsSummary().then(setSummary).catch(() => {});
+    // Streak + most-played, read from Plex's own play history (cached server-side).
+    getListeningStats().then(setListening).catch(() => {});
     // Cache-only: shows the soundline if the user has already built their
     // profile, without triggering a fresh (expensive) generation on landing.
     getCachedTasteProfile().then(setTaste).catch(() => {});
@@ -156,6 +171,55 @@ export function HomeView({
             </div>
           </div>
         )}
+
+      {/* This week — streak + most-played, from Plex play history. */}
+      {listening && listening.weekPlays > 0 && (
+        <div style={{ display: "grid", gap: 10 }}>
+          <div style={{ fontSize: 13, fontWeight: 600 }}>This week</div>
+          <div
+            style={{
+              padding: "16px 18px",
+              borderRadius: 12,
+              background: fx.rowBg,
+              border: `1px solid ${colors.border}`,
+              boxShadow: fx.rowShadow,
+            }}
+          >
+            <div style={{ display: "flex", gap: 22, flexWrap: "wrap", alignItems: "baseline" }}>
+              {listening.streakDays > 0 && (
+                <div>
+                  <span style={{ fontSize: 22, fontWeight: 700 }}>🔥 {listening.streakDays}</span>
+                  <span style={{ fontSize: 12.5, color: colors.muted }}> day streak</span>
+                </div>
+              )}
+              <div>
+                <span style={{ fontSize: 22, fontWeight: 700 }}>{listening.weekPlays}</span>
+                <span style={{ fontSize: 12.5, color: colors.muted }}> plays this week</span>
+              </div>
+            </div>
+            {listening.topTracks.length > 0 && (
+              <div style={{ marginTop: 14, display: "grid", gap: 7 }}>
+                <div style={{ fontSize: 11, letterSpacing: 1, fontWeight: 700, color: colors.accentLight }}>
+                  MOST PLAYED
+                </div>
+                {listening.topTracks.map((t, i) => (
+                  <div
+                    key={`${t.artist}-${t.title ?? ""}-${i}`}
+                    style={{ display: "flex", gap: 10, fontSize: 13, alignItems: "baseline" }}
+                  >
+                    <span style={{ color: colors.faint, width: 16, flex: "none" }}>{i + 1}</span>
+                    <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {t.title}
+                      <span style={{ color: colors.muted }}> · {t.artist}</span>
+                    </span>
+                    <span style={{ color: colors.muted, flex: "none" }}>{t.plays}×</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Quick-start actions */}
       <div style={{ display: "grid", gap: 10 }}>

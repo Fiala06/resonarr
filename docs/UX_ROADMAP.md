@@ -100,8 +100,12 @@ discovery tools.
     total added to your library — all derived from real persisted `created_at` /
     `status` rows (basket + feedback), no new event tracking. Hidden until
     there's something non-zero to show.
-  - [ ] Listening streak / most-played-this-week — still not derivable; would
-    need Plex play-history polling over time (a separate data-collection feature).
+  - [x] Listening streak + most-played-this-week — DONE without a new subsystem:
+    Plex already persists play history, so `GET /api/stats/listening`
+    (`listening/service.ts` → `PlexClient.getMusicPlayHistory`) reads it on
+    demand (cached 20 min), scoped to the user's account on shared servers.
+    Home shows a "This week" card: 🔥 day-streak, plays this week, and the
+    most-played tracks. Shown only when there are plays this week.
 - [x] **4.3 Move library stats out of the hover tooltip** — tracks/albums/artists
   now shown as stat tiles on Home (no hover needed). Sidebar footer "X tracks"
   + hover breakdown left as a bonus at-a-glance.

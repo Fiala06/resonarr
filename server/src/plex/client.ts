@@ -46,6 +46,8 @@ interface PlexMetadata {
   userRating?: number; // this account's star rating, 0-10 (5★ = 10)
   type?: string;
   Media?: PlexMedia[]; // file/parts, used to stream a preview
+  viewedAt?: number; // epoch seconds of a play event (history entries)
+  accountID?: number; // which Plex account played it (history entries)
 }
 
 interface PlexContainer<T> {
@@ -311,6 +313,36 @@ export class PlexClient {
   }
 
   /** Fetch raw image bytes for a Plex art path (proxied to the browser). */
+  /**
+   * Recent music play-history events, most recent first. Plex persists this, so
+   * we read it on demand rather than tracking plays ourselves. Each entry knows
+   * which account played it (so callers can scope to one user on a shared
+   * server) and when (`viewedAt`, epoch seconds).
+   */
+  async getMusicPlayHistory(
+    max = 2000,
+  ): Promise<
+    { ratingKey: string; title: string; artist?: string; viewedAt: number; accountID?: number }[]
+  > {
+    const data = await this.request<PlexContainer<PlexMetadata>>(
+      "/status/sessions/history/all",
+      {
+        sort: "viewedAt:desc",
+        "X-Plex-Container-Start": 0,
+        "X-Plex-Container-Size": max,
+      },
+    );
+    return (data.MediaContainer.Metadata ?? [])
+      .filter((m) => m.type === "track" && typeof m.viewedAt === "number")
+      .map((m) => ({
+        ratingKey: m.ratingKey,
+        title: m.title,
+        artist: m.grandparentTitle,
+        viewedAt: m.viewedAt as number,
+        accountID: m.accountID,
+      }));
+  }
+
   /** Resolve the streamable file part for a track (first media, first part). */
   private async getTrackPartKey(ratingKey: string): Promise<string> {
     const data = await this.request<PlexContainer<PlexMetadata>>(

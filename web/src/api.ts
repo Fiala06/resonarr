@@ -12,6 +12,7 @@ import type {
   DiscoverResponse,
   FeedbackItem,
   ImportRatingsResult,
+  ListeningStats,
   SetFeedbackRequest,
   DiscoveryResult,
   AddToPlaylistResponse,
@@ -65,6 +66,10 @@ export async function getLibraryStats(): Promise<LibraryStats> {
 
 export async function getStatsSummary(): Promise<StatsSummary> {
   return asJson(await fetch("/api/stats/summary"));
+}
+
+export async function getListeningStats(): Promise<ListeningStats> {
+  return asJson(await fetch("/api/stats/listening"));
 }
 
 export async function getSettings(): Promise<AppSettings> {

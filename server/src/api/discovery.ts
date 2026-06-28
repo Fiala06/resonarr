@@ -12,6 +12,7 @@ import type {
   LibraryStats,
   LovedResponse,
   MixesResponse,
+  ListeningStats,
   RadioRequest,
   RadioResponse,
   StatsSummary,
@@ -29,6 +30,7 @@ import { getDeepCuts } from "../deepcuts/service.ts";
 import { discoverArtists } from "../artistdiscovery/service.ts";
 import { buildTasteProfile, getCachedTasteProfile } from "../taste/service.ts";
 import { getStatsSummary } from "../stats/service.ts";
+import { getListeningStats } from "../listening/service.ts";
 import { feedbackKeyForRequest, filterDisliked } from "../feedback/service.ts";
 import { cached } from "../cache/store.ts";
 
@@ -264,6 +266,14 @@ export function registerDiscoveryRoutes(app: FastifyInstance): void {
   // Lightweight engagement stats for the Home dashboard ("this month" counts).
   app.get("/api/stats/summary", async (req): Promise<StatsSummary> => {
     return getStatsSummary(await feedbackKeyForRequest(req));
+  });
+
+  // Listening stats (streak + most-played this week) from Plex play history.
+  app.get("/api/stats/listening", async (req, reply): Promise<ListeningStats> => {
+    if (!services.plex) {
+      return reply.code(503).send({ error: "Plex is not configured" }) as never;
+    }
+    return getListeningStats(userPlexClient(req), await feedbackKeyForRequest(req));
   });
 
   // Sonic Adventure: a path from a start track to a destination track.
