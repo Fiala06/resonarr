@@ -194,6 +194,10 @@ export function Sidebar({
         display: "flex",
         flexDirection: "column",
         padding: "20px 14px",
+        // Scroll the sidebar itself on short viewports so the footer (signed-in
+        // user, library status, version) stays reachable instead of being clipped.
+        minHeight: 0,
+        overflowY: "auto",
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "4px 8px 22px" }}>
