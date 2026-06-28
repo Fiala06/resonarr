@@ -23,6 +23,7 @@ type Tone = "owned" | "missing" | "info";
  */
 export function AlbumArt({
   thumb,
+  coverUrl,
   tint = colors.panel2,
   album,
   artist,
@@ -34,6 +35,8 @@ export function AlbumArt({
 }: {
   /** Plex thumb path (proxied via /api/art). Omit to show the gradient only. */
   thumb?: string;
+  /** A ready-to-use public image URL (e.g. Lidarr metadata art), used as-is. */
+  coverUrl?: string;
   /** Gradient / solid fallback shown behind (or instead of) the cover. */
   tint?: string;
   album: string;
@@ -46,7 +49,7 @@ export function AlbumArt({
   eyebrow?: string;
   size?: number;
 }) {
-  const cover = thumb ? `/api/art?path=${encodeURIComponent(thumb)}` : null;
+  const cover = coverUrl ?? (thumb ? `/api/art?path=${encodeURIComponent(thumb)}` : null);
   // Real cover sits on top of the tint, so a missing image still looks intentional.
   const bg = cover
     ? `center / cover no-repeat url("${cover}"), ${tint}`

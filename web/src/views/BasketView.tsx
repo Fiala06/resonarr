@@ -300,6 +300,7 @@ export function BasketView({ onChange }: { onChange?: () => void }) {
               <AlbumArt
                 album={it.album ?? it.artist}
                 artist={it.artist}
+                coverUrl={it.coverUrl}
                 tint={colors.seedBg}
                 eyebrow={it.type === "artist" ? "ARTIST" : "ALBUM"}
                 line={

@@ -362,6 +362,8 @@ export interface BasketItem {
   source: BasketItemSource;
   status: BasketItemStatus;
   createdAt: string;
+  /** Public artwork URL (from Lidarr's metadata) shown in the wishlist row. */
+  coverUrl?: string;
 }
 
 export interface AddBasketItemRequest {

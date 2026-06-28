@@ -215,6 +215,12 @@ const MIGRATIONS: Migration[] = [
       CREATE INDEX IF NOT EXISTS idx_spotify_syncs_owner ON spotify_syncs (owner_id);
     `,
   },
+  {
+    version: 13,
+    // Cache a public artwork URL (from Lidarr metadata) per wishlist item so
+    // rows show real cover art instead of a blank tint.
+    up: `ALTER TABLE basket_items ADD COLUMN cover_url TEXT;`,
+  },
 ];
 
 export function runMigrations(db: DatabaseSync): void {

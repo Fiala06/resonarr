@@ -7,6 +7,7 @@ import type {
   BasketItemType,
 } from "@resonarr/shared";
 import { getDb } from "../db/database.ts";
+import type { LidarrImage } from "../lidarr/client.ts";
 import { log } from "../log/service.ts";
 import { normalize } from "../matching/match.ts";
 import { services } from "../services.ts";
@@ -21,6 +22,16 @@ interface BasketRow {
   source: string;
   status: string;
   created_at: string;
+  cover_url: string | null;
+}
+
+/** Pick a public (http) artwork URL from a Lidarr images array, if any. */
+function pickCoverUrl(images: unknown): string | undefined {
+  if (!Array.isArray(images)) return undefined;
+  const imgs = images as LidarrImage[];
+  const pick = imgs.find((i) => i?.coverType === "poster") ?? imgs[0];
+  const url = pick?.remoteUrl;
+  return typeof url === "string" && url.startsWith("http") ? url : undefined;
 }
 
 const KNOWN_SOURCES: BasketItemSource[] = [
@@ -42,6 +53,7 @@ function rowToItem(r: BasketRow): BasketItem {
       : "manual",
     status: r.status as BasketItemStatus,
     createdAt: r.created_at,
+    coverUrl: r.cover_url ?? undefined,
   };
 }
 
@@ -97,12 +109,13 @@ export async function addToBasket(
     source: input.source ?? "manual",
     status: "pending",
     createdAt: new Date().toISOString(),
+    coverUrl: pickCoverUrl(match.images),
   };
 
   db.prepare(
     `INSERT INTO basket_items
-       (id, type, artist, album, mbid, source, status, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+       (id, type, artist, album, mbid, source, status, created_at, cover_url)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     item.id,
     item.type,
@@ -112,6 +125,7 @@ export async function addToBasket(
     item.source,
     item.status,
     item.createdAt,
+    item.coverUrl ?? null,
   );
 
   // Submit straight to Lidarr so nothing waits on a manual approval step. Best
@@ -184,6 +198,12 @@ function setStatus(id: string, status: BasketItemStatus): void {
   getDb()
     .prepare("UPDATE basket_items SET status = ? WHERE id = ?")
     .run(status, id);
+}
+
+function setCoverUrl(id: string, url: string): void {
+  getDb()
+    .prepare("UPDATE basket_items SET cover_url = ? WHERE id = ?")
+    .run(url, id);
 }
 
 /**
@@ -274,12 +294,21 @@ export async function requestBasket(ids?: string[]): Promise<BasketItem[]> {
  */
 export async function refreshBasketStatuses(): Promise<BasketItem[]> {
   const lidarr = services.lidarr;
-  const requested = listBasket().filter((i) => i.status === "requested");
-  if (!lidarr || requested.length === 0) return listBasket();
+  const all = listBasket();
+  const requested = all.filter((i) => i.status === "requested");
+  // Items that still lack cover art but could get it from Lidarr (any status).
+  const needsCover = all.filter((i) => !i.coverUrl && i.mbid);
+  if (!lidarr || (requested.length === 0 && needsCover.length === 0)) return all;
 
   const artistsByMbid = new Map(
     (await lidarr.getArtists()).map((a) => [a.foreignArtistId, a]),
   );
+
+  // Backfill artwork for existing items (e.g. added before we captured covers).
+  for (const item of needsCover) {
+    const url = pickCoverUrl(artistsByMbid.get(item.mbid as string)?.images);
+    if (url) setCoverUrl(item.id, url);
+  }
 
   // Album lookups are per-artist; cache within this pass.
   const albumCache = new Map<number, Awaited<ReturnType<typeof lidarr.getAlbums>>>();

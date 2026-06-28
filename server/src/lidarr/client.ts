@@ -46,11 +46,18 @@ export interface LidarrStatistics {
   percentOfTracks?: number;
 }
 
+export interface LidarrImage {
+  coverType?: string; // "poster", "fanart", "banner", …
+  url?: string; // Lidarr-relative (needs api key) — not browser-loadable
+  remoteUrl?: string; // public metadata URL — safe to load directly
+}
+
 export interface LidarrArtist {
   id: number;
   foreignArtistId: string;
   artistName: string;
   statistics?: LidarrStatistics;
+  images?: LidarrImage[];
 }
 
 export interface LidarrAlbum {
