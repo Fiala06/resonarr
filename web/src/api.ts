@@ -34,6 +34,7 @@ import type {
   SpotifyImportResult,
   SpotifyPlaylistSummary,
   SpotifyStatus,
+  SpotifySync,
   TasteProfile,
   Track,
   YearInReviewResponse,
@@ -390,4 +391,31 @@ export async function importSpotifyFile(
       body: JSON.stringify(req),
     }),
   );
+}
+
+// --- Spotify ongoing syncs ---------------------------------------------------
+
+export async function listSpotifySyncs(): Promise<SpotifySync[]> {
+  return asJson(await fetch("/api/spotify/syncs"));
+}
+
+export async function runSpotifySync(id: string): Promise<SpotifySync> {
+  return asJson(await fetch(`/api/spotify/syncs/${id}/run`, { method: "POST" }));
+}
+
+export async function updateSpotifySync(
+  id: string,
+  patch: { enabled?: boolean; intervalDays?: number },
+): Promise<SpotifySync> {
+  return asJson(
+    await fetch(`/api/spotify/syncs/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    }),
+  );
+}
+
+export async function deleteSpotifySync(id: string): Promise<void> {
+  await fetch(`/api/spotify/syncs/${id}`, { method: "DELETE" });
 }

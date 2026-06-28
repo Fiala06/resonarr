@@ -1,6 +1,13 @@
-import { useRef, useState } from "react";
-import type { SpotifyImportResult, SpotifyTrack } from "@resonarr/shared";
-import { importSpotifyFile } from "../api";
+import { useEffect, useRef, useState } from "react";
+import type { CSSProperties } from "react";
+import type { SpotifyImportResult, SpotifySync, SpotifyTrack } from "@resonarr/shared";
+import {
+  deleteSpotifySync,
+  importSpotifyFile,
+  listSpotifySyncs,
+  runSpotifySync,
+  updateSpotifySync,
+} from "../api";
 import { TrackRow } from "../components/TrackRow";
 import { SavePlaylistBar } from "../components/SavePlaylistBar";
 import { colors, fx } from "../theme";
@@ -62,6 +69,17 @@ function parseSpotifyExport(raw: unknown): ParsedFile {
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────────
+
+/** Re-check cadence choices, shared by the import form and the sync list. */
+const CADENCE: { days: number; label: string }[] = [
+  { days: 1, label: "Daily" },
+  { days: 3, label: "Every 3 days" },
+  { days: 7, label: "Weekly" },
+  { days: 14, label: "Every 2 weeks" },
+];
+
+const cadenceLabel = (days: number) =>
+  CADENCE.find((c) => c.days === days)?.label ?? `Every ${days}d`;
 
 function Pill({ label, count }: { label: string; count: number }) {
   return (
@@ -153,9 +171,12 @@ export function SpotifyView() {
   const [parseError, setParseError] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [savePlaylist, setSavePlaylist] = useState(true);
+  const [keepInSync, setKeepInSync] = useState(true);
+  const [intervalDays, setIntervalDays] = useState(1);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<SpotifyImportResult | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
+  const [syncRefresh, setSyncRefresh] = useState(0);
 
   function handleFile(text: string, filename: string) {
     setParseError(null);
@@ -182,9 +203,13 @@ export function SpotifyView() {
       const res = await importSpotifyFile({
         tracks: parsed.tracks,
         name,
-        savePlaylist,
+        // A sync needs a playlist to grow, so keepInSync implies saving one.
+        savePlaylist: savePlaylist || keepInSync,
+        keepInSync,
+        intervalDays,
       });
       setResult(res);
+      if (keepInSync) setSyncRefresh((n) => n + 1);
     } catch (e) {
       setImportError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -202,7 +227,8 @@ export function SpotifyView() {
         <p style={{ margin: 0, color: colors.muted, lineHeight: 1.6, fontSize: 14 }}>
           Import your Liked Songs or playlists from Spotify — no account connection
           required. Owned tracks become a Plex playlist; unowned artists go to the
-          request basket.
+          request basket. With “Keep syncing” on, tracks missing from your library
+          are added to the playlist automatically as they become available.
         </p>
       </div>
 
@@ -242,6 +268,9 @@ export function SpotifyView() {
           below.
         </div>
       </div>
+
+      {/* Active syncs */}
+      <SyncList refreshKey={syncRefresh} />
 
       {/* Drop zone */}
       <FileDropZone onFile={handleFile} />
@@ -301,12 +330,66 @@ export function SpotifyView() {
           >
             <input
               type="checkbox"
-              checked={savePlaylist}
+              checked={savePlaylist || keepInSync}
+              disabled={keepInSync}
               onChange={(e) => setSavePlaylist(e.target.checked)}
               style={{ accentColor: colors.accent, width: 15, height: 15 }}
             />
             Save matched tracks as a Plex playlist
           </label>
+
+          {/* Keep syncing toggle */}
+          <label
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 10,
+              fontSize: 14,
+              color: colors.muted,
+              cursor: "pointer",
+              userSelect: "none",
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={keepInSync}
+              onChange={(e) => setKeepInSync(e.target.checked)}
+              style={{ accentColor: colors.accent, width: 15, height: 15, marginTop: 3 }}
+            />
+            <span>
+              Keep syncing
+              <span style={{ display: "block", fontSize: 12, color: colors.faint, marginTop: 2 }}>
+                Tracks not yet in Plex are remembered and added to the playlist
+                automatically as they arrive in your library.
+              </span>
+            </span>
+          </label>
+
+          {/* Re-check cadence (only meaningful while syncing) */}
+          {keepInSync && (
+            <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14, color: colors.muted }}>
+              Check the library
+              <select
+                value={intervalDays}
+                onChange={(e) => setIntervalDays(Number(e.target.value))}
+                style={{
+                  padding: "6px 10px",
+                  borderRadius: 8,
+                  border: `1px solid ${colors.border}`,
+                  background: colors.panel2,
+                  color: colors.text,
+                  fontSize: 13,
+                  outline: "none",
+                }}
+              >
+                {CADENCE.map((c) => (
+                  <option key={c.days} value={c.days}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
 
           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
             <button
@@ -356,6 +439,145 @@ export function SpotifyView() {
   );
 }
 
+// ── active syncs ──────────────────────────────────────────────────────────────
+
+function relTime(ms?: number): string {
+  if (!ms) return "never";
+  const diff = Date.now() - ms;
+  if (diff < 60_000) return "just now";
+  const mins = Math.round(diff / 60_000);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.round(hrs / 24)}d ago`;
+}
+
+function SyncList({ refreshKey }: { refreshKey: number }) {
+  const [syncs, setSyncs] = useState<SpotifySync[]>([]);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  async function reload() {
+    try {
+      setSyncs(await listSpotifySyncs());
+    } catch {
+      /* leave the list as-is on a transient failure */
+    }
+  }
+
+  useEffect(() => {
+    void reload();
+  }, [refreshKey]);
+
+  async function withBusy(id: string, fn: () => Promise<unknown>) {
+    setBusyId(id);
+    try {
+      await fn();
+      await reload();
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  if (syncs.length === 0) return null;
+
+  return (
+    <div style={{ display: "grid", gap: 10 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.07em", color: colors.faint }}>
+        ONGOING SYNCS
+      </div>
+      {syncs.map((s) => (
+        <div
+          key={s.id}
+          style={{
+            padding: "12px 16px",
+            borderRadius: 12,
+            background: colors.panel,
+            border: `1px solid ${colors.border}`,
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            flexWrap: "wrap",
+          }}
+        >
+          <div style={{ display: "grid", gap: 3, flex: 1, minWidth: 200 }}>
+            <span style={{ fontWeight: 600, fontSize: 14 }}>{s.name}</span>
+            <span style={{ fontSize: 12, color: colors.muted }}>
+              {s.matchedCount} in playlist · {s.pendingCount} waiting · {cadenceLabel(s.intervalDays)} · checked {relTime(s.lastRunAt)}
+            </span>
+            {s.lastStatus && (
+              <span style={{ fontSize: 12, color: colors.faint }}>{s.lastStatus}</span>
+            )}
+          </div>
+
+          {!s.enabled && (
+            <span style={{ fontSize: 12, color: colors.faint, fontStyle: "italic" }}>paused</span>
+          )}
+
+          <select
+            value={s.intervalDays}
+            disabled={busyId === s.id}
+            onChange={(e) =>
+              void withBusy(s.id, () =>
+                updateSpotifySync(s.id, { intervalDays: Number(e.target.value) }),
+              )
+            }
+            title="How often to re-check the library"
+            style={{
+              padding: "6px 8px",
+              borderRadius: 8,
+              border: `1px solid ${colors.border}`,
+              background: "transparent",
+              color: colors.muted,
+              fontSize: 12,
+              cursor: busyId === s.id ? "not-allowed" : "pointer",
+            }}
+          >
+            {CADENCE.map((c) => (
+              <option key={c.days} value={c.days}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+
+          <button
+            onClick={() => void withBusy(s.id, () => runSpotifySync(s.id))}
+            disabled={busyId === s.id || !s.enabled}
+            style={syncBtnStyle(busyId === s.id || !s.enabled)}
+          >
+            {busyId === s.id ? "Checking…" : "Check now"}
+          </button>
+          <button
+            onClick={() => void withBusy(s.id, () => updateSpotifySync(s.id, { enabled: !s.enabled }))}
+            disabled={busyId === s.id}
+            style={syncBtnStyle(busyId === s.id)}
+          >
+            {s.enabled ? "Pause" : "Resume"}
+          </button>
+          <button
+            onClick={() => void withBusy(s.id, () => deleteSpotifySync(s.id))}
+            disabled={busyId === s.id}
+            style={{ ...syncBtnStyle(busyId === s.id), color: colors.red }}
+          >
+            Remove
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function syncBtnStyle(disabled: boolean): CSSProperties {
+  return {
+    padding: "6px 14px",
+    borderRadius: 8,
+    border: `1px solid ${colors.border}`,
+    background: "transparent",
+    color: disabled ? colors.faint : colors.muted,
+    fontSize: 12,
+    cursor: disabled ? "not-allowed" : "pointer",
+  };
+}
+
 // ── results panel ─────────────────────────────────────────────────────────────
 
 function ImportResults({
@@ -365,7 +587,7 @@ function ImportResults({
   result: SpotifyImportResult;
   onReset: () => void;
 }) {
-  const { sourceName, spotifyTotal, matched, misses, basketedArtists, plexPlaylist } = result;
+  const { sourceName, spotifyTotal, matched, misses, basketedArtists, plexPlaylist, sync } = result;
   const [tab, setTab] = useState<"matched" | "misses">("matched");
 
   return (
@@ -410,6 +632,23 @@ function ImportResults({
         >
           Playlist saved:{" "}
           <strong>{plexPlaylist.name}</strong> ({plexPlaylist.trackCount} tracks)
+        </div>
+      )}
+
+      {/* Sync confirmation */}
+      {sync && sync.pendingCount > 0 && (
+        <div
+          style={{
+            padding: "12px 16px",
+            borderRadius: 10,
+            background: "rgba(124,92,255,0.08)",
+            border: `1px solid rgba(124,92,255,0.25)`,
+            fontSize: 13,
+            color: colors.accentLight,
+          }}
+        >
+          Syncing on — {sync.pendingCount} track{sync.pendingCount === 1 ? "" : "s"} not in
+          your library yet will be added to this playlist automatically as they arrive.
         </div>
       )}
 

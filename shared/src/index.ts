@@ -505,6 +505,13 @@ export interface SpotifyImportRequest {
   name: string;
   /** When true, save matched tracks as a Plex playlist. */
   savePlaylist?: boolean;
+  /**
+   * When true, keep the import alive as a background sync: tracks with no Plex
+   * match are remembered and added to the playlist as they arrive in the library.
+   */
+  keepInSync?: boolean;
+  /** How often the sync re-checks the library, in days (1–30, default 1). */
+  intervalDays?: number;
 }
 
 /** Import from a pre-parsed Spotify data-export file (no OAuth required). */
@@ -512,6 +519,8 @@ export interface SpotifyFileImportRequest {
   tracks: SpotifyTrack[];
   name: string;
   savePlaylist?: boolean;
+  keepInSync?: boolean;
+  intervalDays?: number;
 }
 
 export interface SpotifyImportResult {
@@ -523,4 +532,30 @@ export interface SpotifyImportResult {
   basketedArtists: string[];
   /** Plex playlist created, when savePlaylist=true and matches exist. */
   plexPlaylist?: { id: string; name: string; trackCount: number };
+  /** The background sync created, when keepInSync=true. */
+  sync?: SpotifySync;
+}
+
+/**
+ * An ongoing Spotify→Plex migration. Its playlist keeps filling in as the
+ * still-unmatched ("pending") tracks become available in the Plex library.
+ */
+export interface SpotifySync {
+  id: string;
+  /** Source/playlist name; the Plex playlist title is derived from it. */
+  name: string;
+  /** "liked", a Spotify playlist id, or "file" for a data-export import. */
+  source: string;
+  plexPlaylistId?: string;
+  enabled: boolean;
+  /** How often the backfill re-checks the library, in days. */
+  intervalDays: number;
+  lastRunAt?: number;
+  nextRunAt: number;
+  lastStatus?: string;
+  /** Tracks still waiting to appear in the Plex library. */
+  pendingCount: number;
+  /** Tracks already added to the Plex playlist. */
+  matchedCount: number;
+  createdAt: string;
 }

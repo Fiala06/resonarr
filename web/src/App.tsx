@@ -18,7 +18,7 @@ import { AdventureView } from "./views/AdventureView";
 import { BasketView } from "./views/BasketView";
 import { LogsView } from "./views/LogsView";
 import { SettingsView } from "./views/SettingsView";
-import { getBasket, getHealth, getLibraryStats, logout } from "./api";
+import { getBasket, getHealth, getLibraryStats, listSpotifySyncs, logout } from "./api";
 import { loadFeedback } from "./feedback";
 import { fx } from "./theme";
 
@@ -54,6 +54,7 @@ export function App({ authUser }: { authUser?: AuthUser }) {
   const [stats, setStats] = useState<LibraryStats | null>(null);
   const [version, setVersion] = useState<AppVersion | null>(null);
   const [basketCount, setBasketCount] = useState(0);
+  const [spotifyWaiting, setSpotifyWaiting] = useState(0);
 
   const navigate = useCallback((t: Tab) => {
     window.location.hash = t;
@@ -78,6 +79,13 @@ export function App({ authUser }: { authUser?: AuthUser }) {
       .catch(() => {});
   }, []);
 
+  // Total tracks still waiting to arrive in Plex across all of the user's syncs.
+  const refreshSpotifyWaiting = useCallback(() => {
+    listSpotifySyncs()
+      .then((syncs) => setSpotifyWaiting(syncs.reduce((n, s) => n + s.pendingCount, 0)))
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     getHealth()
       .then((h) => {
@@ -91,10 +99,11 @@ export function App({ authUser }: { authUser?: AuthUser }) {
     loadFeedback();
   }, []);
 
-  // Keep the basket badge fresh as you move around the app.
+  // Keep the badges fresh as you move around the app.
   useEffect(() => {
     refreshBasket();
-  }, [tab, refreshBasket]);
+    refreshSpotifyWaiting();
+  }, [tab, refreshBasket, refreshSpotifyWaiting]);
 
   return (
     <div style={{ height: "100%", display: "flex", overflow: "hidden", background: fx.appBg }}>
@@ -102,6 +111,7 @@ export function App({ authUser }: { authUser?: AuthUser }) {
         active={tab}
         onNavigate={navigate}
         basketCount={basketCount}
+        spotifyWaiting={spotifyWaiting}
         stats={stats}
         lidarrOk={lidarrOk}
         version={version}

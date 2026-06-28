@@ -156,10 +156,18 @@ function compact(n: number): string {
   return String(n);
 }
 
+/** The nav badge count for a tab, or undefined when there's nothing to show. */
+function badgeFor(tab: Tab, basketCount: number, spotifyWaiting: number): number | undefined {
+  if (tab === "basket") return basketCount > 0 ? basketCount : undefined;
+  if (tab === "spotify") return spotifyWaiting > 0 ? spotifyWaiting : undefined;
+  return undefined;
+}
+
 export function Sidebar({
   active,
   onNavigate,
   basketCount,
+  spotifyWaiting = 0,
   stats,
   lidarrOk,
   version,
@@ -169,6 +177,7 @@ export function Sidebar({
   active: Tab;
   onNavigate: (t: Tab) => void;
   basketCount: number;
+  spotifyWaiting?: number;
   stats: LibraryStats | null;
   lidarrOk: boolean | null;
   version: AppVersion | null;
@@ -203,7 +212,7 @@ export function Sidebar({
             label={t.label}
             active={active === t.key}
             onClick={() => onNavigate(t.key)}
-            badge={t.key === "basket" && basketCount > 0 ? basketCount : undefined}
+            badge={badgeFor(t.key, basketCount, spotifyWaiting)}
           />
         ))}
       </div>

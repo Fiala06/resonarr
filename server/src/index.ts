@@ -19,6 +19,7 @@ import { registerFeedbackRoutes } from "./api/feedback.ts";
 import { registerSpotifyRoutes } from "./api/spotify.ts";
 import { registerTimeMachineRoutes } from "./api/timemachine.ts";
 import { startScheduler } from "./autoplaylist/service.ts";
+import { startSpotifySyncScheduler } from "./spotify/sync.ts";
 import {
   authEnabled,
   getSession,
@@ -142,6 +143,8 @@ app
     app.log.info(`Resonarr listening on 0.0.0.0:${config.port}`);
     // Background refresh of scheduled auto-playlists (Discover Weekly).
     startScheduler();
+    // Background backfill of ongoing Spotify→Plex migrations.
+    startSpotifySyncScheduler();
   })
   .catch((err) => {
     app.log.error(err);

@@ -178,6 +178,43 @@ const MIGRATIONS: Migration[] = [
       CREATE INDEX idx_feedback_user ON feedback (user_id);
     `,
   },
+  {
+    version: 12,
+    // Ongoing Spotify→Plex migrations. A sync owns a Plex playlist plus the set
+    // of Spotify tracks that had no Plex match yet ("pending"). The scheduler
+    // re-matches pending tracks as the library grows and appends new finds to the
+    // playlist — so a migrated playlist keeps filling in as music arrives in Plex.
+    up: `
+      CREATE TABLE IF NOT EXISTS spotify_syncs (
+        id               TEXT PRIMARY KEY,
+        name             TEXT NOT NULL,
+        source           TEXT NOT NULL,
+        plex_playlist_id TEXT,
+        enabled          INTEGER NOT NULL DEFAULT 1,
+        interval_days    INTEGER NOT NULL DEFAULT 1,
+        last_run_at      INTEGER,
+        next_run_at      INTEGER NOT NULL,
+        last_status      TEXT,
+        matched_count    INTEGER NOT NULL DEFAULT 0,
+        created_at       TEXT NOT NULL,
+        owner_id         TEXT,
+        owner_token      TEXT
+      );
+
+      CREATE TABLE IF NOT EXISTS spotify_sync_pending (
+        sync_id   TEXT NOT NULL,
+        track_key TEXT NOT NULL,
+        title     TEXT NOT NULL,
+        artist    TEXT NOT NULL,
+        album     TEXT,
+        added_at  INTEGER NOT NULL,
+        PRIMARY KEY (sync_id, track_key)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_spotify_sync_pending ON spotify_sync_pending (sync_id);
+      CREATE INDEX IF NOT EXISTS idx_spotify_syncs_owner ON spotify_syncs (owner_id);
+    `,
+  },
 ];
 
 export function runMigrations(db: DatabaseSync): void {

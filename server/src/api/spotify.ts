@@ -3,6 +3,7 @@ import type {
   SpotifyFileImportRequest,
   SpotifyImportRequest,
   SpotifyImportResult,
+  SpotifySync,
   SpotifyStatus,
 } from "@resonarr/shared";
 import { config } from "../config/env.ts";
@@ -16,12 +17,28 @@ import {
   spotifySessionCookie,
 } from "../spotify/auth.ts";
 import { SpotifyClient } from "../spotify/client.ts";
-import { runImport } from "../spotify/import.ts";
+import { runImport, spotifyPlaylistTitle } from "../spotify/import.ts";
+import type { ImportResult } from "../spotify/import.ts";
+import {
+  createSync,
+  deleteSync,
+  getSync,
+  getSyncOwner,
+  listSyncsForViewer,
+  updateSync,
+} from "../spotify/sync-store.ts";
+import { runSpotifySync } from "../spotify/sync.ts";
 import type { PlexClient } from "../plex/client.ts";
 import { services } from "../services.ts";
-import { parseCookie, userPlexClient } from "../auth/service.ts";
+import {
+  authEnabled,
+  currentUserId,
+  ownerAccountId,
+  parseCookie,
+  requestSession,
+  userPlexClient,
+} from "../auth/service.ts";
 import { log } from "../log/service.ts";
-import { getSettings } from "../settings/service.ts";
 
 function isHttps(req: FastifyRequest): boolean {
   return (
@@ -50,15 +67,70 @@ async function maybeSavePlaylist(
 ): Promise<SpotifyImportResult["plexPlaylist"]> {
   if (trackIds.length === 0) return undefined;
   try {
-    const settings = getSettings();
-    const prefix = settings.playlistPrefix ?? "Resonarr";
-    const playlistName = prefix ? `${prefix} — ${name}` : name;
-    const created = await plex.createPlaylist(playlistName, trackIds);
+    const created = await plex.createPlaylist(spotifyPlaylistTitle(name), trackIds);
     return { id: created.playlistId, name: created.title, trackCount: created.trackCount };
   } catch (err) {
     log.warn("spotify", `Playlist creation failed: ${err instanceof Error ? err.message : String(err)}`);
     return undefined;
   }
+}
+
+/**
+ * Shared tail for both import routes: optionally save the matched tracks as a
+ * Plex playlist and, when keepInSync is set, register a background sync that
+ * keeps adding the still-unmatched tracks as they arrive in the Plex library.
+ */
+async function finishImport(
+  req: FastifyRequest,
+  opts: {
+    name: string;
+    source: string;
+    savePlaylist: boolean;
+    keepInSync: boolean;
+    intervalDays?: number;
+  },
+  result: ImportResult,
+): Promise<SpotifyImportResult> {
+  const plexPlaylist =
+    opts.savePlaylist || opts.keepInSync
+      ? await maybeSavePlaylist(userPlexClient(req), opts.name, result.matched.map((t) => t.id))
+      : undefined;
+
+  let sync: SpotifySync | undefined;
+  if (opts.keepInSync) {
+    const ownerId = await currentUserId(req);
+    sync = createSync(
+      {
+        name: opts.name,
+        source: opts.source,
+        plexPlaylistId: plexPlaylist?.id,
+        matchedCount: result.matched.length,
+        pending: result.misses,
+        intervalDays: opts.intervalDays,
+      },
+      { ownerId, ownerToken: requestSession(req)?.token ?? null },
+    );
+  }
+
+  return {
+    sourceName: opts.name,
+    spotifyTotal: result.spotifyTotal,
+    matched: result.matched,
+    misses: result.misses,
+    basketedArtists: result.basketedArtists,
+    plexPlaylist,
+    sync,
+  };
+}
+
+/** May the request's user manage this sync? (Own it, or be the server owner.) */
+async function canManageSync(req: FastifyRequest, id: string): Promise<boolean> {
+  if (!getSync(id)) return false;
+  if (!authEnabled()) return true;
+  const viewerId = await currentUserId(req);
+  if (!viewerId) return false;
+  if (viewerId === (await ownerAccountId())) return true;
+  return getSyncOwner(id)?.ownerId === viewerId;
 }
 
 export function registerSpotifyRoutes(app: FastifyInstance): void {
@@ -143,7 +215,8 @@ export function registerSpotifyRoutes(app: FastifyInstance): void {
       if (!services.plex)
         return reply.code(503).send({ error: "Plex is not configured" }) as never;
 
-      const { source, name, savePlaylist = false } = req.body ?? {};
+      const { source, name, savePlaylist = false, keepInSync = false, intervalDays } =
+        req.body ?? {};
       if (!source || !name) {
         return reply.code(400).send({ error: "source and name are required" }) as never;
       }
@@ -162,18 +235,11 @@ export function registerSpotifyRoutes(app: FastifyInstance): void {
       }
 
       const result = await runImport(spotifyTracks, name);
-      const plexPlaylist = savePlaylist
-        ? await maybeSavePlaylist(userPlexClient(req), name, result.matched.map((t) => t.id))
-        : undefined;
-
-      return {
-        sourceName: name,
-        spotifyTotal: result.spotifyTotal,
-        matched: result.matched,
-        misses: result.misses,
-        basketedArtists: result.basketedArtists,
-        plexPlaylist,
-      };
+      return finishImport(
+        req,
+        { name, source, savePlaylist, keepInSync, intervalDays },
+        result,
+      );
     },
   );
 
@@ -188,7 +254,8 @@ export function registerSpotifyRoutes(app: FastifyInstance): void {
       if (!services.plex)
         return reply.code(503).send({ error: "Plex is not configured" }) as never;
 
-      const { tracks, name, savePlaylist = false } = req.body ?? {};
+      const { tracks, name, savePlaylist = false, keepInSync = false, intervalDays } =
+        req.body ?? {};
       if (!Array.isArray(tracks) || tracks.length === 0) {
         return reply.code(400).send({ error: "tracks array is required and must not be empty" }) as never;
       }
@@ -197,18 +264,60 @@ export function registerSpotifyRoutes(app: FastifyInstance): void {
       }
 
       const result = await runImport(tracks, name);
-      const plexPlaylist = savePlaylist
-        ? await maybeSavePlaylist(userPlexClient(req), name, result.matched.map((t) => t.id))
-        : undefined;
+      return finishImport(
+        req,
+        { name, source: "file", savePlaylist, keepInSync, intervalDays },
+        result,
+      );
+    },
+  );
 
-      return {
-        sourceName: name,
-        spotifyTotal: result.spotifyTotal,
-        matched: result.matched,
-        misses: result.misses,
-        basketedArtists: result.basketedArtists,
-        plexPlaylist,
-      };
+  // ── Ongoing syncs ─────────────────────────────────────────────────────────
+
+  /** List the background Spotify→Plex syncs visible to this user. */
+  app.get("/api/spotify/syncs", async (req): Promise<SpotifySync[]> => {
+    if (!authEnabled()) return listSyncsForViewer(null, false);
+    const viewerId = await currentUserId(req);
+    const isOwner = viewerId !== null && viewerId === (await ownerAccountId());
+    return listSyncsForViewer(viewerId, isOwner);
+  });
+
+  /** Enable/disable a sync and/or change its re-check cadence. */
+  app.put<{ Params: { id: string }; Body: { enabled?: boolean; intervalDays?: number } }>(
+    "/api/spotify/syncs/:id",
+    async (req, reply): Promise<SpotifySync> => {
+      if (!(await canManageSync(req, req.params.id))) {
+        return reply.code(404).send({ error: "Not found" }) as never;
+      }
+      const updated = updateSync(req.params.id, req.body ?? {});
+      if (!updated) return reply.code(404).send({ error: "Not found" }) as never;
+      return updated;
+    },
+  );
+
+  /** Delete a sync (leaves the Plex playlist in place). */
+  app.delete<{ Params: { id: string } }>(
+    "/api/spotify/syncs/:id",
+    async (req, reply): Promise<{ ok: true }> => {
+      if (!(await canManageSync(req, req.params.id))) {
+        return reply.code(404).send({ error: "Not found" }) as never;
+      }
+      deleteSync(req.params.id);
+      return { ok: true };
+    },
+  );
+
+  /** Run a backfill now (check the library for newly-available tracks). */
+  app.post<{ Params: { id: string } }>(
+    "/api/spotify/syncs/:id/run",
+    async (req, reply): Promise<SpotifySync> => {
+      if (!(await canManageSync(req, req.params.id))) {
+        return reply.code(404).send({ error: "Not found" }) as never;
+      }
+      if (!services.plex) {
+        return reply.code(503).send({ error: "Plex is not configured" }) as never;
+      }
+      return runSpotifySync(req.params.id);
     },
   );
 }
