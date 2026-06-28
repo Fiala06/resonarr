@@ -141,6 +141,9 @@ export class LidarrClient {
    */
   async fetchImage(path: string): Promise<{ contentType: string; body: Buffer }> {
     const url = new URL(path, this.cfg.url);
+    // Lidarr's static MediaCover route accepts the key as a query param; some
+    // setups don't honor the header there, so send both.
+    url.searchParams.set("apikey", this.cfg.apiKey);
     const res = await fetch(url, {
       headers: { "X-Api-Key": this.cfg.apiKey },
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
