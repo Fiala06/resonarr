@@ -120,11 +120,16 @@ export function HomeView({
           <div style={{ fontSize: 18, fontWeight: 700, margin: "7px 0 0", letterSpacing: "-0.3px", lineHeight: 1.35 }}>
             {taste.soundline}
           </div>
-          {taste.genres.length > 0 && (
+          {(taste.genres.length > 0 || taste.eras.length > 0) && (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 11 }}>
-              {taste.genres.slice(0, 6).map((g) => (
-                <span key={g} style={chipStyle}>
+              {taste.genres.slice(0, 5).map((g) => (
+                <span key={`g-${g}`} style={chipStyle}>
                   {g}
+                </span>
+              ))}
+              {taste.eras.slice(0, 3).map((e) => (
+                <span key={`e-${e}`} style={eraChipStyle}>
+                  {e}
                 </span>
               ))}
             </div>
@@ -284,6 +289,16 @@ const chipStyle: CSSProperties = {
   fontWeight: 600,
   color: colors.accentLight,
   background: "rgba(124,92,255,0.12)",
+  border: `1px solid ${colors.border}`,
+  borderRadius: 999,
+  padding: "3px 10px",
+};
+
+const eraChipStyle: CSSProperties = {
+  fontSize: 12,
+  fontWeight: 600,
+  color: colors.muted,
+  background: "transparent",
   border: `1px solid ${colors.border}`,
   borderRadius: 999,
   padding: "3px 10px",
