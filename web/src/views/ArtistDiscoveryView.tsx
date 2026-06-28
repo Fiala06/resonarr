@@ -228,6 +228,7 @@ const skeletonRow = {
 const row = {
   display: "flex",
   alignItems: "center",
+  flexWrap: "wrap" as const,
   gap: 12,
   padding: "10px 12px",
   borderRadius: 9,

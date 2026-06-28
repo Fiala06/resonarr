@@ -64,7 +64,7 @@ export function MixesView() {
       )}
 
       {mixes && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: 16 }}>
           {mixes.map((m, i) => (
             <MixCardTile
               key={m.id}

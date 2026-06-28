@@ -121,11 +121,17 @@ discovery tools.
 
 ## Phase 6 — Mobile & polish
 
-- [ ] **6.1 Verify mobile drawer + grids/preview cards** don't overflow on phones
-- [ ] **6.2 Mobile tap-target pass** — buttons, remove icons, checkboxes sized for
-  touch
-- [ ] **6.3 General consistency pass** — spacing, button styles, success/error
-  colors uniform across views
+- [~] **6.1 Verify mobile drawer + grids/preview cards** don't overflow on phones
+  - Fixed the confident risks: Mixes grid is now responsive (`auto-fill
+    minmax(190px)` instead of a rigid 3 columns); wishlist / Sage-miss / Artist
+    rows now `flex-wrap` so their controls reflow instead of overflowing.
+  - REMAINING: actual on-device check (drawer, AlbumArt hover preview overflow)
+    needs a real phone — I verify by hand, so this needs you or a device.
+- [x] **6.2 Mobile tap-target pass** — remove button is 34×34 (Phase 3); thumbs
+  up/down bumped 26→30px; wishlist checkbox enlarged to 18px with a label.
+- [~] **6.3 General consistency pass** — incremental so far (shared row/card
+  styling, success/error colors reused from theme). A dedicated sweep across all
+  views is still worth doing as a final pass.
 
 ---
 

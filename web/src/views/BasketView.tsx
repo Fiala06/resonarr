@@ -281,6 +281,7 @@ export function BasketView({ onChange }: { onChange?: () => void }) {
               style={{
                 display: "flex",
                 alignItems: "center",
+                flexWrap: "wrap",
                 gap: 12,
                 padding: "10px 12px",
                 borderRadius: 9,
@@ -293,6 +294,8 @@ export function BasketView({ onChange }: { onChange?: () => void }) {
                 type="checkbox"
                 checked={selected.has(it.id)}
                 onChange={() => toggle(it.id)}
+                aria-label="Select for download"
+                style={{ width: 18, height: 18, flex: "none", cursor: "pointer" }}
               />
               <AlbumArt
                 album={it.album ?? it.artist}
