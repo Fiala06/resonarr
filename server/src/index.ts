@@ -96,7 +96,12 @@ if (authEnabled()) {
     if (
       path === "/api/health" ||
       path.startsWith("/api/auth/") ||
-      path.startsWith("/api/spotify/auth/")
+      path.startsWith("/api/spotify/auth/") ||
+      // Image proxies serve only non-sensitive artwork; leaving them open lets
+      // the browser load covers without per-request auth quirks (and is easy to
+      // probe with curl when diagnosing).
+      path === "/api/art" ||
+      path === "/api/lidarr/art"
     )
       return;
     const sess = getSession(parseCookie(req.headers.cookie, SESSION_COOKIE));
