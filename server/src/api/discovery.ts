@@ -8,6 +8,7 @@ import type {
   DiscoverRequest,
   DiscoverResponse,
   LibraryStats,
+  LovedResponse,
   MixesResponse,
   RadioRequest,
   RadioResponse,
@@ -20,6 +21,7 @@ import { userPlexClient } from "../auth/service.ts";
 import { runMixes } from "../mixes/service.ts";
 import { runAdventure } from "../adventure/service.ts";
 import { discoverFromPlaylist } from "../discover/service.ts";
+import { discoverFromLikes } from "../loved/service.ts";
 import { getDeepCuts } from "../deepcuts/service.ts";
 import { discoverArtists } from "../artistdiscovery/service.ts";
 import { buildTasteProfile } from "../taste/service.ts";
@@ -130,6 +132,20 @@ export function registerDiscoveryRoutes(app: FastifyInstance): void {
     },
   );
 
+  // Loved: owned tracks near the centre of your taste (sonic-near many likes).
+  app.get("/api/loved", async (req, reply): Promise<LovedResponse> => {
+    if (!services.sonic) {
+      return reply.code(503).send({ error: "Plex is not configured" }) as never;
+    }
+    try {
+      return await discoverFromLikes(await feedbackKeyForRequest(req));
+    } catch (err) {
+      return reply.code(502).send({
+        error: err instanceof Error ? err.message : String(err),
+      }) as never;
+    }
+  });
+
   // Deep cuts: owned tracks you rarely (never) or no-longer (faded) play.
   app.get<{ Querystring: { mode?: string } }>(
     "/api/deepcuts",
@@ -160,7 +176,11 @@ export function registerDiscoveryRoutes(app: FastifyInstance): void {
         return reply.code(503).send({ error: "Lidarr is not configured" }) as never;
       }
       try {
-        return await discoverArtists(userPlexClient(req), count);
+        return await discoverArtists(
+          userPlexClient(req),
+          await feedbackKeyForRequest(req),
+          count,
+        );
       } catch (err) {
         const detail = err instanceof Error ? err.message : String(err);
         log.error("artist-discovery", `Run failed: ${detail}`);

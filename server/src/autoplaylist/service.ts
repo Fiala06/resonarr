@@ -9,7 +9,7 @@ import {
   filterDisliked,
   getFeedbackSets,
 } from "../feedback/service.ts";
-import { likedNeighborIds } from "../feedback/boost.ts";
+import { likedNeighborScores } from "../feedback/boost.ts";
 import { normalize } from "../matching/match.ts";
 import {
   DAY_MS,
@@ -98,16 +98,29 @@ async function buildDiscoverWeekly(
     }),
   );
 
-  // Taste bias from the feedback loop: float tracks near your likes (and by
-  // liked artists) above equally-surfaced candidates.
-  const likedNeighbors = await likedNeighborIds(userKey, sonic);
+  // Blend your liked neighborhood into the candidate pool, so explicit taste —
+  // not just recent plays — drives the week. Same exclusions + dislike filter.
+  const liked = await likedNeighborScores(userKey, sonic);
+  const likedKept = new Set(
+    filterDisliked(userKey, [...liked.values()].map((v) => v.track)).map((t) => t.id),
+  );
+  for (const { track, hits } of liked.values()) {
+    if (!likedKept.has(track.id)) continue;
+    if (recentIds.has(track.id) || usedRecently.has(track.id)) continue;
+    if (recentArtists?.has(normalize(track.artist))) continue;
+    const cur = score.get(track.id);
+    if (cur) cur.hits += hits;
+    else score.set(track.id, { track, hits });
+  }
+
+  // Taste bias: float tracks near many of your likes (and by liked artists).
   const { likedArtists } = getFeedbackSets(userKey);
   const ranked = [...score.values()]
     .map(({ track, hits }) => {
       let weight = hits;
       if (addedIds.has(track.id)) weight += 2; // new-to-Plex bias
       if ((track.viewCount ?? 0) === 0) weight += 1; // haven't-played-it bias
-      if (likedNeighbors.has(track.id)) weight += 2; // near something you liked
+      weight += Math.min(liked.get(track.id)?.hits ?? 0, 3); // near your likes
       if (likedArtists.has(normalize(track.artist))) weight += 1; // liked artist
       return { track, weight };
     })

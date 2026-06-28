@@ -8,6 +8,7 @@ export type Tab =
   | "radio"
   | "mixes"
   | "moods"
+  | "loved"
   | "discover"
   | "deepcuts"
   | "artists"
@@ -45,6 +46,15 @@ const ICONS: Record<Tab, ReactNode> = {
       <circle cx="6" cy="6.3" r="0.9" fill="currentColor" />
       <circle cx="10" cy="6.3" r="0.9" fill="currentColor" />
     </>
+  ),
+  loved: (
+    <path
+      d="M8 13.5 C8 13.5 2 10 2 5.8 A2.8 2.8 0 0 1 8 4.2 A2.8 2.8 0 0 1 14 5.8 C14 10 8 13.5 8 13.5 Z"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinejoin="round"
+      fill="none"
+    />
   ),
   discover: (
     <>
@@ -128,6 +138,7 @@ const MAIN_TABS: { key: Tab; label: string }[] = [
   { key: "radio", label: "Radio" },
   { key: "mixes", label: "Mixes" },
   { key: "moods", label: "Moods" },
+  { key: "loved", label: "Loved" },
   { key: "discover", label: "Discover" },
   { key: "deepcuts", label: "Deep Cuts" },
   { key: "artists", label: "Artists" },

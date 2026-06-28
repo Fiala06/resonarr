@@ -6,6 +6,7 @@ import { SageView } from "./views/SageView";
 import { RadioView } from "./views/RadioView";
 import { MixesView } from "./views/MixesView";
 import { MoodsView } from "./views/MoodsView";
+import { LovedView } from "./views/LovedView";
 import { DiscoverView } from "./views/DiscoverView";
 import { DeepCutsView } from "./views/DeepCutsView";
 import { ArtistDiscoveryView } from "./views/ArtistDiscoveryView";
@@ -26,6 +27,7 @@ const TABS: Tab[] = [
   "radio",
   "mixes",
   "moods",
+  "loved",
   "discover",
   "deepcuts",
   "artists",
@@ -112,6 +114,7 @@ export function App({ authUser }: { authUser?: AuthUser }) {
           {tab === "radio" && <RadioView />}
           {tab === "mixes" && <MixesView />}
           {tab === "moods" && <MoodsView />}
+          {tab === "loved" && <LovedView />}
           {tab === "discover" && <DiscoverView />}
           {tab === "deepcuts" && <DeepCutsView />}
           {tab === "artists" && <ArtistDiscoveryView />}

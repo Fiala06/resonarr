@@ -91,6 +91,11 @@ export interface DiscoverResponse {
   tracks: Track[];
 }
 
+/** "Loved": owned tracks near the centre of your taste (sonic-near many likes). */
+export interface LovedResponse {
+  tracks: Track[];
+}
+
 /**
  * Deep cuts & rediscovery: owned tracks you rarely or never play.
  *  - "never" — buried treasure you've never pressed play on.

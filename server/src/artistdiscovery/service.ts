@@ -4,10 +4,24 @@ import { services } from "../services.ts";
 import { getProvider } from "../llm/index.ts";
 import { log } from "../log/service.ts";
 import { normalize } from "../matching/match.ts";
+import { getFeedbackArtists } from "../feedback/service.ts";
 
 const SEED_COUNT = 25; // most-played artists fed to the LLM
 const DEFAULT_COUNT = 12; // candidates returned
 const OVERSHOOT = 8; // ask for extra to survive owned/dedupe/lookup drops
+
+/** De-dupe artist names case/space-insensitively, preserving first-seen order. */
+function dedupeByNormalized(names: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const n of names) {
+    const key = normalize(n);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(n);
+  }
+  return out;
+}
 
 /** Run `fn`, retrying once on failure (transient network/5xx blips). */
 async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
@@ -27,6 +41,7 @@ async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
  */
 export async function discoverArtists(
   plex: PlexClient,
+  userKey: string,
   count = DEFAULT_COUNT,
 ): Promise<ArtistDiscoveryResponse> {
   const lidarr = services.lidarr;
@@ -36,9 +51,11 @@ export async function discoverArtists(
   const want = Math.max(1, Math.min(50, Math.round(count)));
   const section = await plex.getMusicSection();
 
-  // Seed from artists you actually play; fall back to a library sample on a
-  // freshly-imported (never-played) library.
-  let seeds = await plex.getTopArtists(section.key, SEED_COUNT);
+  // Seed from the artists you explicitly liked first, then the ones you play
+  // most; fall back to a library sample on a freshly-imported library.
+  const { liked } = getFeedbackArtists(userKey);
+  const played = await plex.getTopArtists(section.key, SEED_COUNT);
+  let seeds = dedupeByNormalized([...liked, ...played]).slice(0, SEED_COUNT);
   if (seeds.length === 0) seeds = await plex.getArtistNames(section.key, SEED_COUNT);
   if (seeds.length === 0) {
     throw new Error("No artists in your library to learn from yet.");

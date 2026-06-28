@@ -23,6 +23,7 @@ import type {
   LibraryStats,
   LidarrOptions,
   LogEntry,
+  LovedResponse,
   MixesResponse,
   OnThisDayResponse,
   PlexPinStart,
@@ -243,6 +244,10 @@ export async function putFeedback(
 
 export async function importPlexRatings(): Promise<ImportRatingsResult> {
   return asJson(await fetch("/api/feedback/import-plex", { method: "POST" }));
+}
+
+export async function getLoved(): Promise<LovedResponse> {
+  return asJson(await fetch("/api/loved"));
 }
 
 export async function getBasket(): Promise<BasketItem[]> {
