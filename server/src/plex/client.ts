@@ -320,6 +320,7 @@ export class PlexClient {
    * server) and when (`viewedAt`, epoch seconds).
    */
   async getMusicPlayHistory(
+    sectionKey: string,
     max = 2000,
   ): Promise<
     { ratingKey: string; title: string; artist?: string; viewedAt: number; accountID?: number }[]
@@ -327,13 +328,14 @@ export class PlexClient {
     const data = await this.request<PlexContainer<PlexMetadata>>(
       "/status/sessions/history/all",
       {
+        librarySectionID: sectionKey,
         sort: "viewedAt:desc",
         "X-Plex-Container-Start": 0,
         "X-Plex-Container-Size": max,
       },
     );
     return (data.MediaContainer.Metadata ?? [])
-      .filter((m) => m.type === "track" && typeof m.viewedAt === "number")
+      .filter((m) => typeof m.viewedAt === "number")
       .map((m) => ({
         ratingKey: m.ratingKey,
         title: m.title,

@@ -269,12 +269,19 @@ export function registerDiscoveryRoutes(app: FastifyInstance): void {
   });
 
   // Listening stats (streak + most-played this week) from Plex play history.
-  app.get("/api/stats/listening", async (req, reply): Promise<ListeningStats> => {
-    if (!services.plex) {
-      return reply.code(503).send({ error: "Plex is not configured" }) as never;
-    }
-    return getListeningStats(userPlexClient(req), await feedbackKeyForRequest(req));
-  });
+  app.get<{ Querystring: { refresh?: string } }>(
+    "/api/stats/listening",
+    async (req, reply): Promise<ListeningStats> => {
+      if (!services.plex) {
+        return reply.code(503).send({ error: "Plex is not configured" }) as never;
+      }
+      return getListeningStats(
+        userPlexClient(req),
+        await feedbackKeyForRequest(req),
+        req.query.refresh === "1",
+      );
+    },
+  );
 
   // Sonic Adventure: a path from a start track to a destination track.
   app.post<{ Body: AdventureRequest }>(
