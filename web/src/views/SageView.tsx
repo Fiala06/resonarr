@@ -206,6 +206,32 @@ export function SageView() {
 
       {result && (
         <>
+          {/* Plain-English explainer for the owned / not-owned split below. */}
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "4px 14px",
+              padding: "11px 14px",
+              borderRadius: 10,
+              background: colors.panel,
+              border: `1px solid ${colors.border}`,
+              fontSize: 13,
+              color: colors.muted,
+            }}
+          >
+            <span>
+              <span style={{ color: colors.green, fontWeight: 700 }}>✓ {result.matches.length}</span>{" "}
+              you already have — ready to play now.
+            </span>
+            {result.misses.length > 0 && (
+              <span>
+                <span style={{ color: colors.gold, fontWeight: 700 }}>✦ {result.misses.length}</span>{" "}
+                you’d need to download — add them to your wishlist below.
+              </span>
+            )}
+          </div>
+
           {/* In library */}
           <div style={{ display: "grid", gap: 10 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>

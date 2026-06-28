@@ -18,11 +18,12 @@ const STATUS_COLOR: Record<BasketItemStatus, string> = {
   failed: colors.red,
 };
 
+// Plain-language status words a non-technical user can follow at a glance.
 const STATUS_LABEL: Record<BasketItemStatus, string> = {
-  pending: "pending",
-  requested: "requested",
-  done: "✓ done",
-  failed: "failed",
+  pending: "Waiting",
+  requested: "Downloading",
+  done: "✓ Ready to play",
+  failed: "Couldn’t find",
 };
 
 export function BasketView({ onChange }: { onChange?: () => void }) {
@@ -88,6 +89,12 @@ export function BasketView({ onChange }: { onChange?: () => void }) {
       return next;
     });
     setItems(await getBasket());
+  }
+
+  // Confirm before removing so a mis-tap doesn't silently drop a wishlist item.
+  function askRemove(it: BasketItem) {
+    const label = it.album ? `${it.artist} — ${it.album}` : it.artist;
+    if (window.confirm(`Remove ${label} from your wishlist?`)) void remove(it.id);
   }
 
   function toggle(id: string) {
@@ -256,7 +263,7 @@ export function BasketView({ onChange }: { onChange?: () => void }) {
                     : it.status === "pending"
                       ? "Waiting · set download target to send"
                       : it.status === "failed"
-                        ? "Couldn’t find it to download"
+                        ? "Not found automatically — try the links, or retry"
                         : "Sending to download…"
                 }
                 tone={
@@ -281,8 +288,8 @@ export function BasketView({ onChange }: { onChange?: () => void }) {
                 style={{
                   color: STATUS_COLOR[it.status],
                   fontSize: "0.8rem",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.5px",
+                  fontWeight: 600,
+                  whiteSpace: "nowrap",
                 }}
               >
                 {STATUS_LABEL[it.status]}
@@ -304,21 +311,31 @@ export function BasketView({ onChange }: { onChange?: () => void }) {
                     cursor: "pointer",
                   }}
                 >
-                  Retry
+                  Try again
                 </button>
               )}
               <button
-                onClick={() => remove(it.id)}
-                title="Remove"
+                onClick={() => askRemove(it)}
+                title="Remove from wishlist"
+                aria-label="Remove from wishlist"
                 style={{
+                  flex: "none",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 34,
+                  height: 34,
                   background: "transparent",
                   color: colors.muted,
-                  border: "none",
+                  border: `1px solid ${colors.border}`,
+                  borderRadius: 8,
                   cursor: "pointer",
-                  fontSize: "1.1rem",
                 }}
               >
-                ×
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                </svg>
               </button>
             </div>
           ))}

@@ -56,20 +56,30 @@ discovery tools.
 
 ## Phase 3 — Core flow polish (saving + wishlist)
 
-- [ ] **3.1 Clearer, more rewarding save** (`SavePlaylistBar.tsx`)
-  - Primary "▶ Save to my music" button
-  - Success confirmation with playlist name + "open in Plex" link
-- [ ] **3.2 In-app track preview** — 30s preview on hover/click before saving
-  (start with what's feasible; fall back to existing YouTube link)
-- [ ] **3.3 Plain-English banner on the owned vs not-owned split** (`SageView.tsx`)
-  - "These you already have ✓ · These you'd need to download — add to wishlist"
-- [ ] **3.4 Humanize wishlist status words** (`BasketView.tsx`)
-  - pending → "Waiting", requested → "Downloading", done → "Ready to play",
-    failed → "Couldn't find"
-  - Per-item step indicator / progress feel
-- [ ] **3.5 Better failed-item handling** — replace raw detail string with
-  "Couldn't find this album automatically" + Retry / Search manually
-- [ ] **3.6 Bigger / safer remove targets** in wishlist (larger tap area, confirm)
+- [x] **3.1 Clearer, more rewarding save** (`SavePlaylistBar.tsx`)
+  - Primary "▶ Save to my music (N)" button (append shows "Add to playlist (N)")
+  - Success now a green ✓ confirmation card naming the playlist + track count
+    ("Find it in your music app")
+  - NOTE: "open in Plex" deep link skipped — needs the Plex server id / web URL
+    from the backend (not in `CreatePlaylistResponse`). Revisit with a server change.
+- [ ] **3.2 In-app track preview** — DEFERRED (open question): no audio source
+  besides the existing YouTube links. Owned-track preview would need Plex
+  streaming/transcode auth (backend work); unowned tracks have no audio at all.
+  Decide a source before building.
+- [x] **3.3 Plain-English banner on the owned vs not-owned split** (`SageView.tsx`)
+  - Info banner above results: "✓ N you already have — ready to play now ·
+    ✦ M you'd need to download — add them to your wishlist below"
+- [x] **3.4 Humanize wishlist status words** (`BasketView.tsx`)
+  - pending → "Waiting", requested → "Downloading", done → "✓ Ready to play",
+    failed → "Couldn't find"; dropped the shouty uppercase tag styling
+  - Per-row line text already gives progress feel; dedicated step indicator left
+    as a later nicety
+- [x] **3.5 Better failed-item handling** — row reads "Not found automatically —
+  try the links, or retry"; existing YouTube/MusicBrainz links cover manual
+  search; retry button relabelled "Try again". (No raw error string was ever
+  shown per-item; top-level message already humanized in Phase 2.)
+- [x] **3.6 Bigger / safer remove targets** in wishlist — remove is now a 34×34
+  bordered trash button (was a tiny "×") with a confirm dialog before removing.
 
 ## Phase 4 — Stats & insights (make them fun and visible)
 
