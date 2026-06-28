@@ -226,8 +226,8 @@ export function SpotifyView() {
         </h2>
         <p style={{ margin: 0, color: colors.muted, lineHeight: 1.6, fontSize: 14 }}>
           Import your Liked Songs or playlists from Spotify — no account connection
-          required. Owned tracks become a Plex playlist; unowned artists go to the
-          request basket. With “Keep syncing” on, tracks missing from your library
+          required. Owned tracks become a playlist; unowned artists go to your
+          wishlist. With “Keep syncing” on, tracks missing from your library
           are added to the playlist automatically as they become available.
         </p>
       </div>
@@ -335,7 +335,7 @@ export function SpotifyView() {
               onChange={(e) => setSavePlaylist(e.target.checked)}
               style={{ accentColor: colors.accent, width: 15, height: 15 }}
             />
-            Save matched tracks as a Plex playlist
+            Save matched tracks as a playlist
           </label>
 
           {/* Keep syncing toggle */}
@@ -359,7 +359,7 @@ export function SpotifyView() {
             <span>
               Keep syncing
               <span style={{ display: "block", fontSize: 12, color: colors.faint, marginTop: 2 }}>
-                Tracks not yet in Plex are remembered and added to the playlist
+                Tracks not yet in your library are remembered and added to the playlist
                 automatically as they arrive in your library.
               </span>
             </span>
@@ -599,7 +599,7 @@ function ImportResults({
         <Pill label="matched" count={matched.length} />
         {misses.length > 0 && <Pill label="misses" count={misses.length} />}
         {basketedArtists.length > 0 && (
-          <Pill label="added to basket" count={basketedArtists.length} />
+          <Pill label="added to wishlist" count={basketedArtists.length} />
         )}
         <button
           onClick={onReset}
@@ -726,7 +726,7 @@ function ImportResults({
                 {m.album ? ` · ${m.album}` : ""}
                 {basketedArtists.includes(m.artist) && (
                   <span style={{ color: colors.accentLight, marginLeft: 8 }}>
-                    → basket
+                    → wishlist
                   </span>
                 )}
               </span>

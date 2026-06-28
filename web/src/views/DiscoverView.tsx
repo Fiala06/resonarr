@@ -106,7 +106,7 @@ export function DiscoverView() {
           {result.tracks.length === 0 ? (
             <p style={{ color: colors.muted, margin: 0 }}>
               No fresh picks found — this playlist may already cover its sonic
-              neighborhood, or its tracks haven’t been sonically analyzed in Plex.
+              neighborhood, or its tracks haven’t been analyzed for their sound yet.
             </p>
           ) : (
             <>

@@ -115,7 +115,7 @@ export function SageView() {
               Using <strong style={{ color: colors.text }}>{provider}</strong>.{" "}
             </>
           )}
-          Plays what you own, and turns the gaps into Lidarr requests.
+          Plays what you own, and turns the gaps into your wishlist to download.
         </div>
       </div>
 
@@ -240,7 +240,7 @@ export function SageView() {
                   Not in your library <span style={{ color: colors.muted }}>· {result.misses.length}</span>
                 </div>
                 <div style={{ fontSize: 12, color: colors.muted }}>
-                  — one click sends these to Lidarr; tracked in your Basket, never dropped.
+                  — one click adds these to your wishlist to download, never dropped.
                 </div>
                 <button
                   onClick={addAll}
@@ -248,7 +248,7 @@ export function SageView() {
                   className="rsn-btn"
                   style={{ ...ghostBtn, marginLeft: "auto" }}
                 >
-                  {addingAll ? "Adding…" : "Add all"}
+                  {addingAll ? "Adding…" : "Add all to wishlist"}
                 </button>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -270,11 +270,11 @@ export function SageView() {
                     </div>
                     <AuditionLinks artist={m.artist} album={m.album} title={m.title} />
                     {added.has(i) ? (
-                      <span style={{ fontSize: 11, color: colors.green }}>✓ in basket</span>
+                      <span style={{ fontSize: 11, color: colors.green }}>✓ in wishlist</span>
                     ) : (
                       <>
                         <span style={{ fontSize: 11, color: colors.gold }}>not owned</span>
-                        <button onClick={() => addMiss(i)} className="rsn-btn" style={requestBtn}>Request</button>
+                        <button onClick={() => addMiss(i)} className="rsn-btn" style={requestBtn}>Add to wishlist</button>
                       </>
                     )}
                   </div>

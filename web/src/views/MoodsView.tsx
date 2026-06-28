@@ -162,7 +162,7 @@ export function MoodsView() {
           {result.matches.length === 0 ? (
             <p style={{ color: colors.muted, margin: 0 }}>
               Nothing owned matched this mood — try “Bias toward artists I own” in
-              Sonic Sage, or request the misses there.
+              Describe a Vibe, or add the misses to your wishlist there.
             </p>
           ) : (
             <>

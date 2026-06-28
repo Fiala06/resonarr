@@ -77,7 +77,7 @@ export function RadioView() {
         <div style={{ width: 42, height: 3, borderRadius: 3, background: fx.accentBar, marginTop: 12 }} />
         <div style={{ fontSize: 13.5, color: colors.muted, marginTop: 12 }}>
           Pick a seed track — Resonarr finds sonically similar tracks you own and
-          saves them straight to Plex.
+          saves them straight to your library.
         </div>
       </div>
 

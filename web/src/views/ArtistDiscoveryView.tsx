@@ -78,8 +78,9 @@ export function ArtistDiscoveryView() {
         <div style={{ width: 42, height: 3, borderRadius: 3, background: fx.accentBar, marginTop: 12 }} />
         <div style={{ fontSize: 13.5, color: colors.muted, marginTop: 12 }}>
           Seeded from the artists you actually play, expanded into adjacent ones
-          you don’t own yet — every suggestion verified against Lidarr, one click
-          from your basket. The thing Plexamp can’t do: grow the collection.
+          you don’t own yet — every suggestion checked to make sure it can be
+          found, one click from your wishlist. The thing Plexamp can’t do: grow
+          the collection.
         </div>
       </div>
 
@@ -120,8 +121,8 @@ export function ArtistDiscoveryView() {
         <div style={{ display: "grid", gap: 12 }}>
           <div className="rsn-loader" />
           <div style={{ fontSize: 12.5, color: colors.muted }}>
-            Verifying each suggestion against Lidarr — checked one at a time to
-            respect MusicBrainz rate limits, so this can take up to ~20s.{" "}
+            Checking each suggestion can be found — one at a time to respect
+            rate limits, so this can take up to ~20s.{" "}
             <span style={{ color: colors.accentLight }}>{elapsed}s</span>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -152,8 +153,9 @@ export function ArtistDiscoveryView() {
 
           {result.candidates.length === 0 ? (
             <p style={{ color: colors.muted, margin: 0 }}>
-              No new artists surfaced — either nothing validated against Lidarr, or
-              you already own the obvious neighbors. Try again for a different set.
+              No new artists surfaced — either nothing could be found to
+              download, or you already own the obvious neighbors. Try again for a
+              different set.
             </p>
           ) : (
             <div style={{ display: "grid", gap: 10 }}>
@@ -168,7 +170,7 @@ export function ArtistDiscoveryView() {
                   className="rsn-btn"
                   style={{ ...ghostBtn, marginLeft: "auto" }}
                 >
-                  {addingAll ? "Adding…" : "Add all to basket"}
+                  {addingAll ? "Adding…" : "Add all to wishlist"}
                 </button>
               </div>
 
@@ -196,10 +198,10 @@ export function ArtistDiscoveryView() {
                     </div>
                     <AuditionLinks artist={c.artist} mbid={c.mbid} />
                     {added.has(c.mbid) ? (
-                      <span style={{ fontSize: 11, color: colors.green }}>✓ in basket</span>
+                      <span style={{ fontSize: 11, color: colors.green }}>✓ in wishlist</span>
                     ) : (
                       <button onClick={() => add(c)} className="rsn-btn" style={addBtn}>
-                        Add
+                        Add to wishlist
                       </button>
                     )}
                   </div>

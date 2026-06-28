@@ -32,17 +32,20 @@ discovery tools.
 
 ## Phase 2 — Plain language (rename the jargon)
 
-- [ ] **2.1 Rename features to plain language** (UI labels only, keep internal keys)
-  - "Sonic Sage" → "Describe a Vibe" (or keep Sage + subtitle)
-  - Review "Deep Cuts", "Adventure", "Loved", "Radio" for clarity subtitles
-- [ ] **2.2 Rename "Basket" → "Wishlist"** across UI (`BasketView.tsx`, `Sidebar.tsx`,
-  badges, headings). Keep route/key `basket` internally.
-- [ ] **2.3 Soften tech terms** — replace user-facing "Plex"/"Lidarr" with
-  "your music library" / "downloads" where it doesn't lose meaning. Keep exact
-  names in Settings where they're configured.
-- [ ] **2.4 Rename hubs** to action-oriented: "Make a Playlist", "Get More Music",
+- [x] **2.1 Rename features to plain language** (UI labels only, keep internal keys)
+  - "Sonic Sage" → nav tab now "Describe a Vibe" (kept "SONIC SAGE" page eyebrow
+    as the branded header — friendly nav, branded page)
+  - Other leaf labels left as-is; clarity subtitles deferred to 1.3
+- [x] **2.2 Rename "Basket" → "Wishlist"** across UI (Sidebar tab, BasketView header /
+  empty state / buttons, Sage + Artist + Spotify "in wishlist" labels). Route/key
+  `basket` and all API/DTO names kept internal.
+- [x] **2.3 Soften tech terms** — sidebar status "Downloads connected/offline"
+  (tooltip names Lidarr); discovery copy now says "your library" / "download"
+  instead of Plex/Lidarr. Settings, Login, and Status pages keep exact names.
+- [x] **2.4 Rename hubs** to action-oriented: "Make a Playlist", "Get More Music",
   "About My Taste" (was Listen / Library / Insights)
-- [ ] **2.5 "Request" → "Add to wishlist" / "Get this album"** on track + artist cards
+- [x] **2.5 "Request" → "Add to wishlist"** on Sage track cards and Artist cards;
+  basket submit buttons now "Download selected / Download all waiting"
 
 ## Phase 3 — Core flow polish (saving + wishlist)
 

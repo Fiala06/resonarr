@@ -115,7 +115,7 @@ export function WeeklyView() {
         <div style={{ fontSize: 13.5, color: colors.muted, marginTop: 12 }}>
           A Discover-Weekly-style playlist that rebuilds itself on a cadence —
           seeded from what you’ve been playing, expanded by sonic similarity, and
-          biased toward music newly added to Plex and tracks you haven’t heard
+          biased toward music newly added to your library and tracks you haven’t heard
           lately. It avoids repeating recent weeks.
         </div>
       </div>

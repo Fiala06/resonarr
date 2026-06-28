@@ -109,9 +109,9 @@ export function BasketView({ onChange }: { onChange?: () => void }) {
       setSelected(new Set());
       const requested = updated.filter((i) => i.status === "requested").length;
       const failed = updated.filter((i) => i.status === "failed").length;
-      setMsg(`Requested ${requested} · failed ${failed}`);
+      setMsg(`Sent ${requested} to download · ${failed} couldn’t be found`);
     } catch (e) {
-      setMsg(`Request failed: ${e instanceof Error ? e.message : String(e)}`);
+      setMsg(`Couldn’t send: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       setRequesting(false);
     }
@@ -123,17 +123,17 @@ export function BasketView({ onChange }: { onChange?: () => void }) {
     <section className="rsn-rise" style={{ display: "grid", gap: 16, maxWidth: 620 }}>
       <div>
         <div style={{ fontSize: 11, letterSpacing: 1.4, fontWeight: 700, color: colors.accentLight }}>
-          REQUEST BASKET
+          WISHLIST
         </div>
         <h1 style={{ fontSize: 26, fontWeight: 700, margin: "6px 0 0", letterSpacing: "-0.4px" }}>
           Everything worth owning, in one click
         </h1>
         <div style={{ width: 42, height: 3, borderRadius: 3, background: fx.accentBar, marginTop: 12 }} />
         <p style={{ color: colors.muted, margin: "12px 0 0", fontSize: 13.5 }}>
-          Everything recommended that you don’t own yet. Verified against Lidarr
-          and sent to download the moment you add it — tracked here until it
-          lands. Anything still pending just needs your Lidarr target set in
-          Settings.
+          Everything recommended that you don’t own yet. Each one is checked to
+          make sure it can be found, then downloaded the moment you add it —
+          tracked here until it lands in your library. Anything still waiting
+          just needs your download target set in Settings.
         </p>
       </div>
 
@@ -187,7 +187,7 @@ export function BasketView({ onChange }: { onChange?: () => void }) {
           className="rsn-btn"
           style={{ ...buttonStyle, opacity: selected.size === 0 ? 0.5 : 1 }}
         >
-          Request selected ({selected.size})
+          Download selected ({selected.size})
         </button>
         <button
           onClick={() => request(true)}
@@ -201,12 +201,12 @@ export function BasketView({ onChange }: { onChange?: () => void }) {
             opacity: pendingCount === 0 ? 0.5 : 1,
           }}
         >
-          Request all pending ({pendingCount})
+          Download all waiting ({pendingCount})
         </button>
         <button
           onClick={checkStatus}
           disabled={refreshing}
-          title="Re-check Lidarr for downloads"
+          title="Re-check download status"
           className="rsn-btn"
           style={{
             ...buttonStyle,
@@ -222,7 +222,7 @@ export function BasketView({ onChange }: { onChange?: () => void }) {
 
       {/* List */}
       {items.length === 0 ? (
-        <p style={{ color: colors.muted }}>Basket is empty.</p>
+        <p style={{ color: colors.muted }}>Your wishlist is empty.</p>
       ) : (
         <div style={{ display: "grid", gap: 6 }}>
           {items.map((it) => (
@@ -254,10 +254,10 @@ export function BasketView({ onChange }: { onChange?: () => void }) {
                   it.status === "done"
                     ? "Downloaded · in your library"
                     : it.status === "pending"
-                      ? "Waiting · set Lidarr target to send"
+                      ? "Waiting · set download target to send"
                       : it.status === "failed"
-                        ? "Request failed"
-                        : "Requesting via Lidarr…"
+                        ? "Couldn’t find it to download"
+                        : "Sending to download…"
                 }
                 tone={
                   it.status === "done"

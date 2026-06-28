@@ -140,13 +140,13 @@ export type Hub = "listen" | "insights" | "library";
 // views of the active hub. Every leaf keeps its own URL hash, so deep links and the
 // browser back/forward buttons still work.
 export const HUBS: { key: Hub; label: string; tabs: Tab[] }[] = [
-  { key: "listen", label: "Listen", tabs: ["sage", "radio", "mixes", "moods", "loved", "deepcuts", "adventure"] },
-  { key: "insights", label: "Insights", tabs: ["profile", "timemachine"] },
-  { key: "library", label: "Library", tabs: ["discover", "artists", "weekly", "spotify", "basket"] },
+  { key: "listen", label: "Make a Playlist", tabs: ["sage", "radio", "mixes", "moods", "loved", "deepcuts", "adventure"] },
+  { key: "insights", label: "About My Taste", tabs: ["profile", "timemachine"] },
+  { key: "library", label: "Get More Music", tabs: ["discover", "artists", "weekly", "spotify", "basket"] },
 ];
 
 export const TAB_LABELS: Record<Tab, string> = {
-  sage: "Sonic Sage",
+  sage: "Describe a Vibe",
   radio: "Radio",
   mixes: "Mixes",
   moods: "Moods",
@@ -159,7 +159,7 @@ export const TAB_LABELS: Record<Tab, string> = {
   timemachine: "Time Machine",
   adventure: "Adventure",
   spotify: "Spotify Import",
-  basket: "Basket",
+  basket: "Wishlist",
   logs: "Activity log",
   settings: "Settings",
 };
@@ -319,8 +319,11 @@ export function Sidebar({
                 />
               )}
             </span>
-            <span style={{ fontSize: 12, color: colors.muted, whiteSpace: "nowrap" }}>
-              {lidarrOk === null ? "Checking…" : lidarrOk ? "Lidarr connected" : "Lidarr offline"}
+            <span
+              title="Connection to Lidarr, which fetches the music you ask for"
+              style={{ fontSize: 12, color: colors.muted, whiteSpace: "nowrap" }}
+            >
+              {lidarrOk === null ? "Checking…" : lidarrOk ? "Downloads connected" : "Downloads offline"}
             </span>
           </div>
 
