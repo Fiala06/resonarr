@@ -14,6 +14,7 @@ import type {
   MixesResponse,
   RadioRequest,
   RadioResponse,
+  StatsSummary,
   TasteProfile,
   Track,
 } from "@resonarr/shared";
@@ -27,6 +28,7 @@ import { discoverFromLikes } from "../loved/service.ts";
 import { getDeepCuts } from "../deepcuts/service.ts";
 import { discoverArtists } from "../artistdiscovery/service.ts";
 import { buildTasteProfile, getCachedTasteProfile } from "../taste/service.ts";
+import { getStatsSummary } from "../stats/service.ts";
 import { feedbackKeyForRequest, filterDisliked } from "../feedback/service.ts";
 import { cached } from "../cache/store.ts";
 
@@ -258,6 +260,11 @@ export function registerDiscoveryRoutes(app: FastifyInstance): void {
       return { profile: getCachedTasteProfile(await feedbackKeyForRequest(req)) };
     },
   );
+
+  // Lightweight engagement stats for the Home dashboard ("this month" counts).
+  app.get("/api/stats/summary", async (req): Promise<StatsSummary> => {
+    return getStatsSummary(await feedbackKeyForRequest(req));
+  });
 
   // Sonic Adventure: a path from a start track to a destination track.
   app.post<{ Body: AdventureRequest }>(

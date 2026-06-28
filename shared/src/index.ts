@@ -74,6 +74,18 @@ export interface LibraryStats {
   artists: number;
 }
 
+/** Lightweight engagement counts for the Home dashboard ("this month" etc.). */
+export interface StatsSummary {
+  /** Wishlist items added since the start of this month. */
+  wishlistAddedThisMonth: number;
+  /** Wishlist items that have landed in the library (all-time). */
+  wishlistLandedTotal: number;
+  /** Tracks the user has thumbed up/down since the start of this month. */
+  tracksRatedThisMonth: number;
+  /** Tracks the user has thumbed up/down (all-time). */
+  tracksRatedTotal: number;
+}
+
 /** Discover fresh, owned tracks sonically similar to a chosen playlist. */
 export interface DiscoverRequest {
   /** Plex playlist to learn from (e.g. a "Loved" / "Liked Songs" list). */

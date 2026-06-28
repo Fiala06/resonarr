@@ -93,15 +93,15 @@ discovery tools.
   `GET /api/taste-profile/cached` (`getCachedTasteProfile` → `cacheGet`, never
   runs the LLM): the hero only appears once the user has built their profile, so
   the landing page stays cheap.
-- [~] **4.2 New lightweight stats** (Home + Profile)
-  - [x] "X added to your library so far" — wishlist `done` count (client-side)
-  - [x] Top genres on Home — genre chips in the new "Your Sound" hero (from the
-    cached TasteProfile)
-  - [ ] "X new songs discovered this month" — needs a server metric (no per-event
-    timestamps exposed today)
-  - [ ] Decades/eras chart + listening streak / most-played-this-week — eras exist
-    in TasteProfile (could add chips like genres); streak/most-played not
-    derivable from current APIs.
+- [x] **4.2 New lightweight stats** (Home + Profile)
+  - [x] Genres + eras chips in the "Your Sound" hero (cached TasteProfile)
+  - [x] "Your activity" section on Home from a new `GET /api/stats/summary`
+    (`stats/service.ts`): rated this month, added to wishlist this month, and
+    total added to your library — all derived from real persisted `created_at` /
+    `status` rows (basket + feedback), no new event tracking. Hidden until
+    there's something non-zero to show.
+  - [ ] Listening streak / most-played-this-week — still not derivable; would
+    need Plex play-history polling over time (a separate data-collection feature).
 - [x] **4.3 Move library stats out of the hover tooltip** — tracks/albums/artists
   now shown as stat tiles on Home (no hover needed). Sidebar footer "X tracks"
   + hover breakdown left as a bonus at-a-glance.

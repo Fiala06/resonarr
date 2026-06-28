@@ -1,7 +1,7 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
-import type { AutoPlaylist, LibraryStats, TasteProfile } from "@resonarr/shared";
+import type { AutoPlaylist, LibraryStats, StatsSummary, TasteProfile } from "@resonarr/shared";
 import type { Tab } from "../components/Sidebar";
-import { getAutoPlaylists, getBasket, getCachedTasteProfile, getFeedback } from "../api";
+import { getAutoPlaylists, getCachedTasteProfile, getFeedback, getStatsSummary } from "../api";
 import { colors, fx } from "../theme";
 
 /**
@@ -57,7 +57,7 @@ export function HomeView({
 }) {
   const [autoPlaylists, setAutoPlaylists] = useState<AutoPlaylist[] | null>(null);
   const [hasFeedback, setHasFeedback] = useState<boolean | null>(null);
-  const [landed, setLanded] = useState<number | null>(null);
+  const [summary, setSummary] = useState<StatsSummary | null>(null);
   const [taste, setTaste] = useState<TasteProfile | null>(null);
 
   useEffect(() => {
@@ -65,11 +65,8 @@ export function HomeView({
     getFeedback()
       .then((f) => setHasFeedback(f.length > 0))
       .catch(() => setHasFeedback(null));
-    // How many wishlist items have actually landed in the library — a small,
-    // true "Resonarr grew my collection" stat derived client-side.
-    getBasket()
-      .then((items) => setLanded(items.filter((i) => i.status === "done").length))
-      .catch(() => {});
+    // Honest engagement counts derived from persisted rows (wishlist + ratings).
+    getStatsSummary().then(setSummary).catch(() => {});
     // Cache-only: shows the soundline if the user has already built their
     // profile, without triggering a fresh (expensive) generation on landing.
     getCachedTasteProfile().then(setTaste).catch(() => {});
@@ -147,6 +144,19 @@ export function HomeView({
         </div>
       )}
 
+      {/* Your activity — only when there's something to celebrate. */}
+      {summary &&
+        summary.wishlistAddedThisMonth + summary.tracksRatedThisMonth + summary.wishlistLandedTotal > 0 && (
+          <div style={{ display: "grid", gap: 10 }}>
+            <div style={{ fontSize: 13, fontWeight: 600 }}>Your activity</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 10 }}>
+              <StatTile label="rated this month" value={summary.tracksRatedThisMonth} />
+              <StatTile label="added to wishlist this month" value={summary.wishlistAddedThisMonth} />
+              <StatTile label="added to your library" value={summary.wishlistLandedTotal} />
+            </div>
+          </div>
+        )}
+
       {/* Quick-start actions */}
       <div style={{ display: "grid", gap: 10 }}>
         <div style={{ fontSize: 13, fontWeight: 600 }}>Start something</div>
@@ -176,11 +186,6 @@ export function HomeView({
             {basketWaiting > 0
               ? `${basketWaiting} ${basketWaiting === 1 ? "album is" : "albums are"} on the way to your library.`
               : "Recommendations you don't own yet land here to download. Nothing waiting right now."}
-            {landed != null && landed > 0 && (
-              <span style={{ display: "block", marginTop: 6, color: colors.green }}>
-                {landed} added to your library so far. 🎉
-              </span>
-            )}
           </StatusCard>
 
           <StatusCard

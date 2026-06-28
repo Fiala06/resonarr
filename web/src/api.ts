@@ -35,6 +35,7 @@ import type {
   SpotifyPlaylistSummary,
   SpotifyStatus,
   SpotifySync,
+  StatsSummary,
   TasteProfile,
   Track,
   YearInReviewResponse,
@@ -60,6 +61,10 @@ export async function getHealth(): Promise<HealthResponse> {
 
 export async function getLibraryStats(): Promise<LibraryStats> {
   return asJson(await fetch("/api/library/stats"));
+}
+
+export async function getStatsSummary(): Promise<StatsSummary> {
+  return asJson(await fetch("/api/stats/summary"));
 }
 
 export async function getSettings(): Promise<AppSettings> {
