@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import type { LidarrOptions } from "@resonarr/shared";
 import { services } from "../services.ts";
+import { log } from "../log/service.ts";
 
 /**
  * Lidarr targets for the Settings dropdowns (root folders + profiles). Fetched
@@ -50,7 +51,10 @@ export function registerLidarrRoutes(app: FastifyInstance): void {
       reply.header("content-type", contentType);
       reply.header("cache-control", "public, max-age=86400");
       return reply.send(body);
-    } catch {
+    } catch (err) {
+      log.warn("lidarr-art", `Image proxy failed for ${path}`, {
+        error: err instanceof Error ? err.message : String(err),
+      });
       return reply.code(404).send();
     }
   });
