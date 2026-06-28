@@ -107,6 +107,14 @@ export async function getTasteProfile(refresh = false): Promise<TasteProfile> {
   return asJson(await fetch(`/api/taste-profile${refresh ? "?refresh=1" : ""}`));
 }
 
+/** The taste profile only if already cached (never triggers generation). */
+export async function getCachedTasteProfile(): Promise<TasteProfile | null> {
+  const r = await asJson<{ profile: TasteProfile | null }>(
+    await fetch("/api/taste-profile/cached"),
+  );
+  return r.profile;
+}
+
 export async function discoverFromPlaylist(
   playlistId: string,
   limit?: number,

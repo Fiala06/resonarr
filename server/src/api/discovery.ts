@@ -24,7 +24,7 @@ import { discoverFromPlaylist } from "../discover/service.ts";
 import { discoverFromLikes } from "../loved/service.ts";
 import { getDeepCuts } from "../deepcuts/service.ts";
 import { discoverArtists } from "../artistdiscovery/service.ts";
-import { buildTasteProfile } from "../taste/service.ts";
+import { buildTasteProfile, getCachedTasteProfile } from "../taste/service.ts";
 import { feedbackKeyForRequest, filterDisliked } from "../feedback/service.ts";
 import { cached } from "../cache/store.ts";
 
@@ -222,6 +222,17 @@ export function registerDiscoveryRoutes(app: FastifyInstance): void {
         log.error("taste", `Profile failed: ${detail}`);
         return reply.code(502).send({ error: detail }) as never;
       }
+    },
+  );
+
+  // Cache-only taste profile: returns the profile if it's already been built,
+  // otherwise null. Never triggers the (expensive) LLM generation — the Home
+  // dashboard uses this so a plain page load stays cheap.
+  app.get(
+    "/api/taste-profile/cached",
+    async (req): Promise<{ profile: TasteProfile | null }> => {
+      if (!services.plex) return { profile: null };
+      return { profile: getCachedTasteProfile(await feedbackKeyForRequest(req)) };
     },
   );
 

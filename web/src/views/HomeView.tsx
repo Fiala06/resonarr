@@ -1,7 +1,7 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
-import type { AutoPlaylist, LibraryStats } from "@resonarr/shared";
+import type { AutoPlaylist, LibraryStats, TasteProfile } from "@resonarr/shared";
 import type { Tab } from "../components/Sidebar";
-import { getAutoPlaylists, getBasket, getFeedback } from "../api";
+import { getAutoPlaylists, getBasket, getCachedTasteProfile, getFeedback } from "../api";
 import { colors, fx } from "../theme";
 
 /**
@@ -58,6 +58,7 @@ export function HomeView({
   const [autoPlaylists, setAutoPlaylists] = useState<AutoPlaylist[] | null>(null);
   const [hasFeedback, setHasFeedback] = useState<boolean | null>(null);
   const [landed, setLanded] = useState<number | null>(null);
+  const [taste, setTaste] = useState<TasteProfile | null>(null);
 
   useEffect(() => {
     getAutoPlaylists().then(setAutoPlaylists).catch(() => setAutoPlaylists([]));
@@ -69,6 +70,9 @@ export function HomeView({
     getBasket()
       .then((items) => setLanded(items.filter((i) => i.status === "done").length))
       .catch(() => {});
+    // Cache-only: shows the soundline if the user has already built their
+    // profile, without triggering a fresh (expensive) generation on landing.
+    getCachedTasteProfile().then(setTaste).catch(() => {});
   }, []);
 
   // The soonest upcoming run among enabled weekly auto-playlists, if any.
@@ -104,6 +108,28 @@ export function HomeView({
             </span>
           </span>
           <span style={{ color: colors.accentLight, fontSize: 13, whiteSpace: "nowrap" }}>Import →</span>
+        </button>
+      )}
+
+      {/* "Your sound" hero — only when a profile already exists (cache-only). */}
+      {taste && taste.soundline && (
+        <button onClick={() => onNavigate("profile")} className="rsn-row" style={tasteStyle}>
+          <div style={{ fontSize: 10, letterSpacing: 1.4, fontWeight: 700, color: colors.accentLight }}>
+            YOUR SOUND
+          </div>
+          <div style={{ fontSize: 18, fontWeight: 700, margin: "7px 0 0", letterSpacing: "-0.3px", lineHeight: 1.35 }}>
+            {taste.soundline}
+          </div>
+          {taste.genres.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 11 }}>
+              {taste.genres.slice(0, 6).map((g) => (
+                <span key={g} style={chipStyle}>
+                  {g}
+                </span>
+              ))}
+            </div>
+          )}
+          <div style={{ marginTop: 11, fontSize: 12.5, color: colors.accentLight }}>See your full taste profile →</div>
         </button>
       )}
 
@@ -238,6 +264,29 @@ const statusStyle: CSSProperties = {
   cursor: "pointer",
   font: "inherit",
   minHeight: 120,
+};
+
+const tasteStyle: CSSProperties = {
+  display: "block",
+  textAlign: "left",
+  padding: "18px 18px 16px",
+  borderRadius: 14,
+  background: fx.badgeHi,
+  border: `1px solid ${colors.accent}`,
+  color: colors.text,
+  cursor: "pointer",
+  font: "inherit",
+  width: "100%",
+};
+
+const chipStyle: CSSProperties = {
+  fontSize: 12,
+  fontWeight: 600,
+  color: colors.accentLight,
+  background: "rgba(124,92,255,0.12)",
+  border: `1px solid ${colors.border}`,
+  borderRadius: 999,
+  padding: "3px 10px",
 };
 
 const nudgeStyle: CSSProperties = {

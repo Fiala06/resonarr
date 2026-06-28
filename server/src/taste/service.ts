@@ -2,10 +2,21 @@ import type { TasteProfile, TopArtistPlays } from "@resonarr/shared";
 import type { PlexClient } from "../plex/client.ts";
 import { getProvider } from "../llm/index.ts";
 import { extractJsonObject } from "../llm/prompt.ts";
-import { cached } from "../cache/store.ts";
+import { cached, cacheGet } from "../cache/store.ts";
 import { log } from "../log/service.ts";
 
 const TOP_ARTISTS = 30;
+
+const tasteCacheKey = (userKey: string) => `taste-profile:${userKey}`;
+
+/**
+ * Return the user's taste profile ONLY if it's already cached — never generate.
+ * Lets cheap surfaces (the Home dashboard) show the profile when it exists
+ * without triggering the expensive LLM build on a plain page load.
+ */
+export function getCachedTasteProfile(userKey: string): TasteProfile | null {
+  return cacheGet<TasteProfile>(tasteCacheKey(userKey));
+}
 
 /** A profile is a snapshot of slow-moving listening; cache it for a day. */
 const TASTE_TTL_MS = 1000 * 60 * 60 * 24;
@@ -27,7 +38,7 @@ export async function buildTasteProfile(
   force = false,
 ): Promise<TasteProfile> {
   return cached(
-    `taste-profile:${userKey}`,
+    tasteCacheKey(userKey),
     TASTE_TTL_MS,
     () => computeTasteProfile(plex),
     force,

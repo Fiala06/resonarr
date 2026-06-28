@@ -83,20 +83,21 @@ discovery tools.
 
 ## Phase 4 — Stats & insights (make them fun and visible)
 
-- [~] **4.1 Promote Taste Profile** — featured as a top quick-start card on Home
-  ("Your Taste"). A richer "Wrapped" hero (soundline on Home) is DEFERRED: it
-  would mean fetching the taste profile on landing, which can trigger an
-  expensive LLM generation the first time — kept Home to cheap endpoints only.
-  Revisit once the endpoint is confirmed read-cached / non-generating.
+- [x] **4.1 Promote Taste Profile** — top quick-start card on Home PLUS a "Your
+  Sound" hero (soundline + genre chips) that links to the full profile. Solved
+  the generation-cost concern with a new **cache-only** endpoint
+  `GET /api/taste-profile/cached` (`getCachedTasteProfile` → `cacheGet`, never
+  runs the LLM): the hero only appears once the user has built their profile, so
+  the landing page stays cheap.
 - [~] **4.2 New lightweight stats** (Home + Profile)
-  - [x] "X added to your library so far" — wishlist `done` count, derived
-    client-side, shown on the Home wishlist tile
+  - [x] "X added to your library so far" — wishlist `done` count (client-side)
+  - [x] Top genres on Home — genre chips in the new "Your Sound" hero (from the
+    cached TasteProfile)
   - [ ] "X new songs discovered this month" — needs a server metric (no per-event
     timestamps exposed today)
-  - [ ] Top genres / decades chart — data exists in TasteProfile; deferred with 4.1
-  - [ ] Listening streak / most played this week — not derivable from current APIs
-  - NOTE: remaining metrics need backend support; only the wishlist-landed count
-    is cleanly derivable right now.
+  - [ ] Decades/eras chart + listening streak / most-played-this-week — eras exist
+    in TasteProfile (could add chips like genres); streak/most-played not
+    derivable from current APIs.
 - [x] **4.3 Move library stats out of the hover tooltip** — tracks/albums/artists
   now shown as stat tiles on Home (no hover needed). Sidebar footer "X tracks"
   + hover breakdown left as a bonus at-a-glance.
