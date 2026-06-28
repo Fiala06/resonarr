@@ -13,12 +13,15 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done
 Give people a place to land and a clear mental model before they hit the 13
 discovery tools.
 
-- [ ] **1.1 Home / dashboard screen** — new landing view (`web/src/views/HomeView.tsx`)
-  - "Welcome back" header
-  - A fresh mix card, the next Discover Weekly run, 2 suggested artists
-  - Surface library stats here (tracks / albums / artists) — see 4.3
-  - Becomes the default tab instead of landing inside Sage
-  - Wire into `App.tsx` routing + `Sidebar.tsx` as first nav item
+- [x] **1.1 Home / dashboard screen** — new landing view (`web/src/views/HomeView.tsx`)
+  - Time-of-day greeting (uses signed-in user's first name)
+  - Library stat tiles (tracks / albums / artists) — see 4.3
+  - 6 quick-start action cards into the main features
+  - "What's happening" tiles: wishlist count + next weekly auto-playlist run
+  - Default tab (App.tsx `tabFromHash` → "home"); first item in Sidebar nav
+  - NOTE: kept the dashboard to cheap/cached endpoints (auto-playlists, feedback)
+    so it loads fast; "fresh mix / suggested artists" cards deferred to avoid slow
+    first paint — revisit once those endpoints are confirmed cheap
 - [ ] **1.2 First-run onboarding** — 3-step intro modal shown once
   - Step 1: "We build playlists only from music you already own"
   - Step 2: "Want more? Add it to your Wishlist and we'll fetch it"
@@ -27,8 +30,9 @@ discovery tools.
   - "Skip" + "Don't show again"
 - [ ] **1.3 Per-tab one-line subtitles** — short plain-language descriptions under
   each tab/hub so newcomers know what each mode does. Tie into 2.1 renames.
-- [ ] **1.4 Surface the "Import my Plex ratings" prompt early** — friendly banner on
-  Home / Loved pointing to the import (currently buried in Settings)
+- [x] **1.4 Surface the "Import my Plex ratings" prompt early** — friendly nudge
+  banner on Home (shown only until the user has any thumbs) linking to Settings.
+  Loved-page banner can follow later.
 
 ## Phase 2 — Plain language (rename the jargon)
 
@@ -74,8 +78,9 @@ discovery tools.
   - Top genres / decades as a simple chart
   - Listening streak / most played this week (if data available)
   - NOTE: confirm which metrics are derivable from existing API/data first
-- [ ] **4.3 Move library stats out of the hover tooltip** — show the
-  tracks/albums/artists numbers on Home instead of a sidebar-footer hover
+- [x] **4.3 Move library stats out of the hover tooltip** — tracks/albums/artists
+  now shown as stat tiles on Home (no hover needed). Sidebar footer "X tracks"
+  + hover breakdown left as a bonus at-a-glance.
 - [ ] **4.4 Friendly "Recent activity" feed** — human summaries
   ("Built your Discover Weekly · added 4 albums"); keep the raw Activity Log
   behind an "Advanced" toggle (`LogsView.tsx`)

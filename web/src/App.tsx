@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { AppVersion, AuthUser, LibraryStats } from "@resonarr/shared";
 import { Sidebar, HubTabs, TopBar } from "./components/Sidebar";
 import type { Tab } from "./components/Sidebar";
+import { HomeView } from "./views/HomeView";
 import { SageView } from "./views/SageView";
 import { RadioView } from "./views/RadioView";
 import { MixesView } from "./views/MixesView";
@@ -23,6 +24,7 @@ import { loadFeedback } from "./feedback";
 import { fx } from "./theme";
 
 const TABS: Tab[] = [
+  "home",
   "sage",
   "radio",
   "mixes",
@@ -45,7 +47,7 @@ const TABS: Tab[] = [
 // with the browser's back/forward buttons.
 function tabFromHash(): Tab {
   const h = window.location.hash.replace(/^#/, "");
-  return (TABS as string[]).includes(h) ? (h as Tab) : "sage";
+  return (TABS as string[]).includes(h) ? (h as Tab) : "home";
 }
 
 // Below this width the sidebar gives way to a top bar + slide-out drawer.
@@ -146,6 +148,14 @@ export function App({ authUser }: { authUser?: AuthUser }) {
     <div style={{ flex: 1, minWidth: 0, overflowY: "auto" }}>
       <div style={{ padding: narrow ? "20px 16px 40px" : "28px 34px 48px", maxWidth: 860 }}>
         <HubTabs active={tab} onNavigate={navigate} basketCount={basketCount} spotifyWaiting={spotifyWaiting} />
+        {tab === "home" && (
+          <HomeView
+            onNavigate={navigate}
+            stats={stats}
+            basketWaiting={basketCount}
+            userName={authUser?.name}
+          />
+        )}
         {tab === "sage" && <SageView />}
         {tab === "radio" && <RadioView />}
         {tab === "mixes" && <MixesView />}

@@ -4,6 +4,7 @@ import { Logo } from "./Logo";
 import { colors, fx } from "../theme";
 
 export type Tab =
+  | "home"
   | "sage"
   | "radio"
   | "mixes"
@@ -22,6 +23,12 @@ export type Tab =
   | "settings";
 
 const ICONS: Record<Tab, ReactNode> = {
+  home: (
+    <>
+      <path d="M2.5 7.5 L8 2.5 L13.5 7.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <path d="M4 7 V13 H12 V7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    </>
+  ),
   sage: (
     <path d="M8 1.5 L9.4 6.6 L14.5 8 L9.4 9.4 L8 14.5 L6.6 9.4 L1.5 8 L6.6 6.6 Z" fill="currentColor" />
   ),
@@ -146,6 +153,7 @@ export const HUBS: { key: Hub; label: string; tabs: Tab[] }[] = [
 ];
 
 export const TAB_LABELS: Record<Tab, string> = {
+  home: "Home",
   sage: "Describe a Vibe",
   radio: "Radio",
   mixes: "Mixes",
@@ -268,6 +276,12 @@ export function Sidebar({
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+        <NavItem
+          icon={ICONS.home}
+          label="Home"
+          active={active === "home"}
+          onClick={() => onNavigate("home")}
+        />
         {HUBS.map((h) => (
           <NavItem
             key={h.key}
