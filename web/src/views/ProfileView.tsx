@@ -8,11 +8,11 @@ export function ProfileView() {
   const [error, setError] = useState<string | null>(null);
   const [profile, setProfile] = useState<TasteProfile | null>(null);
 
-  async function run() {
+  async function run(refresh = false) {
     setLoading(true);
     setError(null);
     try {
-      setProfile(await getTasteProfile());
+      setProfile(await getTasteProfile(refresh));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -20,7 +20,7 @@ export function ProfileView() {
     }
   }
 
-  // Generate once on first visit.
+  // Load once on first visit (cached); the Regenerate button forces a rebuild.
   useEffect(() => {
     run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -45,7 +45,7 @@ export function ProfileView() {
       </div>
 
       <div>
-        <button onClick={run} disabled={loading} className="rsn-btn" style={primaryBtn(loading)}>
+        <button onClick={() => run(true)} disabled={loading} className="rsn-btn" style={primaryBtn(loading)}>
           {loading ? "Reading your library…" : profile ? "Regenerate" : "Generate"}
         </button>
       </div>

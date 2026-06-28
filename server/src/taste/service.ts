@@ -2,9 +2,13 @@ import type { TasteProfile, TopArtistPlays } from "@resonarr/shared";
 import type { PlexClient } from "../plex/client.ts";
 import { getProvider } from "../llm/index.ts";
 import { extractJsonObject } from "../llm/prompt.ts";
+import { cached } from "../cache/store.ts";
 import { log } from "../log/service.ts";
 
 const TOP_ARTISTS = 30;
+
+/** A profile is a snapshot of slow-moving listening; cache it for a day. */
+const TASTE_TTL_MS = 1000 * 60 * 60 * 24;
 
 const SYSTEM_PROMPT = `You are a sharp, warm music critic writing a personal listening profile.
 You are given someone's most-played artists (with play counts) and their library size.
@@ -13,12 +17,30 @@ Infer their taste and respond with ONLY a JSON object of exactly this shape, not
 No prose, no markdown, no code fences. 3-6 genres, 1-4 eras, 3-6 vibes. Be specific and human, not generic.`;
 
 /**
+ * Build (or return a cached) taste profile for a user. The LLM call makes this
+ * the slowest discovery endpoint, so we cache per user for a day; the
+ * "Regenerate" button passes `force` to bypass the cache.
+ */
+export async function buildTasteProfile(
+  plex: PlexClient,
+  userKey: string,
+  force = false,
+): Promise<TasteProfile> {
+  return cached(
+    `taste-profile:${userKey}`,
+    TASTE_TTL_MS,
+    () => computeTasteProfile(plex),
+    force,
+  );
+}
+
+/**
  * Build a "Resonarr Wrapped" taste profile: pull the user's most-played artists
  * from Plex and have the LLM turn them into a plain-language portrait. The model
  * infers genres/eras/vibes from the artist names (it knows them), so we don't
  * need Plex's genre tags.
  */
-export async function buildTasteProfile(plex: PlexClient): Promise<TasteProfile> {
+async function computeTasteProfile(plex: PlexClient): Promise<TasteProfile> {
   const provider = getProvider(); // throws a clear error if no key/url
   const section = await plex.getMusicSection();
 

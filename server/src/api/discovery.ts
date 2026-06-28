@@ -26,6 +26,10 @@ import { getDeepCuts } from "../deepcuts/service.ts";
 import { discoverArtists } from "../artistdiscovery/service.ts";
 import { buildTasteProfile } from "../taste/service.ts";
 import { feedbackKeyForRequest, filterDisliked } from "../feedback/service.ts";
+import { cached } from "../cache/store.ts";
+
+/** Library counts barely move and load on every page; cache for an hour. */
+const LIBRARY_STATS_TTL_MS = 1000 * 60 * 60;
 
 export function registerDiscoveryRoutes(app: FastifyInstance): void {
   // Seed-track search for the pickers.
@@ -82,28 +86,39 @@ export function registerDiscoveryRoutes(app: FastifyInstance): void {
     },
   );
 
-  // Library counts for the sidebar.
+  // Library counts for the sidebar. Cached for an hour — it loads on every page
+  // and the counts barely move.
   app.get("/api/library/stats", async (_req, reply): Promise<LibraryStats> => {
-    if (!services.plex) {
+    const plex = services.plex;
+    if (!plex) {
       return reply.code(503).send({ error: "Plex is not configured" }) as never;
     }
-    const section = await services.plex.getMusicSection();
-    return services.plex.getLibraryStats(section.key);
+    return cached("library-stats", LIBRARY_STATS_TTL_MS, async () => {
+      const section = await plex.getMusicSection();
+      return plex.getLibraryStats(section.key);
+    });
   });
 
   // Mixes: seeded from recent listening, expanded by similarity.
-  app.get("/api/mixes", async (req, reply): Promise<MixesResponse> => {
+  app.get<{ Querystring: { refresh?: string } }>(
+    "/api/mixes",
+    async (req, reply): Promise<MixesResponse> => {
     if (!services.plex) {
       return reply.code(503).send({ error: "Plex is not configured" }) as never;
     }
     try {
-      return await runMixes(userPlexClient(req), await feedbackKeyForRequest(req));
+      return await runMixes(
+        userPlexClient(req),
+        await feedbackKeyForRequest(req),
+        req.query.refresh === "1",
+      );
     } catch (err) {
       return reply.code(502).send({
         error: err instanceof Error ? err.message : String(err),
       }) as never;
     }
-  });
+    },
+  );
 
   // Discover: fresh owned tracks similar to a chosen playlist (not already in it).
   app.post<{ Body: DiscoverRequest }>(
@@ -190,18 +205,25 @@ export function registerDiscoveryRoutes(app: FastifyInstance): void {
   );
 
   // Taste profile ("Resonarr Wrapped"): LLM portrait of your listening.
-  app.get("/api/taste-profile", async (req, reply): Promise<TasteProfile> => {
-    if (!services.plex) {
-      return reply.code(503).send({ error: "Plex is not configured" }) as never;
-    }
-    try {
-      return await buildTasteProfile(userPlexClient(req));
-    } catch (err) {
-      const detail = err instanceof Error ? err.message : String(err);
-      log.error("taste", `Profile failed: ${detail}`);
-      return reply.code(502).send({ error: detail }) as never;
-    }
-  });
+  app.get<{ Querystring: { refresh?: string } }>(
+    "/api/taste-profile",
+    async (req, reply): Promise<TasteProfile> => {
+      if (!services.plex) {
+        return reply.code(503).send({ error: "Plex is not configured" }) as never;
+      }
+      try {
+        return await buildTasteProfile(
+          userPlexClient(req),
+          await feedbackKeyForRequest(req),
+          req.query.refresh === "1",
+        );
+      } catch (err) {
+        const detail = err instanceof Error ? err.message : String(err);
+        log.error("taste", `Profile failed: ${detail}`);
+        return reply.code(502).send({ error: detail }) as never;
+      }
+    },
+  );
 
   // Sonic Adventure: a path from a start track to a destination track.
   app.post<{ Body: AdventureRequest }>(

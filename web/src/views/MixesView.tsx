@@ -13,10 +13,10 @@ export function MixesView() {
   const [error, setError] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
 
-  function load() {
+  function load(refresh = false) {
     setLoading(true);
     setError(null);
-    getMixes()
+    getMixes(refresh)
       .then((r) => {
         setMixes(r.mixes);
         setOpenId(null);
@@ -25,7 +25,11 @@ export function MixesView() {
       .finally(() => setLoading(false));
   }
 
-  useEffect(load, []);
+  // Load once on first visit (cached); the Refresh button forces a rebuild.
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const open = mixes?.find((m) => m.id === openId) ?? null;
 
@@ -44,7 +48,7 @@ export function MixesView() {
             Built from tracks you own, seeded by your recent listening.
           </div>
         </div>
-        <button onClick={load} disabled={loading} className="rsn-btn" style={primaryBtn(loading)}>
+        <button onClick={() => load(true)} disabled={loading} className="rsn-btn" style={primaryBtn(loading)}>
           {loading ? "Building…" : "Refresh"}
         </button>
       </div>

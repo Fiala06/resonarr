@@ -99,12 +99,12 @@ export async function getRadio(
   );
 }
 
-export async function getMixes(): Promise<MixesResponse> {
-  return asJson(await fetch("/api/mixes"));
+export async function getMixes(refresh = false): Promise<MixesResponse> {
+  return asJson(await fetch(`/api/mixes${refresh ? "?refresh=1" : ""}`));
 }
 
-export async function getTasteProfile(): Promise<TasteProfile> {
-  return asJson(await fetch("/api/taste-profile"));
+export async function getTasteProfile(refresh = false): Promise<TasteProfile> {
+  return asJson(await fetch(`/api/taste-profile${refresh ? "?refresh=1" : ""}`));
 }
 
 export async function discoverFromPlaylist(

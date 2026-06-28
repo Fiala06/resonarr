@@ -1,17 +1,35 @@
 import type { MixCard, MixesResponse, Track } from "@resonarr/shared";
 import type { PlexClient } from "../plex/client.ts";
 import { services } from "../services.ts";
+import { cached } from "../cache/store.ts";
 import { log } from "../log/service.ts";
 import { filterDisliked } from "../feedback/service.ts";
 
 const MIX_COUNT = 6; // how many mixes to generate
 const PER_MIX = 30; // tracks per mix
 
+/** Recent-listening seeds move slowly; cache the built mixes for a few hours. */
+const MIXES_TTL_MS = 1000 * 60 * 60 * 6;
+
 /**
  * Mixes for You: several mixes, each seeded from a distinct recently-played
- * artist and expanded via sonic similarity. All tracks are owned.
+ * artist and expanded via sonic similarity. All tracks are owned. Cached per
+ * user; the "Refresh" button passes `force` to rebuild.
  */
 export async function runMixes(
+  plex: PlexClient,
+  userKey: string,
+  force = false,
+): Promise<MixesResponse> {
+  return cached(
+    `mixes:${userKey}`,
+    MIXES_TTL_MS,
+    () => computeMixes(plex, userKey),
+    force,
+  );
+}
+
+async function computeMixes(
   plex: PlexClient,
   userKey: string,
 ): Promise<MixesResponse> {
