@@ -28,6 +28,12 @@ export function loadFeedback(): void {
     });
 }
 
+/** Force a refetch (e.g. after importing Plex ratings in bulk). */
+export function reloadFeedback(): void {
+  loaded = false;
+  loadFeedback();
+}
+
 /** Toggle a rating for a track (clicking the active thumb clears it). */
 export async function rateTrack(track: Track, rating: FeedbackRating): Promise<void> {
   const current = map.get(track.id);

@@ -224,6 +224,16 @@ export interface SetFeedbackRequest {
   rating: FeedbackRating | null;
 }
 
+/** Outcome of importing the signed-in user's Plex star ratings into feedback. */
+export interface ImportRatingsResult {
+  /** Total ratings written (up + down). */
+  imported: number;
+  up: number;
+  down: number;
+  /** Middling ratings (≈3★) left as neutral. */
+  skipped: number;
+}
+
 export interface SageRequest {
   prompt: string;
   /** Bias recommendations toward artists already owned. */

@@ -5,13 +5,13 @@ import { getDb } from "../db/database.ts";
 const MAX_LIKED_SEEDS = 6;
 const NEIGHBORS_PER_SEED = 25;
 
-/** Track ids the user most recently thumbed up. */
-function recentLikedTrackIds(limit: number): string[] {
+/** Track ids this user most recently thumbed up. */
+function recentLikedTrackIds(userKey: string, limit: number): string[] {
   const rows = getDb()
     .prepare(
-      "SELECT track_id FROM feedback WHERE rating = 'up' ORDER BY created_at DESC LIMIT ?",
+      "SELECT track_id FROM feedback WHERE user_id = ? AND rating = 'up' ORDER BY created_at DESC LIMIT ?",
     )
-    .all(limit) as { track_id: string }[];
+    .all(userKey, limit) as { track_id: string }[];
   return rows.map((r) => r.track_id);
 }
 
@@ -23,9 +23,10 @@ function recentLikedTrackIds(limit: number): string[] {
  * a failed lookup is skipped rather than fatal.
  */
 export async function likedNeighborIds(
+  userKey: string,
   sonic: SonicService,
 ): Promise<Set<string>> {
-  const seeds = recentLikedTrackIds(MAX_LIKED_SEEDS);
+  const seeds = recentLikedTrackIds(userKey, MAX_LIKED_SEEDS);
   if (seeds.length === 0) return new Set();
   const lists = await Promise.all(
     seeds.map((id) => sonic.similar(id, NEIGHBORS_PER_SEED).catch(() => [])),

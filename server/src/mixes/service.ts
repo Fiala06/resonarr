@@ -11,7 +11,10 @@ const PER_MIX = 30; // tracks per mix
  * Mixes for You: several mixes, each seeded from a distinct recently-played
  * artist and expanded via sonic similarity. All tracks are owned.
  */
-export async function runMixes(plex: PlexClient): Promise<MixesResponse> {
+export async function runMixes(
+  plex: PlexClient,
+  userKey: string,
+): Promise<MixesResponse> {
   const sonic = services.sonic;
   if (!sonic) throw new Error("Plex is not configured");
   // History + seeds come from the signed-in user (whose listening this is);
@@ -35,7 +38,7 @@ export async function runMixes(plex: PlexClient): Promise<MixesResponse> {
 
   const mixes: MixCard[] = await Promise.all(
     seeds.map(async (seed) => {
-      const neighbors = filterDisliked(await sonic.similar(seed.id, PER_MIX));
+      const neighbors = filterDisliked(userKey, await sonic.similar(seed.id, PER_MIX));
       // Play-history entries carry an art path that doesn't resolve through our
       // art proxy, so always re-fetch the seed from canonical track metadata
       // (the same source the neighbors come from) — otherwise the first row /

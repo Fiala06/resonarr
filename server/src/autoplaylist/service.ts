@@ -4,7 +4,11 @@ import { config } from "../config/env.ts";
 import { services } from "../services.ts";
 import { getSettings } from "../settings/service.ts";
 import { log } from "../log/service.ts";
-import { filterDisliked, getFeedbackSets } from "../feedback/service.ts";
+import {
+  feedbackKeyForOwner,
+  filterDisliked,
+  getFeedbackSets,
+} from "../feedback/service.ts";
 import { likedNeighborIds } from "../feedback/boost.ts";
 import { normalize } from "../matching/match.ts";
 import {
@@ -40,6 +44,7 @@ function playlistTitle(name: string): string {
 async function buildDiscoverWeekly(
   plex: PlexClient,
   ap: AutoPlaylist,
+  userKey: string,
 ): Promise<string[]> {
   const sonic = services.sonic;
   if (!sonic) throw new Error("Plex is not configured");
@@ -63,6 +68,7 @@ async function buildDiscoverWeekly(
 
   // Newly-added pool — a sonic neighbor that's also new to Plex gets a boost.
   const recentlyAdded = filterDisliked(
+    userKey,
     await plex.getTracks(section.key, "addedAt:desc", RECENT_ADDED),
   );
   const addedIds = new Set(recentlyAdded.map((t) => t.id));
@@ -81,7 +87,7 @@ async function buildDiscoverWeekly(
   const score = new Map<string, { track: Track; hits: number }>();
   await Promise.all(
     seeds.map(async (seed) => {
-      const neighbors = filterDisliked(await sonic.similar(seed.id, PER_SEED));
+      const neighbors = filterDisliked(userKey, await sonic.similar(seed.id, PER_SEED));
       for (const n of neighbors) {
         if (recentIds.has(n.id) || usedRecently.has(n.id)) continue;
         if (recentArtists?.has(normalize(n.artist))) continue;
@@ -94,8 +100,8 @@ async function buildDiscoverWeekly(
 
   // Taste bias from the feedback loop: float tracks near your likes (and by
   // liked artists) above equally-surfaced candidates.
-  const likedNeighbors = await likedNeighborIds(sonic);
-  const { likedArtists } = getFeedbackSets();
+  const likedNeighbors = await likedNeighborIds(userKey, sonic);
+  const { likedArtists } = getFeedbackSets(userKey);
   const ranked = [...score.values()]
     .map(({ track, hits }) => {
       let weight = hits;
@@ -185,9 +191,12 @@ export async function runAutoPlaylist(id: string): Promise<AutoPlaylist> {
     ? new PlexClient({ url: config.plex.url, token: owner.ownerToken })
     : services.plex;
 
+  // Shape the build with the creator's feedback (their likes/dislikes).
+  const userKey = await feedbackKeyForOwner(owner?.ownerId ?? null);
+
   const nextRunAt = Date.now() + ap.intervalDays * DAY_MS;
   try {
-    const trackIds = await buildDiscoverWeekly(plex, ap);
+    const trackIds = await buildDiscoverWeekly(plex, ap, userKey);
     if (trackIds.length === 0) {
       throw new Error("No fresh tracks found for this run.");
     }

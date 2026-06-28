@@ -23,7 +23,7 @@ import { discoverFromPlaylist } from "../discover/service.ts";
 import { getDeepCuts } from "../deepcuts/service.ts";
 import { discoverArtists } from "../artistdiscovery/service.ts";
 import { buildTasteProfile } from "../taste/service.ts";
-import { filterDisliked } from "../feedback/service.ts";
+import { feedbackKeyForRequest, filterDisliked } from "../feedback/service.ts";
 
 export function registerDiscoveryRoutes(app: FastifyInstance): void {
   // Seed-track search for the pickers.
@@ -53,7 +53,7 @@ export function registerDiscoveryRoutes(app: FastifyInstance): void {
         return reply.code(503).send({ error: "Plex is not configured" }) as never;
       }
       const tracks = await services.sonic.similar(seedTrackId, limit ?? 25);
-      return { tracks: filterDisliked(tracks) };
+      return { tracks: filterDisliked(await feedbackKeyForRequest(req), tracks) };
     },
   );
 
@@ -95,7 +95,7 @@ export function registerDiscoveryRoutes(app: FastifyInstance): void {
       return reply.code(503).send({ error: "Plex is not configured" }) as never;
     }
     try {
-      return await runMixes(userPlexClient(req));
+      return await runMixes(userPlexClient(req), await feedbackKeyForRequest(req));
     } catch (err) {
       return reply.code(502).send({
         error: err instanceof Error ? err.message : String(err),
@@ -117,6 +117,7 @@ export function registerDiscoveryRoutes(app: FastifyInstance): void {
       try {
         return await discoverFromPlaylist(
           userPlexClient(req),
+          await feedbackKeyForRequest(req),
           playlistId,
           limit,
           newArtistsOnly,
@@ -138,7 +139,7 @@ export function registerDiscoveryRoutes(app: FastifyInstance): void {
         return reply.code(503).send({ error: "Plex is not configured" }) as never;
       }
       try {
-        return await getDeepCuts(userPlexClient(req), mode);
+        return await getDeepCuts(userPlexClient(req), await feedbackKeyForRequest(req), mode);
       } catch (err) {
         return reply.code(502).send({
           error: err instanceof Error ? err.message : String(err),

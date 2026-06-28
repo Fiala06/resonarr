@@ -5,7 +5,8 @@ import type {
   LidarrOptions,
   LlmProvider,
 } from "@resonarr/shared";
-import { getLidarrOptions, getSettings, putSettings } from "../api";
+import { getLidarrOptions, getSettings, importPlexRatings, putSettings } from "../api";
+import { reloadFeedback } from "../feedback";
 import { InfoHint } from "../components/InfoHint";
 import { colors, fx } from "../theme";
 
@@ -25,6 +26,8 @@ export function SettingsView() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importMsg, setImportMsg] = useState<string | null>(null);
 
   useEffect(() => {
     getSettings().then(setForm).catch((e) => setLoadError(String(e)));
@@ -50,6 +53,22 @@ export function SettingsView() {
       setSaveMsg(`Save failed: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function runImport() {
+    setImporting(true);
+    setImportMsg(null);
+    try {
+      const r = await importPlexRatings();
+      reloadFeedback(); // refresh thumbs across the app
+      setImportMsg(
+        `Imported ${r.imported} ratings (${r.up} liked, ${r.down} disliked, ${r.skipped} neutral skipped).`,
+      );
+    } catch (e) {
+      setImportMsg(`Import failed: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setImporting(false);
     }
   }
 
@@ -189,6 +208,43 @@ export function SettingsView() {
           onChange={(e) => patch("playlistPrefix", e.target.value)}
         />
       </Field>
+      </Card>
+
+      <Card title="Feedback">
+        <Field
+          label="Import my Plex ratings"
+          hint="Pulls your starred tracks from Plex into your Resonarr thumbs: 4–5★ become 👍, 1–2★ become 👎, 3★ are left neutral. Applies to your account only."
+        >
+          <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+            <button
+              onClick={runImport}
+              disabled={importing}
+              className="rsn-btn"
+              style={{
+                background: "transparent",
+                color: colors.text,
+                border: `1px solid ${colors.border}`,
+                borderRadius: 8,
+                padding: "9px 15px",
+                fontWeight: 600,
+                cursor: importing ? "default" : "pointer",
+                opacity: importing ? 0.7 : 1,
+              }}
+            >
+              {importing ? "Importing…" : "Import my Plex ratings"}
+            </button>
+            {importMsg && (
+              <span
+                style={{
+                  fontSize: 13,
+                  color: importMsg.startsWith("Import failed") ? colors.red : colors.green,
+                }}
+              >
+                {importMsg}
+              </span>
+            )}
+          </div>
+        </Field>
       </Card>
 
       <div style={{ display: "flex", gap: 12, alignItems: "center" }}>

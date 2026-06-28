@@ -21,6 +21,7 @@ const PER_ARTIST_CAP = 2; // keep the list spread across your shelf
  */
 export async function getDeepCuts(
   plex: PlexClient,
+  userKey: string,
   mode: DeepCutsMode,
   limit = DEFAULT_LIMIT,
 ): Promise<DeepCutsResponse> {
@@ -31,7 +32,7 @@ export async function getDeepCuts(
   if (mode === "never") {
     const sample = await plex.getTracks(section.key, "random", NEVER_OVERFETCH);
     picks = capPerArtist(
-      filterDisliked(sample.filter((t) => (t.viewCount ?? 0) === 0)),
+      filterDisliked(userKey, sample.filter((t) => (t.viewCount ?? 0) === 0)),
       PER_ARTIST_CAP,
     ).slice(0, cap);
   } else {
@@ -44,7 +45,7 @@ export async function getDeepCuts(
     );
     const cutoff = nowSeconds() - FADED_STALE_DAYS * 86_400;
     picks = capPerArtist(
-      filterDisliked(top)
+      filterDisliked(userKey, top)
         .filter(
           (t) =>
             (t.viewCount ?? 0) >= FADED_MIN_PLAYS &&

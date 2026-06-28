@@ -18,6 +18,7 @@ const DEFAULT_LIMIT = 50; // fresh tracks returned
  */
 export async function discoverFromPlaylist(
   plex: PlexClient,
+  userKey: string,
   playlistId: string,
   limit = DEFAULT_LIMIT,
   newArtistsOnly = false,
@@ -59,9 +60,10 @@ export async function discoverFromPlaylist(
 
   // Bias toward your taste: a candidate that's a sonic neighbor of something
   // you liked (or by a liked artist) ranks above one with equal seed consensus.
-  const likedNeighbors = await likedNeighborIds(sonic);
-  const { likedArtists } = getFeedbackSets();
+  const likedNeighbors = await likedNeighborIds(userKey, sonic);
+  const { likedArtists } = getFeedbackSets(userKey);
   const tracks = filterDisliked(
+    userKey,
     [...score.values()]
       .map(({ track, hits }) => {
         let weight = hits;

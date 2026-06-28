@@ -4,6 +4,7 @@ import { runSage } from "../sage/service.ts";
 import { getSageExamples } from "../sage/examples.ts";
 import { services } from "../services.ts";
 import { userPlexClient } from "../auth/service.ts";
+import { feedbackKeyForRequest } from "../feedback/service.ts";
 
 export function registerSageRoutes(app: FastifyInstance): void {
   // Personalized "Try one of these" example prompts (cached, ?refresh=1 rebuilds).
@@ -29,6 +30,7 @@ export function registerSageRoutes(app: FastifyInstance): void {
         return await runSage(
           prompt,
           req.body?.ownArtistBias ?? false,
+          await feedbackKeyForRequest(req),
           req.body?.count,
         );
       } catch (err) {

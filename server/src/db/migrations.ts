@@ -155,6 +155,29 @@ const MIGRATIONS: Migration[] = [
     // Auto-playlists are now listed filtered by creator, so index that column.
     up: `CREATE INDEX IF NOT EXISTS idx_auto_playlists_owner ON auto_playlists (owner_id);`,
   },
+  {
+    version: 11,
+    // Per-user feedback: re-key by (user_id, track_id) so each person's
+    // likes/dislikes are their own. Existing global rows become user_id = ''
+    // (the single-user / owner-legacy bucket, claimed by the owner on first use).
+    up: `
+      CREATE TABLE feedback_v11 (
+        user_id    TEXT NOT NULL DEFAULT '',
+        track_id   TEXT NOT NULL,
+        artist     TEXT NOT NULL,
+        title      TEXT,
+        rating     TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        PRIMARY KEY (user_id, track_id)
+      );
+      INSERT INTO feedback_v11 (user_id, track_id, artist, title, rating, created_at)
+        SELECT '', track_id, artist, title, rating, created_at FROM feedback;
+      DROP TABLE feedback;
+      ALTER TABLE feedback_v11 RENAME TO feedback;
+      CREATE INDEX idx_feedback_rating ON feedback (rating);
+      CREATE INDEX idx_feedback_user ON feedback (user_id);
+    `,
+  },
 ];
 
 export function runMigrations(db: DatabaseSync): void {

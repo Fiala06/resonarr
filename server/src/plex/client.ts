@@ -33,6 +33,7 @@ interface PlexMetadata {
   leafCount?: number; // playlist track count
   viewCount?: number; // lifetime play count
   lastViewedAt?: number; // epoch seconds of last play
+  userRating?: number; // this account's star rating, 0-10 (5★ = 10)
   type?: string;
 }
 
@@ -201,6 +202,28 @@ export class PlexClient {
       { type: TRACK_TYPE, sort, limit },
     );
     return (data.MediaContainer.Metadata ?? []).map(toTrack);
+  }
+
+  /**
+   * Tracks this account has rated, paired with the star rating (0-10). Sorted
+   * by rating desc, so we can stop at the first unrated track. Used to import
+   * Plex stars into Resonarr feedback.
+   */
+  async getRatedTracks(
+    sectionKey: string,
+    max = 5000,
+  ): Promise<{ track: Track; userRating: number }[]> {
+    const data = await this.request<PlexContainer<PlexMetadata>>(
+      `/library/sections/${sectionKey}/all`,
+      { type: TRACK_TYPE, sort: "userRating:desc", limit: max },
+    );
+    const out: { track: Track; userRating: number }[] = [];
+    for (const m of data.MediaContainer.Metadata ?? []) {
+      const r = m.userRating ?? 0;
+      if (r <= 0) break; // sorted desc — the rest are unrated
+      out.push({ track: toTrack(m), userRating: r });
+    }
+    return out;
   }
 
   /**

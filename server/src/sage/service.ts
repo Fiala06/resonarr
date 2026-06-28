@@ -14,6 +14,7 @@ import type { PlexClient } from "../plex/client.ts";
 export async function runSage(
   prompt: string,
   ownArtistBias: boolean,
+  userKey: string,
   count = 25,
 ): Promise<DiscoveryResult> {
   const suggestionCount = Math.max(5, Math.min(100, Math.round(count)));
@@ -32,7 +33,7 @@ export async function runSage(
     ownedArtists = await plex.getArtistNames(section.key, 200);
   }
 
-  const { liked, disliked } = getFeedbackArtists();
+  const { liked, disliked } = getFeedbackArtists(userKey);
 
   let suggestions: Suggestion[];
   try {
@@ -69,7 +70,7 @@ export async function runSage(
     }
   }
 
-  const keptMatches = filterDisliked(matches);
+  const keptMatches = filterDisliked(userKey, matches);
   log.info(
     "sage",
     `${keptMatches.length} owned matches, ${misses.length} misses from ${suggestions.length} suggestions`,

@@ -11,6 +11,7 @@ import type {
   DeepCutsResponse,
   DiscoverResponse,
   FeedbackItem,
+  ImportRatingsResult,
   SetFeedbackRequest,
   DiscoveryResult,
   AddToPlaylistResponse,
@@ -238,6 +239,10 @@ export async function putFeedback(
       body: JSON.stringify(req),
     }),
   );
+}
+
+export async function importPlexRatings(): Promise<ImportRatingsResult> {
+  return asJson(await fetch("/api/feedback/import-plex", { method: "POST" }));
 }
 
 export async function getBasket(): Promise<BasketItem[]> {
