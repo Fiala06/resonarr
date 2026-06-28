@@ -83,20 +83,28 @@ discovery tools.
 
 ## Phase 4 — Stats & insights (make them fun and visible)
 
-- [ ] **4.1 Promote Taste Profile** — move it up / feature it on Home; it's the
-  most shareable screen ("Wrapped"-style)
-- [ ] **4.2 New lightweight stats** (Home + Profile)
-  - "X new songs discovered this month"
-  - "X albums added through your wishlist"
-  - Top genres / decades as a simple chart
-  - Listening streak / most played this week (if data available)
-  - NOTE: confirm which metrics are derivable from existing API/data first
+- [~] **4.1 Promote Taste Profile** — featured as a top quick-start card on Home
+  ("Your Taste"). A richer "Wrapped" hero (soundline on Home) is DEFERRED: it
+  would mean fetching the taste profile on landing, which can trigger an
+  expensive LLM generation the first time — kept Home to cheap endpoints only.
+  Revisit once the endpoint is confirmed read-cached / non-generating.
+- [~] **4.2 New lightweight stats** (Home + Profile)
+  - [x] "X added to your library so far" — wishlist `done` count, derived
+    client-side, shown on the Home wishlist tile
+  - [ ] "X new songs discovered this month" — needs a server metric (no per-event
+    timestamps exposed today)
+  - [ ] Top genres / decades chart — data exists in TasteProfile; deferred with 4.1
+  - [ ] Listening streak / most played this week — not derivable from current APIs
+  - NOTE: remaining metrics need backend support; only the wishlist-landed count
+    is cleanly derivable right now.
 - [x] **4.3 Move library stats out of the hover tooltip** — tracks/albums/artists
   now shown as stat tiles on Home (no hover needed). Sidebar footer "X tracks"
   + hover breakdown left as a bonus at-a-glance.
-- [ ] **4.4 Friendly "Recent activity" feed** — human summaries
-  ("Built your Discover Weekly · added 4 albums"); keep the raw Activity Log
-  behind an "Advanced" toggle (`LogsView.tsx`)
+- [x] **4.4 Friendly "Recent activity" feed** — LogsView now defaults to a
+  "Simple" feed (per-feature emoji + friendly name, plain message, relative time
+  like "5m ago", "needs attention"/"heads up" flags for warn/error) with an
+  "Advanced" toggle that shows the original raw technical log. Page retitled
+  "Recent activity".
 
 ## Phase 5 — Feedback, waiting & consistency
 

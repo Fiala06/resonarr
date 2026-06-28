@@ -1,7 +1,7 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import type { AutoPlaylist, LibraryStats } from "@resonarr/shared";
 import type { Tab } from "../components/Sidebar";
-import { getAutoPlaylists, getFeedback } from "../api";
+import { getAutoPlaylists, getBasket, getFeedback } from "../api";
 import { colors, fx } from "../theme";
 
 /**
@@ -57,12 +57,18 @@ export function HomeView({
 }) {
   const [autoPlaylists, setAutoPlaylists] = useState<AutoPlaylist[] | null>(null);
   const [hasFeedback, setHasFeedback] = useState<boolean | null>(null);
+  const [landed, setLanded] = useState<number | null>(null);
 
   useEffect(() => {
     getAutoPlaylists().then(setAutoPlaylists).catch(() => setAutoPlaylists([]));
     getFeedback()
       .then((f) => setHasFeedback(f.length > 0))
       .catch(() => setHasFeedback(null));
+    // How many wishlist items have actually landed in the library — a small,
+    // true "Resonarr grew my collection" stat derived client-side.
+    getBasket()
+      .then((items) => setLanded(items.filter((i) => i.status === "done").length))
+      .catch(() => {});
   }, []);
 
   // The soonest upcoming run among enabled weekly auto-playlists, if any.
@@ -139,6 +145,11 @@ export function HomeView({
             {basketWaiting > 0
               ? `${basketWaiting} ${basketWaiting === 1 ? "album is" : "albums are"} on the way to your library.`
               : "Recommendations you don't own yet land here to download. Nothing waiting right now."}
+            {landed != null && landed > 0 && (
+              <span style={{ display: "block", marginTop: 6, color: colors.green }}>
+                {landed} added to your library so far. 🎉
+              </span>
+            )}
           </StatusCard>
 
           <StatusCard
