@@ -229,7 +229,49 @@ export function BasketView({ onChange }: { onChange?: () => void }) {
 
       {/* List */}
       {items.length === 0 ? (
-        <p style={{ color: colors.muted }}>Your wishlist is empty.</p>
+        <div
+          style={{
+            display: "grid",
+            gap: 12,
+            justifyItems: "start",
+            padding: "16px 18px",
+            borderRadius: 12,
+            background: colors.panel,
+            border: `1px solid ${colors.border}`,
+          }}
+        >
+          <p style={{ color: colors.muted, margin: 0, fontSize: 13.5, lineHeight: 1.6 }}>
+            Your wishlist is empty. As you explore, anything recommended that you
+            don't own yet collects here to download — try “Describe a Vibe” or
+            “Find New Artists” to fill it.
+          </p>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              onClick={() => {
+                window.location.hash = "sage";
+              }}
+              className="rsn-btn"
+              style={{ ...buttonStyle, padding: "9px 16px" }}
+            >
+              Describe a Vibe →
+            </button>
+            <button
+              onClick={() => {
+                window.location.hash = "artists";
+              }}
+              className="rsn-btn"
+              style={{
+                ...buttonStyle,
+                padding: "9px 16px",
+                background: "transparent",
+                boxShadow: "none",
+                border: `1px solid ${colors.border}`,
+              }}
+            >
+              Find New Artists →
+            </button>
+          </div>
+        </div>
       ) : (
         <div style={{ display: "grid", gap: 6 }}>
           {items.map((it) => (

@@ -36,9 +36,9 @@ export function AuditionLinks({
       </Link>
       <Link
         href={musicbrainz}
-        title={mbid ? `${artist} on MusicBrainz` : `Search MusicBrainz for ${artist}`}
+        title={mbid ? `${artist} on MusicBrainz` : `Look up ${artist} on MusicBrainz`}
       >
-        MusicBrainz
+        Look up
       </Link>
     </span>
   );

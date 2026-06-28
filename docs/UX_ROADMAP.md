@@ -108,12 +108,16 @@ discovery tools.
 
 ## Phase 5 — Feedback, waiting & consistency
 
-- [ ] **5.1 Reassuring progress for long ops** — Sage/Mixes/etc. show a progress
-  message or animation for anything > ~3s (model on Artist Discovery's timer)
-- [ ] **5.2 Actionable empty states** — every empty state ends with a button/next
-  step (e.g. Loved's empty state gets an "Import my ratings" button)
-- [ ] **5.3 Consistent warm/plain voice** — audit all copy; remove technical
-  phrases ("MusicBrainz entry invalid") in favor of plain language
+- [x] **5.1 Reassuring progress for long ops** — Sage and Mixes now show an
+  animated `rsn-loader` bar plus a reassuring "this can take a few seconds" line
+  while working (Artists already had its elapsed-seconds timer).
+- [x] **5.2 Actionable empty states** — Loved's empty state now has an "Import my
+  ratings →" button; the empty wishlist points to "Describe a Vibe →" /
+  "Find New Artists →". (Both navigate via the hash router.)
+- [~] **5.3 Consistent warm/plain voice** — light pass done: audition link
+  "MusicBrainz" → "Look up" (tooltip keeps the name); Activity page reworded away
+  from "Lidarr / container logs". Kept on-brand "sonically". Full copy audit is
+  ongoing — revisit per-view as we touch them.
 
 ## Phase 6 — Mobile & polish
 

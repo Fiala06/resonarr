@@ -54,7 +54,14 @@ export function MixesView() {
       </div>
 
       {error && <p style={{ color: colors.red, margin: 0 }}>Error: {error}</p>}
-      {!mixes && !error && <p style={{ color: colors.muted }}>Building your mixes…</p>}
+      {!mixes && !error && (
+        <div style={{ display: "grid", gap: 8 }}>
+          <div className="rsn-loader" />
+          <p style={{ color: colors.muted, margin: 0, fontSize: 13 }}>
+            Building your mixes from what you've been playing — this can take a few seconds.
+          </p>
+        </div>
+      )}
 
       {mixes && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>

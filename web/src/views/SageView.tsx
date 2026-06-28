@@ -202,6 +202,15 @@ export function SageView() {
         </label>
       </div>
 
+      {generating && (
+        <div style={{ display: "grid", gap: 8 }}>
+          <div className="rsn-loader" />
+          <div style={{ fontSize: 12.5, color: colors.muted }}>
+            Reading your vibe and searching your library for tracks that fit — this can take a few seconds.
+          </div>
+        </div>
+      )}
+
       {error && <p style={{ color: colors.red, margin: 0 }}>Error: {error}</p>}
 
       {result && (

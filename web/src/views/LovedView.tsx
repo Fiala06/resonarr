@@ -69,10 +69,41 @@ export function LovedView() {
       {tracks === null ? (
         !error && <p style={{ color: colors.muted, margin: 0 }}>Loading…</p>
       ) : tracks.length === 0 ? (
-        <p style={{ color: colors.muted, margin: 0 }}>
-          No likes to learn from yet — thumb up some tracks (or import your Plex
-          ratings in Settings) and come back.
-        </p>
+        <div
+          style={{
+            display: "grid",
+            gap: 12,
+            justifyItems: "start",
+            padding: "16px 18px",
+            borderRadius: 12,
+            background: colors.panel,
+            border: `1px solid ${colors.border}`,
+          }}
+        >
+          <p style={{ color: colors.muted, margin: 0, fontSize: 13.5, lineHeight: 1.6 }}>
+            No likes to learn from yet. Thumb up tracks as you listen — or bring in
+            the star ratings you already have — and they'll shape what shows up here.
+          </p>
+          <button
+            onClick={() => {
+              window.location.hash = "settings";
+            }}
+            className="rsn-btn"
+            style={{
+              background: fx.btnBg,
+              color: "white",
+              border: "none",
+              borderRadius: 8,
+              padding: "9px 16px",
+              boxShadow: fx.btnGlow,
+              cursor: "pointer",
+              font: "inherit",
+              fontWeight: 600,
+            }}
+          >
+            Import my ratings →
+          </button>
+        </div>
       ) : (
         <>
           <SavePlaylistBar defaultName="Loved" trackIds={tracks.map((t) => t.id)} />
