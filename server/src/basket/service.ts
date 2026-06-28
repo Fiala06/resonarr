@@ -27,22 +27,30 @@ interface BasketRow {
 
 /**
  * Turn a Lidarr images array into a browser-loadable cover URL.
- * Library artists expose a local `/MediaCover/...` path (needs the API key), so
- * we route those through our proxy; lookup results expose a public `remoteUrl`.
+ *
+ * Prefer the public `remoteUrl` (Lidarr's metadata source): the local
+ * `/MediaCover/...` route sits behind Lidarr's form auth, which doesn't accept
+ * the API key on older Lidarr (3.x serves its login page instead of the image),
+ * so the proxy is only a last resort.
  */
 function coverFromImages(images: unknown): string | undefined {
   if (!Array.isArray(images)) return undefined;
   const imgs = images as LidarrImage[];
   const pick = imgs.find((i) => i?.coverType === "poster") ?? imgs[0];
   if (!pick) return undefined;
+  if (typeof pick.remoteUrl === "string" && /^https?:\/\//.test(pick.remoteUrl)) {
+    return pick.remoteUrl;
+  }
+  if (typeof pick.url === "string" && /^https?:\/\//.test(pick.url)) return pick.url;
   if (typeof pick.url === "string" && pick.url.startsWith("/MediaCover")) {
     return `/api/lidarr/art?path=${encodeURIComponent(pick.url)}`;
   }
-  if (typeof pick.remoteUrl === "string" && pick.remoteUrl.startsWith("http")) {
-    return pick.remoteUrl;
-  }
-  if (typeof pick.url === "string" && pick.url.startsWith("http")) return pick.url;
   return undefined;
+}
+
+/** True for the old auth-walled proxy covers we want to re-resolve to a remoteUrl. */
+function isStaleProxyCover(coverUrl: string | undefined): boolean {
+  return typeof coverUrl === "string" && coverUrl.startsWith("/api/lidarr/art");
 }
 
 const KNOWN_SOURCES: BasketItemSource[] = [
@@ -307,20 +315,24 @@ export async function refreshBasketStatuses(): Promise<BasketItem[]> {
   const lidarr = services.lidarr;
   const all = listBasket();
   const requested = all.filter((i) => i.status === "requested");
-  // Items that still lack cover art but could get it from Lidarr (any status).
-  const needsCover = all.filter((i) => !i.coverUrl && i.mbid);
+  // Items lacking cover art, or carrying a stale auth-walled proxy cover that we
+  // now want to replace with a public remoteUrl.
+  const needsCover = all.filter(
+    (i) => i.mbid && (!i.coverUrl || isStaleProxyCover(i.coverUrl)),
+  );
   if (!lidarr || (requested.length === 0 && needsCover.length === 0)) return all;
 
   const artistsByMbid = new Map(
     (await lidarr.getArtists()).map((a) => [a.foreignArtistId, a]),
   );
 
-  // Backfill artwork for existing items (e.g. added before we captured covers).
+  // Backfill artwork for existing items (e.g. added before we captured covers,
+  // or whose proxy cover failed to load).
   let covered = 0;
   for (const item of needsCover) {
     const artist = artistsByMbid.get(item.mbid as string);
     const url = coverFromImages(artist?.images);
-    if (url) {
+    if (url && url !== item.coverUrl) {
       setCoverUrl(item.id, url);
       covered += 1;
     }
