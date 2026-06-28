@@ -424,27 +424,47 @@ export function Sidebar({
           </div>
         )}
 
-        {version && (
-          <div
-            title={
-              version.builtAt
-                ? `Built ${new Date(version.builtAt).toLocaleString()}`
-                : "Local dev build"
-            }
-            style={{
-              marginTop: 10,
-              padding: "0 4px",
-              fontSize: 10,
-              color: colors.faint,
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
-          >
-            {version.commit === "dev" ? "dev build" : `v ${version.commit}`}
-            {version.builtAt ? ` · ${version.builtAt.slice(0, 10)}` : ""}
-          </div>
-        )}
+        {version &&
+          (version.commit === "dev" ? (
+            <div
+              title="Local dev build"
+              style={{
+                marginTop: 10,
+                padding: "0 4px",
+                fontSize: 10,
+                color: colors.faint,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              dev build
+            </div>
+          ) : (
+            <a
+              href={`https://github.com/Fiala06/resonarr/commit/${version.commit}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={
+                version.builtAt
+                  ? `Built ${new Date(version.builtAt).toLocaleString()}`
+                  : "View this commit on GitHub"
+              }
+              style={{
+                display: "block",
+                marginTop: 10,
+                padding: "0 4px",
+                fontSize: 10,
+                color: colors.faint,
+                textDecoration: "none",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              v {version.commit}
+            </a>
+          ))}
       </div>
     </div>
   );
