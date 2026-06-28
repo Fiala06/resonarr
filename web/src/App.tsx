@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { AppVersion, AuthUser, LibraryStats } from "@resonarr/shared";
 import { Sidebar, HubTabs, TopBar } from "./components/Sidebar";
 import type { Tab } from "./components/Sidebar";
+import { Onboarding, hasOnboarded } from "./components/Onboarding";
 import { HomeView } from "./views/HomeView";
 import { SageView } from "./views/SageView";
 import { RadioView } from "./views/RadioView";
@@ -73,6 +74,7 @@ export function App({ authUser }: { authUser?: AuthUser }) {
   const [spotifyWaiting, setSpotifyWaiting] = useState(0);
   const narrow = useIsNarrow();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(() => !hasOnboarded());
 
   const navigate = useCallback((t: Tab) => {
     window.location.hash = t;
@@ -176,12 +178,17 @@ export function App({ authUser }: { authUser?: AuthUser }) {
     </div>
   );
 
+  const onboarding = showOnboarding ? (
+    <Onboarding onClose={() => setShowOnboarding(false)} />
+  ) : null;
+
   // Wide layout: persistent sidebar beside the content.
   if (!narrow) {
     return (
       <div style={{ height: "100%", display: "flex", overflow: "hidden", background: fx.appBg }}>
         {sidebar}
         {content}
+        {onboarding}
       </div>
     );
   }
@@ -207,6 +214,7 @@ export function App({ authUser }: { authUser?: AuthUser }) {
           </div>
         </div>
       )}
+      {onboarding}
     </div>
   );
 }

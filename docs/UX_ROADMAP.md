@@ -22,12 +22,12 @@ discovery tools.
   - NOTE: kept the dashboard to cheap/cached endpoints (auto-playlists, feedback)
     so it loads fast; "fresh mix / suggested artists" cards deferred to avoid slow
     first paint — revisit once those endpoints are confirmed cheap
-- [ ] **1.2 First-run onboarding** — 3-step intro modal shown once
-  - Step 1: "We build playlists only from music you already own"
-  - Step 2: "Want more? Add it to your Wishlist and we'll fetch it"
-  - Step 3: "Set up a weekly auto-playlist"
-  - Persist "seen" flag (localStorage or settings)
-  - "Skip" + "Don't show again"
+- [x] **1.2 First-run onboarding** — 3-step intro modal shown once
+  (`web/src/components/Onboarding.tsx`)
+  - Steps: library-first idea → wishlist → weekly auto-playlist
+  - Step dots, Back / Next / Get started, Skip, backdrop-click to dismiss
+  - "Seen" flag in localStorage (`resonarr.onboarded`); storage-disabled →
+    treated as seen so it never nags. Rendered over both wide/narrow layouts.
 - [ ] **1.3 Per-tab one-line subtitles** — short plain-language descriptions under
   each tab/hub so newcomers know what each mode does. Tie into 2.1 renames.
 - [x] **1.4 Surface the "Import my Plex ratings" prompt early** — friendly nudge
