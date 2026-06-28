@@ -60,6 +60,7 @@ export function listBasket(): BasketItem[] {
  */
 export async function addToBasket(
   input: AddBasketItemRequest,
+  options: { autoRequest?: boolean } = {},
 ): Promise<BasketItem> {
   const artist = input.artist.trim();
   if (!artist) throw new Error("artist is required");
@@ -84,6 +85,8 @@ export async function addToBasket(
     | BasketRow
     | undefined;
   if (existing) return rowToItem(existing);
+
+  const autoRequest = options.autoRequest ?? true;
 
   const item: BasketItem = {
     id: randomUUID(),
@@ -111,7 +114,36 @@ export async function addToBasket(
     item.createdAt,
   );
 
+  // Submit straight to Lidarr so nothing waits on a manual approval step. Best
+  // effort: if the Lidarr target isn't configured yet, the item stays "pending"
+  // and the basket's Request button remains a fallback.
+  if (autoRequest) {
+    const submitted = await autoSubmit([item.id]);
+    return submitted ?? item;
+  }
+
   return item;
+}
+
+/**
+ * Fire-and-forget submit of freshly-added items to Lidarr. Swallows the
+ * "target not configured" error so adding never fails on it; per-item failures
+ * are already recorded as "failed" status by requestBasket. Returns the updated
+ * row for the first id (convenience for the single-add path).
+ */
+async function autoSubmit(ids: string[]): Promise<BasketItem | undefined> {
+  try {
+    await requestBasket(ids);
+  } catch (err) {
+    log.warn("basket", "Auto-request skipped", {
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+  const db = getDb();
+  const row = db
+    .prepare("SELECT * FROM basket_items WHERE id = ?")
+    .get(ids[0]) as unknown as BasketRow | undefined;
+  return row ? rowToItem(row) : undefined;
 }
 
 /** Add several items best-effort; returns what succeeded and what failed. */
@@ -122,7 +154,9 @@ export async function addManyToBasket(
   const failed: { artist: string; error: string }[] = [];
   for (const input of inputs) {
     try {
-      added.push(await addToBasket(input));
+      // Defer the Lidarr submit so the whole batch goes in one pass below
+      // (one getArtists() call) instead of once per item.
+      added.push(await addToBasket(input, { autoRequest: false }));
     } catch (err) {
       failed.push({
         artist: input.artist,
@@ -130,7 +164,16 @@ export async function addManyToBasket(
       });
     }
   }
-  return { added, failed };
+  if (added.length > 0) {
+    try {
+      await requestBasket(added.map((i) => i.id));
+    } catch (err) {
+      log.warn("basket", "Bulk auto-request skipped", {
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+  return { added: listBasket().filter((i) => added.some((a) => a.id === i.id)), failed };
 }
 
 export function removeFromBasket(id: string): void {

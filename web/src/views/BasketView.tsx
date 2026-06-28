@@ -130,8 +130,10 @@ export function BasketView({ onChange }: { onChange?: () => void }) {
         </h1>
         <div style={{ width: 42, height: 3, borderRadius: 3, background: fx.accentBar, marginTop: 12 }} />
         <p style={{ color: colors.muted, margin: "12px 0 0", fontSize: 13.5 }}>
-          Everything recommended that you don’t own yet. Verified against Lidarr,
-          sent artist-first with search, tracked here until it lands.
+          Everything recommended that you don’t own yet. Verified against Lidarr
+          and sent to download the moment you add it — tracked here until it
+          lands. Anything still pending just needs your Lidarr target set in
+          Settings.
         </p>
       </div>
 
@@ -252,7 +254,7 @@ export function BasketView({ onChange }: { onChange?: () => void }) {
                   it.status === "done"
                     ? "Downloaded · in your library"
                     : it.status === "pending"
-                      ? "Queued · pending request"
+                      ? "Waiting · set Lidarr target to send"
                       : it.status === "failed"
                         ? "Request failed"
                         : "Requesting via Lidarr…"
