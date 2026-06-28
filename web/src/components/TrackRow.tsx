@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import type { Track } from "@resonarr/shared";
 import { AlbumArt } from "./AlbumArt";
 import { rateTrack, useFeedbackMap } from "../feedback";
+import { togglePreview, usePreview } from "../preview";
 import { colors, fx } from "../theme";
 
 // Reusable track row. (Phase 2 lives in-repo; this is a prime candidate to move
@@ -66,8 +67,54 @@ export function TrackRow({
         </div>
       </div>
       {right}
+      <PreviewBtn trackId={track.id} />
       {feedback && <Thumbs track={track} />}
     </div>
+  );
+}
+
+/** Play/stop a short audio preview of an owned track (streamed via Plex). */
+function PreviewBtn({ trackId }: { trackId: string }) {
+  const { id, loading } = usePreview();
+  const active = id === trackId;
+  return (
+    <button
+      aria-label={active ? "Stop preview" : "Play preview"}
+      title={active ? "Stop preview" : "Play preview"}
+      onClick={(e) => {
+        e.stopPropagation();
+        togglePreview(trackId);
+      }}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: 30,
+        height: 30,
+        flex: "none",
+        borderRadius: 6,
+        border: "none",
+        background: "transparent",
+        color: active ? colors.accentLight : colors.faint,
+        cursor: "pointer",
+        opacity: active ? 1 : 0.7,
+      }}
+    >
+      {active && loading ? (
+        <svg width="14" height="14" viewBox="0 0 16 16" className="rsn-spin">
+          <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="2" fill="none" strokeDasharray="28 12" strokeLinecap="round" />
+        </svg>
+      ) : active ? (
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
+          <rect x="4" y="3" width="3" height="10" rx="1" />
+          <rect x="9" y="3" width="3" height="10" rx="1" />
+        </svg>
+      ) : (
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M5 3.5 L12 8 L5 12.5 Z" />
+        </svg>
+      )}
+    </button>
   );
 }
 

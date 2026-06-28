@@ -1,3 +1,5 @@
+import { Readable } from "node:stream";
+import type { ReadableStream as WebReadableStream } from "node:stream/web";
 import type { FastifyInstance } from "fastify";
 import type {
   AdventureRequest,
@@ -85,6 +87,27 @@ export function registerDiscoveryRoutes(app: FastifyInstance): void {
       }
     },
   );
+
+  // Audio preview proxy: stream an owned track's file from Plex (token stays
+  // server-side), forwarding Range so the browser <audio> element can seek.
+  app.get<{ Params: { id: string } }>("/api/preview/:id", async (req, reply) => {
+    if (!services.plex) {
+      return reply.code(503).send({ error: "Plex is not configured" });
+    }
+    try {
+      const upstream = await services.plex.streamTrack(req.params.id, req.headers.range);
+      reply.code(upstream.status);
+      for (const h of ["content-type", "content-length", "content-range", "accept-ranges"]) {
+        const v = upstream.headers.get(h);
+        if (v) reply.header(h, v);
+      }
+      if (!upstream.headers.get("accept-ranges")) reply.header("accept-ranges", "bytes");
+      if (!upstream.body) return reply.send();
+      return reply.send(Readable.fromWeb(upstream.body as unknown as WebReadableStream<Uint8Array>));
+    } catch {
+      return reply.code(404).send();
+    }
+  });
 
   // Library counts for the sidebar. Cached for an hour — it loads on every page
   // and the counts barely move.

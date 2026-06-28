@@ -20,6 +20,16 @@ interface PlexDirectory {
   type: string; // "artist" for a music section
 }
 
+interface PlexPart {
+  key?: string; // streamable file path, e.g. /library/parts/123/.../file.mp3
+  container?: string; // "mp3", "flac", …
+}
+
+interface PlexMedia {
+  container?: string;
+  Part?: PlexPart[];
+}
+
 interface PlexMetadata {
   ratingKey: string;
   title: string;
@@ -35,6 +45,7 @@ interface PlexMetadata {
   lastViewedAt?: number; // epoch seconds of last play
   userRating?: number; // this account's star rating, 0-10 (5★ = 10)
   type?: string;
+  Media?: PlexMedia[]; // file/parts, used to stream a preview
 }
 
 interface PlexContainer<T> {
@@ -300,6 +311,37 @@ export class PlexClient {
   }
 
   /** Fetch raw image bytes for a Plex art path (proxied to the browser). */
+  /** Resolve the streamable file part for a track (first media, first part). */
+  private async getTrackPartKey(ratingKey: string): Promise<string> {
+    const data = await this.request<PlexContainer<PlexMetadata>>(
+      `/library/metadata/${ratingKey}`,
+    );
+    const key = data.MediaContainer.Metadata?.[0]?.Media?.[0]?.Part?.[0]?.key;
+    if (!key) throw new Error(`No playable file for track ${ratingKey}`);
+    return key;
+  }
+
+  /**
+   * Stream a track's audio file straight from Plex, forwarding an optional HTTP
+   * Range header so the browser can seek. Returns the upstream fetch Response so
+   * the caller can pipe its body and status through. The Plex token stays here.
+   */
+  async streamTrack(ratingKey: string, range?: string): Promise<Response> {
+    const key = await this.getTrackPartKey(ratingKey);
+    const url = new URL(key, this.cfg.url);
+    const res = await fetch(url, {
+      headers: {
+        "X-Plex-Token": this.cfg.token,
+        ...(range ? { Range: range } : {}),
+      },
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
+    if (!res.ok && res.status !== 206) {
+      throw new Error(`Plex stream ${res.status} for track ${ratingKey}`);
+    }
+    return res;
+  }
+
   async fetchArt(path: string): Promise<{ contentType: string; body: Buffer }> {
     const url = new URL(path, this.cfg.url);
     const res = await fetch(url, {

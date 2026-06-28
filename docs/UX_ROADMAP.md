@@ -63,10 +63,13 @@ discovery tools.
     (uses the server machine id) and a best-effort `plexUrl` on both
     Create/AddToPlaylist responses; the card links straight to the playlist in
     Plex, falling back to "Find it in your music app." if the link can't be built.
-- [ ] **3.2 In-app track preview** — DEFERRED (open question): no audio source
-  besides the existing YouTube links. Owned-track preview would need Plex
-  streaming/transcode auth (backend work); unowned tracks have no audio at all.
-  Decide a source before building.
+- [x] **3.2 In-app track preview** — owned tracks now play inline. Backend
+  `GET /api/preview/:id` proxies the track's file from Plex (token stays
+  server-side) with Range support for seeking (`PlexClient.streamTrack` /
+  `getTrackPartKey`). Frontend: a singleton audio controller (`preview.ts`) so
+  one preview plays at a time, and a play/stop button on every `TrackRow`.
+  (Unowned recommendations still use the YouTube link — there's no audio to
+  stream for music you don't own.)
 - [x] **3.3 Plain-English banner on the owned vs not-owned split** (`SageView.tsx`)
   - Info banner above results: "✓ N you already have — ready to play now ·
     ✦ M you'd need to download — add them to your wishlist below"

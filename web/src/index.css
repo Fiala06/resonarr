@@ -73,6 +73,10 @@ textarea {
   0% { transform: translateX(-120%); }
   100% { transform: translateX(360%); }
 }
+@keyframes resonarr-spin {
+  to { transform: rotate(360deg); }
+}
+.rsn-spin { animation: resonarr-spin 0.8s linear infinite; transform-origin: center; }
 .rsn-loader {
   position: relative;
   height: 3px;
@@ -142,5 +146,6 @@ textarea {
   .rsn-btn,
   .rsn-card,
   .rsn-loader::after,
+  .rsn-spin,
   .rsn-skeleton { animation: none !important; transition: none !important; }
 }
