@@ -28,8 +28,11 @@ discovery tools.
   - Step dots, Back / Next / Get started, Skip, backdrop-click to dismiss
   - "Seen" flag in localStorage (`resonarr.onboarded`); storage-disabled →
     treated as seen so it never nags. Rendered over both wide/narrow layouts.
-- [ ] **1.3 Per-tab one-line subtitles** — short plain-language descriptions under
-  each tab/hub so newcomers know what each mode does. Tie into 2.1 renames.
+- [x] **1.3 Per-tab one-line subtitles** — plain-language `TAB_SUBTITLES` map drives
+  hover tooltips on every tab pill, the Home/hub sidebar items, and the footer
+  items; hubs get their own one-line hints. Delivered as tooltips (not stacked
+  visible text) to avoid duplicating each view's own header; Home cards already
+  show visible blurbs for the main modes.
 - [x] **1.4 Surface the "Import my Plex ratings" prompt early** — friendly nudge
   banner on Home (shown only until the user has any thumbs) linking to Settings.
   Loved-page banner can follow later.

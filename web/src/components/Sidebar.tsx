@@ -146,10 +146,10 @@ export type Hub = "listen" | "insights" | "library";
 // only the hubs; a sub-tab strip inside the content area switches between the leaf
 // views of the active hub. Every leaf keeps its own URL hash, so deep links and the
 // browser back/forward buttons still work.
-export const HUBS: { key: Hub; label: string; tabs: Tab[] }[] = [
-  { key: "listen", label: "Make a Playlist", tabs: ["sage", "radio", "mixes", "moods", "loved", "deepcuts", "adventure"] },
-  { key: "insights", label: "About My Taste", tabs: ["profile", "timemachine"] },
-  { key: "library", label: "Get More Music", tabs: ["discover", "artists", "weekly", "spotify", "basket"] },
+export const HUBS: { key: Hub; label: string; hint: string; tabs: Tab[] }[] = [
+  { key: "listen", label: "Make a Playlist", hint: "Build playlists from music you already own", tabs: ["sage", "radio", "mixes", "moods", "loved", "deepcuts", "adventure"] },
+  { key: "insights", label: "About My Taste", hint: "See your listening stats and taste profile", tabs: ["profile", "timemachine"] },
+  { key: "library", label: "Get More Music", hint: "Grow your collection and manage downloads", tabs: ["discover", "artists", "weekly", "spotify", "basket"] },
 ];
 
 export const TAB_LABELS: Record<Tab, string> = {
@@ -170,6 +170,28 @@ export const TAB_LABELS: Record<Tab, string> = {
   basket: "Wishlist",
   logs: "Activity log",
   settings: "Settings",
+};
+
+// One-line, plain-language descriptions surfaced as hover tooltips on the tab
+// pills, so a newcomer can preview what each mode does before clicking in.
+export const TAB_SUBTITLES: Record<Tab, string> = {
+  home: "Your starting point",
+  sage: "Describe a mood or moment and get a playlist from music you own",
+  radio: "Pick one song and get a station of similar tracks you have",
+  mixes: "Fresh mixes made from what you've been playing lately",
+  moods: "One-tap playlists for focus, workout, wind-down and more",
+  loved: "Owned tracks closest to the songs you've thumbed up",
+  discover: "Fresh picks similar to a playlist you already love",
+  deepcuts: "Rediscover great tracks buried in your own library",
+  artists: "Find new artists like the ones you love and add them",
+  weekly: "A playlist that rebuilds itself automatically every week",
+  profile: "Your sound: top genres, eras and most-played artists",
+  timemachine: "Music from this day in past years, and year-in-review",
+  adventure: "A smooth journey of tracks between two songs you pick",
+  spotify: "Import your Spotify playlists into your library",
+  basket: "Music you don't own yet, queued to download",
+  logs: "A record of what Resonarr did and why",
+  settings: "Your library, downloads and preferences",
 };
 
 const HUB_ICONS: Record<Hub, ReactNode> = {
@@ -279,6 +301,7 @@ export function Sidebar({
         <NavItem
           icon={ICONS.home}
           label="Home"
+          title={TAB_SUBTITLES.home}
           active={active === "home"}
           onClick={() => onNavigate("home")}
         />
@@ -287,6 +310,7 @@ export function Sidebar({
             key={h.key}
             icon={HUB_ICONS[h.key]}
             label={h.label}
+            title={h.hint}
             active={activeHub === h.key}
             onClick={() => onNavigate(defaultTabFor(h, active))}
             badge={hubBadgeFor(h, basketCount, spotifyWaiting)}
@@ -297,8 +321,8 @@ export function Sidebar({
       {/* Cleaned-up footer: secondary nav + one compact status row.
           Library breakdown moved into a hover tooltip. */}
       <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 3 }}>
-        <NavItem icon={ICONS.logs} label="Activity log" active={active === "logs"} onClick={() => onNavigate("logs")} />
-        <NavItem icon={ICONS.settings} label="Settings" active={active === "settings"} onClick={() => onNavigate("settings")} />
+        <NavItem icon={ICONS.logs} label="Activity log" title={TAB_SUBTITLES.logs} active={active === "logs"} onClick={() => onNavigate("logs")} />
+        <NavItem icon={ICONS.settings} label="Settings" title={TAB_SUBTITLES.settings} active={active === "settings"} onClick={() => onNavigate("settings")} />
 
         <div
           style={{
@@ -493,16 +517,19 @@ function NavItem({
   active,
   onClick,
   badge,
+  title,
 }: {
   icon: ReactNode;
   label: string;
   active: boolean;
   onClick: () => void;
   badge?: number;
+  title?: string;
 }) {
   return (
     <div
       onClick={onClick}
+      title={title}
       style={{
         position: "relative",
         display: "flex",
@@ -592,6 +619,7 @@ export function HubTabs({
           <button
             key={t}
             onClick={() => onNavigate(t)}
+            title={TAB_SUBTITLES[t]}
             style={{
               display: "inline-flex",
               alignItems: "center",
