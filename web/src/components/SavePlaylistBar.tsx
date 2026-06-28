@@ -16,10 +16,12 @@ export function SavePlaylistBar({
   const [name, setName] = useState(defaultName);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [link, setLink] = useState<string | null>(null);
 
   useEffect(() => {
     setName(defaultName);
     setMsg(null);
+    setLink(null);
   }, [defaultName]);
 
   useEffect(() => {
@@ -31,14 +33,17 @@ export function SavePlaylistBar({
   async function save() {
     setSaving(true);
     setMsg(null);
+    setLink(null);
     try {
       if (target === "new") {
         const r = await createPlaylist(name.trim() || defaultName, trackIds);
-        setMsg(`Saved “${r.name}” — ${r.trackCount} ${r.trackCount === 1 ? "track" : "tracks"}. Find it in your music app.`);
+        setMsg(`Saved “${r.name}” — ${r.trackCount} ${r.trackCount === 1 ? "track" : "tracks"}.`);
+        setLink(r.plexUrl ?? null);
       } else {
         const pl = playlists.find((p) => p.id === target);
         const r = await addToPlaylist(target, trackIds);
-        setMsg(`Added ${r.added} ${r.added === 1 ? "track" : "tracks"} to “${pl?.title ?? "playlist"}”. Find it in your music app.`);
+        setMsg(`Added ${r.added} ${r.added === 1 ? "track" : "tracks"} to “${pl?.title ?? "playlist"}”.`);
+        setLink(r.plexUrl ?? null);
       }
     } catch (e) {
       setMsg(`Failed: ${e instanceof Error ? e.message : String(e)}`);
@@ -104,10 +109,25 @@ export function SavePlaylistBar({
               border: `1px solid rgba(81,207,102,0.35)`,
               color: colors.text,
               fontSize: "0.85rem",
+              flexWrap: "wrap",
             }}
           >
             <span style={{ color: colors.green, fontWeight: 700 }}>✓</span>
             <span>{msg}</span>
+            {link ? (
+              <a
+                href={link}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ marginLeft: "auto", color: colors.accentLight, fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}
+              >
+                Open in Plex →
+              </a>
+            ) : (
+              <span style={{ marginLeft: "auto", color: colors.muted, whiteSpace: "nowrap" }}>
+                Find it in your music app.
+              </span>
+            )}
           </div>
         ))}
     </div>

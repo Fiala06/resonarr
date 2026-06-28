@@ -36,12 +36,14 @@ export function registerPlaylistRoutes(app: FastifyInstance): void {
       const prefix = getSettings().playlistPrefix.trim();
       const title = prefix ? `${prefix} · ${name}` : name;
 
-      const created = await userPlexClient(req).createPlaylist(title, trackIds);
+      const plex = userPlexClient(req);
+      const created = await plex.createPlaylist(title, trackIds);
       log.info("playlist", `Created "${created.title}" (${created.trackCount} tracks)`);
       return {
         playlistId: created.playlistId,
         name: created.title,
         trackCount: created.trackCount,
+        plexUrl: await plexUrlSafe(plex, created.playlistId),
       };
     },
   );
@@ -60,9 +62,22 @@ export function registerPlaylistRoutes(app: FastifyInstance): void {
       if (!services.plex) {
         return reply.code(503).send({ error: "Plex is not configured" }) as never;
       }
-      const added = await userPlexClient(req).addToPlaylist(id, trackIds);
+      const plex = userPlexClient(req);
+      const added = await plex.addToPlaylist(id, trackIds);
       log.info("playlist", `Added ${added} tracks to playlist ${id}`);
-      return { playlistId: id, added };
+      return { playlistId: id, added, plexUrl: await plexUrlSafe(plex, id) };
     },
   );
+}
+
+/** Build the Plex deep link, swallowing errors so a save never fails over it. */
+async function plexUrlSafe(
+  plex: ReturnType<typeof userPlexClient>,
+  playlistId: string,
+): Promise<string | undefined> {
+  try {
+    return await plex.playlistWebUrl(playlistId);
+  } catch {
+    return undefined;
+  }
 }

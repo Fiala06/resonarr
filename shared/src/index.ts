@@ -365,6 +365,8 @@ export interface CreatePlaylistResponse {
   playlistId: string;
   name: string;
   trackCount: number;
+  /** Deep link to open the playlist in the Plex app (best-effort). */
+  plexUrl?: string;
 }
 
 export interface PlaylistSummary {
@@ -376,6 +378,8 @@ export interface PlaylistSummary {
 export interface AddToPlaylistResponse {
   playlistId: string;
   added: number;
+  /** Deep link to open the playlist in the Plex app (best-effort). */
+  plexUrl?: string;
 }
 
 // ---------------------------------------------------------------------------

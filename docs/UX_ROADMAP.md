@@ -58,10 +58,11 @@ discovery tools.
 
 - [x] **3.1 Clearer, more rewarding save** (`SavePlaylistBar.tsx`)
   - Primary "▶ Save to my music (N)" button (append shows "Add to playlist (N)")
-  - Success now a green ✓ confirmation card naming the playlist + track count
-    ("Find it in your music app")
-  - NOTE: "open in Plex" deep link skipped — needs the Plex server id / web URL
-    from the backend (not in `CreatePlaylistResponse`). Revisit with a server change.
+  - Success is a green ✓ confirmation card naming the playlist + track count
+  - "Open in Plex →" deep link NOW DONE: added `PlexClient.playlistWebUrl()`
+    (uses the server machine id) and a best-effort `plexUrl` on both
+    Create/AddToPlaylist responses; the card links straight to the playlist in
+    Plex, falling back to "Find it in your music app." if the link can't be built.
 - [ ] **3.2 In-app track preview** — DEFERRED (open question): no audio source
   besides the existing YouTube links. Owned-track preview would need Plex
   streaming/transcode auth (backend work); unowned tracks have no audio at all.

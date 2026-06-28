@@ -333,6 +333,16 @@ export class PlexClient {
     return id;
   }
 
+  /**
+   * A deep link that opens a playlist in the Plex web/desktop app. Needs the
+   * server's machine identifier; callers should treat it as best-effort.
+   */
+  async playlistWebUrl(playlistId: string): Promise<string> {
+    const machineId = await this.getMachineIdentifier();
+    const key = encodeURIComponent(`/playlists/${playlistId}`);
+    return `https://app.plex.tv/desktop/#!/server/${machineId}/playlist?key=${key}`;
+  }
+
   /** List audio playlists. */
   async getPlaylists(): Promise<
     { id: string; title: string; trackCount: number }[]
