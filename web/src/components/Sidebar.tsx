@@ -133,22 +133,72 @@ const ICONS: Record<Tab, ReactNode> = {
   ),
 };
 
-const MAIN_TABS: { key: Tab; label: string }[] = [
-  { key: "sage", label: "Sonic Sage" },
-  { key: "radio", label: "Radio" },
-  { key: "mixes", label: "Mixes" },
-  { key: "moods", label: "Moods" },
-  { key: "loved", label: "Loved" },
-  { key: "discover", label: "Discover" },
-  { key: "deepcuts", label: "Deep Cuts" },
-  { key: "artists", label: "Artists" },
-  { key: "weekly", label: "Weekly" },
-  { key: "profile", label: "Taste Profile" },
-  { key: "timemachine", label: "Time Machine" },
-  { key: "adventure", label: "Adventure" },
-  { key: "spotify", label: "Spotify Import" },
-  { key: "basket", label: "Basket" },
+export type Hub = "listen" | "insights" | "library";
+
+// The 14 discovery views are grouped into three top-level hubs. The sidebar shows
+// only the hubs; a sub-tab strip inside the content area switches between the leaf
+// views of the active hub. Every leaf keeps its own URL hash, so deep links and the
+// browser back/forward buttons still work.
+export const HUBS: { key: Hub; label: string; tabs: Tab[] }[] = [
+  { key: "listen", label: "Listen", tabs: ["sage", "radio", "mixes", "moods", "loved", "deepcuts", "adventure"] },
+  { key: "insights", label: "Insights", tabs: ["profile", "timemachine"] },
+  { key: "library", label: "Library", tabs: ["discover", "artists", "weekly", "spotify", "basket"] },
 ];
+
+export const TAB_LABELS: Record<Tab, string> = {
+  sage: "Sonic Sage",
+  radio: "Radio",
+  mixes: "Mixes",
+  moods: "Moods",
+  loved: "Loved",
+  discover: "Discover",
+  deepcuts: "Deep Cuts",
+  artists: "Artists",
+  weekly: "Weekly",
+  profile: "Taste Profile",
+  timemachine: "Time Machine",
+  adventure: "Adventure",
+  spotify: "Spotify Import",
+  basket: "Basket",
+  logs: "Activity log",
+  settings: "Settings",
+};
+
+const HUB_ICONS: Record<Hub, ReactNode> = {
+  listen: (
+    <>
+      <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M6.5 5.4 L11 8 L6.5 10.6 Z" fill="currentColor" />
+    </>
+  ),
+  insights: (
+    <path
+      d="M2 8 H4 L5.5 4 L7.5 12 L9.5 6 L11 8 H14"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  ),
+  library: (
+    <>
+      <rect x="2.5" y="2.5" width="4.5" height="4.5" rx="1" stroke="currentColor" strokeWidth="1.4" />
+      <rect x="9" y="2.5" width="4.5" height="4.5" rx="1" stroke="currentColor" strokeWidth="1.4" />
+      <rect x="2.5" y="9" width="4.5" height="4.5" rx="1" stroke="currentColor" strokeWidth="1.4" />
+      <rect x="9" y="9" width="4.5" height="4.5" rx="1" stroke="currentColor" strokeWidth="1.4" />
+    </>
+  ),
+};
+
+/** Which hub a leaf tab belongs to (null for footer items like logs/settings). */
+export function hubForTab(tab: Tab): Hub | null {
+  return HUBS.find((h) => h.tabs.includes(tab))?.key ?? null;
+}
+
+/** The tab to open when a hub is clicked: keep the current one if it's already inside. */
+function defaultTabFor(hub: { tabs: Tab[] }, active: Tab): Tab {
+  return hub.tabs.includes(active) ? active : hub.tabs[0];
+}
 
 // "38,412" -> "38.4k" for the compact footer label.
 function compact(n: number): string {
@@ -163,6 +213,12 @@ function badgeFor(tab: Tab, basketCount: number, spotifyWaiting: number): number
   return undefined;
 }
 
+/** Combined badge for a hub: the sum of its leaf badges (undefined when zero). */
+function hubBadgeFor(hub: { tabs: Tab[] }, basketCount: number, spotifyWaiting: number): number | undefined {
+  const total = hub.tabs.reduce((n, t) => n + (badgeFor(t, basketCount, spotifyWaiting) ?? 0), 0);
+  return total > 0 ? total : undefined;
+}
+
 export function Sidebar({
   active,
   onNavigate,
@@ -173,6 +229,7 @@ export function Sidebar({
   version,
   authUser,
   onLogout,
+  showUser = true,
 }: {
   active: Tab;
   onNavigate: (t: Tab) => void;
@@ -183,7 +240,9 @@ export function Sidebar({
   version: AppVersion | null;
   authUser?: AuthUser;
   onLogout?: () => void;
+  showUser?: boolean;
 }) {
+  const activeHub = hubForTab(active);
   return (
     <div
       style={{
@@ -209,14 +268,14 @@ export function Sidebar({
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-        {MAIN_TABS.map((t) => (
+        {HUBS.map((h) => (
           <NavItem
-            key={t.key}
-            tab={t.key}
-            label={t.label}
-            active={active === t.key}
-            onClick={() => onNavigate(t.key)}
-            badge={badgeFor(t.key, basketCount, spotifyWaiting)}
+            key={h.key}
+            icon={HUB_ICONS[h.key]}
+            label={h.label}
+            active={activeHub === h.key}
+            onClick={() => onNavigate(defaultTabFor(h, active))}
+            badge={hubBadgeFor(h, basketCount, spotifyWaiting)}
           />
         ))}
       </div>
@@ -224,8 +283,8 @@ export function Sidebar({
       {/* Cleaned-up footer: secondary nav + one compact status row.
           Library breakdown moved into a hover tooltip. */}
       <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 3 }}>
-        <NavItem tab="logs" label="Activity log" active={active === "logs"} onClick={() => onNavigate("logs")} />
-        <NavItem tab="settings" label="Settings" active={active === "settings"} onClick={() => onNavigate("settings")} />
+        <NavItem icon={ICONS.logs} label="Activity log" active={active === "logs"} onClick={() => onNavigate("logs")} />
+        <NavItem icon={ICONS.settings} label="Settings" active={active === "settings"} onClick={() => onNavigate("settings")} />
 
         <div
           style={{
@@ -313,7 +372,7 @@ export function Sidebar({
           )}
         </div>
 
-        {authUser && onLogout && (
+        {showUser && authUser && onLogout && (
           <div
             style={{
               marginTop: 10,
@@ -392,13 +451,13 @@ export function Sidebar({
 }
 
 function NavItem({
-  tab,
+  icon,
   label,
   active,
   onClick,
   badge,
 }: {
-  tab: Tab;
+  icon: ReactNode;
   label: string;
   active: boolean;
   onClick: () => void;
@@ -436,7 +495,7 @@ function NavItem({
         }}
       />
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flex: "none" }}>
-        {ICONS[tab]}
+        {icon}
       </svg>
       <span style={{ flex: 1 }}>{label}</span>
       {badge !== undefined && (
@@ -453,6 +512,184 @@ function NavItem({
         >
           {badge}
         </span>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The sub-tab strip shown at the top of the content area. It lets you switch
+ * between the leaf views of the currently active hub. Returns null for footer
+ * pages (logs/settings) that don't belong to a hub.
+ */
+export function HubTabs({
+  active,
+  onNavigate,
+  basketCount,
+  spotifyWaiting = 0,
+}: {
+  active: Tab;
+  onNavigate: (t: Tab) => void;
+  basketCount: number;
+  spotifyWaiting?: number;
+}) {
+  const hubKey = hubForTab(active);
+  const hub = HUBS.find((h) => h.key === hubKey);
+  if (!hub) return null;
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        gap: 6,
+        flexWrap: "wrap",
+        marginBottom: 24,
+        paddingBottom: 18,
+        borderBottom: `1px solid ${colors.border}`,
+      }}
+    >
+      {hub.tabs.map((t) => {
+        const on = t === active;
+        const badge = badgeFor(t, basketCount, spotifyWaiting);
+        return (
+          <button
+            key={t}
+            onClick={() => onNavigate(t)}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 7,
+              padding: "6px 12px",
+              borderRadius: 999,
+              fontSize: 13,
+              fontWeight: on ? 600 : 500,
+              cursor: "pointer",
+              border: `1px solid ${on ? "transparent" : colors.border}`,
+              background: on ? fx.navActiveBg : "transparent",
+              color: on ? colors.text : colors.muted,
+              transition: "background .2s ease, color .2s ease",
+            }}
+          >
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" style={{ flex: "none" }}>
+              {ICONS[t]}
+            </svg>
+            {TAB_LABELS[t]}
+            {badge !== undefined && (
+              <span
+                style={{
+                  background: fx.btnBg,
+                  color: "#fff",
+                  fontSize: 10,
+                  fontWeight: 600,
+                  borderRadius: 10,
+                  padding: "0px 6px",
+                  boxShadow: fx.btnGlow,
+                }}
+              >
+                {badge}
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * Compact top bar shown only on narrow screens. The hamburger opens the sidebar
+ * as a drawer; the signed-in username and log-out control are always visible here
+ * (the sidebar's own user row is hidden in that layout to avoid duplication).
+ */
+export function TopBar({
+  onMenu,
+  authUser,
+  onLogout,
+}: {
+  onMenu: () => void;
+  authUser?: AuthUser;
+  onLogout?: () => void;
+}) {
+  return (
+    <div
+      style={{
+        flex: "none",
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        padding: "11px 16px",
+        background: colors.sidebar,
+        borderBottom: `1px solid ${colors.border}`,
+      }}
+    >
+      <button
+        onClick={onMenu}
+        title="Menu"
+        aria-label="Open menu"
+        style={{
+          flex: "none",
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: 34,
+          height: 34,
+          background: "transparent",
+          color: colors.text,
+          border: `1px solid ${colors.border}`,
+          borderRadius: 8,
+          cursor: "pointer",
+        }}
+      >
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+          <path d="M2.5 4 H13.5 M2.5 8 H13.5 M2.5 12 H13.5" />
+        </svg>
+      </button>
+
+      <span style={{ display: "inline-flex", filter: fx.logoGlow }}>
+        <Logo size={22} />
+      </span>
+      <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: "-0.3px" }}>Resonarr</span>
+
+      {authUser && (
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+          <span
+            title={`Signed in as ${authUser.name}`}
+            style={{
+              fontSize: 12,
+              color: colors.muted,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              minWidth: 0,
+            }}
+          >
+            {authUser.name}
+          </span>
+          {onLogout && (
+            <button
+              onClick={onLogout}
+              title="Log out"
+              aria-label="Log out"
+              style={{
+                flex: "none",
+                display: "inline-flex",
+                alignItems: "center",
+                background: "transparent",
+                color: colors.text,
+                border: `1px solid ${colors.border}`,
+                borderRadius: 7,
+                padding: "6px 8px",
+                cursor: "pointer",
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+            </button>
+          )}
+        </div>
       )}
     </div>
   );
