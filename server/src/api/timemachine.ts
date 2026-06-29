@@ -1,8 +1,16 @@
 import type { FastifyInstance } from "fastify";
 import type { OnThisDayResponse, YearInReviewResponse } from "@resonarr/shared";
+import type { FastifyRequest } from "fastify";
 import { userPlexClient } from "../auth/service.ts";
+import { feedbackKeyForRequest } from "../feedback/service.ts";
 import { getOnThisDay, getYearTracks } from "../timemachine/service.ts";
 import { services } from "../services.ts";
+
+/** Session Plex account id as a number, or null when login is off. */
+async function accountIdForRequest(req: FastifyRequest): Promise<number | null> {
+  const key = await feedbackKeyForRequest(req);
+  return key ? Number(key) : null;
+}
 
 export function registerTimeMachineRoutes(app: FastifyInstance): void {
   /** "On this day" — tracks from this week across the past 6 years. */
@@ -12,7 +20,11 @@ export function registerTimeMachineRoutes(app: FastifyInstance): void {
     try {
       const plex = userPlexClient(req);
       const section = await plex.getMusicSection();
-      const result = await getOnThisDay(plex, section.key);
+      const result = await getOnThisDay(
+        plex,
+        section.key,
+        await accountIdForRequest(req),
+      );
       return result;
     } catch (err) {
       return reply.code(502).send({
@@ -36,7 +48,12 @@ export function registerTimeMachineRoutes(app: FastifyInstance): void {
       try {
         const plex = userPlexClient(req);
         const section = await plex.getMusicSection();
-        return await getYearTracks(plex, section.key, year);
+        return await getYearTracks(
+          plex,
+          section.key,
+          year,
+          await accountIdForRequest(req),
+        );
       } catch (err) {
         return reply.code(502).send({
           error: err instanceof Error ? err.message : String(err),

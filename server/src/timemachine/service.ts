@@ -1,6 +1,10 @@
 import type { Track, TimeMachineGroup } from "@resonarr/shared";
 import type { PlexClient } from "../plex/client.ts";
-import { archiveBoundary, archiveTopTracksBetween } from "../history/service.ts";
+import {
+  archiveBoundary,
+  archiveTopTracksBetween,
+  resolveAccountScope,
+} from "../history/service.ts";
 
 const WINDOW_DAYS = 14; // ±14 days around today's date
 const TRACKS_PER_YEAR = 30;
@@ -52,11 +56,12 @@ async function tracksForWindow(
   to: number,
   limit: number,
   useArchive: boolean,
+  account: number | null,
 ): Promise<Track[]> {
   if (!useArchive) {
     return plex.getTracksViewedBetween(sectionKey, from, to, limit).catch(() => []);
   }
-  const ranked = archiveTopTracksBetween(from, to, limit);
+  const ranked = archiveTopTracksBetween(from, to, limit, account);
   if (ranked.length === 0) return [];
   const tracks = await plex
     .getTracksByRatingKeys(ranked.map((r) => r.trackId))
@@ -75,9 +80,11 @@ async function tracksForWindow(
 export async function getOnThisDay(
   plex: PlexClient,
   sectionKey: string,
+  accountId: number | null = null,
 ): Promise<{ label: string; groups: TimeMachineGroup[] }> {
   const currentYear = new Date().getUTCFullYear();
   const useArchive = archiveBoundary() > 0;
+  const account = resolveAccountScope(accountId);
 
   const years = Array.from(
     { length: LOOK_BACK_YEARS },
@@ -94,6 +101,7 @@ export async function getOnThisDay(
         to,
         TRACKS_PER_YEAR,
         useArchive,
+        account,
       );
       return { year, tracks };
     }),
@@ -116,6 +124,7 @@ export async function getYearTracks(
   plex: PlexClient,
   sectionKey: string,
   year: number,
+  accountId: number | null = null,
 ): Promise<{ year: number; tracks: Track[] }> {
   const [from, to] = yearBounds(year);
   const tracks = await tracksForWindow(
@@ -125,6 +134,7 @@ export async function getYearTracks(
     to,
     YEAR_TRACKS_LIMIT,
     archiveBoundary() > 0,
+    resolveAccountScope(accountId),
   );
   return { year, tracks };
 }

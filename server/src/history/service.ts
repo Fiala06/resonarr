@@ -86,72 +86,123 @@ function rowToEvent(r: PlayHistoryRow): PlayEvent {
 /**
  * Merged play events with `viewedAt >= since`, newest first. Falls back to
  * Plex-only when the archive is empty (Tautulli not imported / not configured).
+ *
+ * `accountId` (the requesting user's Plex account id, or null when login is off)
+ * scopes the archive to that user. The live Plex tail's `accountID` is a
+ * server-local id that won't match a plex.tv account id, so we only narrow it
+ * when the filter actually hits something — never dropping the user's own
+ * brand-new plays. Resolve `accountId` through resolveAccountScope first.
  */
 export async function getMergedHistory(
   plex: PlexClient,
   sectionKey: string,
   since: number,
+  accountId: number | null,
   plexMax = 5000,
 ): Promise<PlayEvent[]> {
+  const toEvent = (p: {
+    ratingKey: string;
+    title: string;
+    artist?: string;
+    viewedAt: number;
+    accountID?: number;
+  }): PlayEvent => ({
+    ratingKey: p.ratingKey,
+    title: p.title,
+    artist: p.artist,
+    viewedAt: p.viewedAt,
+    accountID: p.accountID,
+  });
+
+  const account = resolveAccountScope(accountId);
+
   const live = (await plex.getMusicPlayHistory(sectionKey, plexMax)).filter(
     (p) => p.viewedAt >= since,
   );
 
   const boundary = archiveBoundary();
-  if (boundary === 0) {
-    return live.map((p) => ({
-      ratingKey: p.ratingKey,
-      title: p.title,
-      artist: p.artist,
-      viewedAt: p.viewedAt,
-      accountID: p.accountID,
-    }));
+  if (boundary === 0) return live.map(toEvent);
+
+  let liveTail = live.filter((p) => p.viewedAt > boundary);
+  if (account != null) {
+    const narrowed = liveTail.filter((p) => p.accountID === account);
+    if (narrowed.length > 0) liveTail = narrowed;
   }
 
-  const liveNew = live
-    .filter((p) => p.viewedAt > boundary)
-    .map((p) => ({
-      ratingKey: p.ratingKey,
-      title: p.title,
-      artist: p.artist,
-      viewedAt: p.viewedAt,
-      accountID: p.accountID,
-    }));
+  const archive = archiveEventsBetween(since, boundary, account);
 
-  const archive = (
+  return [...liveTail.map(toEvent), ...archive].sort(
+    (a, b) => b.viewedAt - a.viewedAt,
+  );
+}
+
+/**
+ * Resolve a session account id to one we can actually scope by. Tautulli's
+ * `user_id` shares the Plex account namespace, so a logged-in user's id normally
+ * matches archive rows directly. But if it doesn't (an unexpected id mismatch),
+ * scoping every query to it would show an empty app — so we fall back to null
+ * ("don't scope") only in that case, after confirming the user has no archive
+ * rows at all. Returns null unchanged when login is off.
+ */
+export function resolveAccountScope(accountId: number | null): number | null {
+  if (accountId == null) return null;
+  const hit = getDb()
+    .prepare("SELECT 1 FROM play_history WHERE account_id = ? LIMIT 1")
+    .get(accountId);
+  return hit ? accountId : null;
+}
+
+/** Archive events in [from, to] (newest first), scoped to `account` if set. */
+function archiveEventsBetween(
+  from: number,
+  to: number,
+  account: number | null,
+): PlayEvent[] {
+  const where =
+    account != null
+      ? "viewed_at >= ? AND viewed_at <= ? AND account_id = ?"
+      : "viewed_at >= ? AND viewed_at <= ?";
+  const params = account != null ? [from, to, account] : [from, to];
+  return (
     getDb()
       .prepare(
         `SELECT track_id, title, artist, viewed_at, account_id
            FROM play_history
-          WHERE viewed_at >= ? AND viewed_at <= ?
+          WHERE ${where}
           ORDER BY viewed_at DESC`,
       )
-      .all(since, boundary) as unknown as PlayHistoryRow[]
+      .all(...params) as unknown as PlayHistoryRow[]
   ).map(rowToEvent);
-
-  return [...liveNew, ...archive].sort((a, b) => b.viewedAt - a.viewedAt);
 }
 
 /**
- * Distinct tracks played in [from, to], ranked by play count (desc). Used by the
- * Time Machine to surface the most-listened tracks from a past window — the
- * thing Plex's pruned, last-play-only history can't answer.
+ * Distinct tracks played in [from, to], ranked by play count (desc), scoped to
+ * `account` when set. Used by the Time Machine to surface the most-listened
+ * tracks from a past window — the thing Plex's pruned, last-play-only history
+ * can't answer. Pass an id already run through resolveAccountScope.
  */
 export function archiveTopTracksBetween(
   from: number,
   to: number,
   limit: number,
+  account: number | null = null,
 ): { trackId: string; plays: number }[] {
+  const where =
+    account != null
+      ? "viewed_at >= ? AND viewed_at <= ? AND account_id = ?"
+      : "viewed_at >= ? AND viewed_at <= ?";
+  const params =
+    account != null ? [from, to, account, limit] : [from, to, limit];
   return getDb()
     .prepare(
       `SELECT track_id AS trackId, COUNT(*) AS plays
          FROM play_history
-        WHERE viewed_at >= ? AND viewed_at <= ?
+        WHERE ${where}
         GROUP BY track_id
         ORDER BY plays DESC, MAX(viewed_at) DESC
         LIMIT ?`,
     )
-    .all(from, to, limit) as unknown as { trackId: string; plays: number }[];
+    .all(...params) as unknown as { trackId: string; plays: number }[];
 }
 
 /**
