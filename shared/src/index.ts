@@ -501,6 +501,32 @@ export interface YearInReviewResponse {
 }
 
 // ---------------------------------------------------------------------------
+// Tautulli play-history import
+// ---------------------------------------------------------------------------
+
+/** State of the imported play-history archive (sourced from Tautulli). */
+export interface TautulliStatus {
+  /** Whether TAUTULLI_URL / TAUTULLI_API_KEY are configured. */
+  configured: boolean;
+  /** Number of play events currently stored locally. */
+  total: number;
+  /** Epoch seconds of the oldest imported play (null when empty). */
+  oldest: number | null;
+  /** Epoch seconds of the newest imported play (null when empty). */
+  newest: number | null;
+  /** Epoch seconds of the last successful import (null when never run). */
+  lastImport: number | null;
+}
+
+/** Result of an import run. */
+export interface TautulliImportResult {
+  /** New play events stored this run (0 when nothing newer was found). */
+  imported: number;
+  /** Total play events in the archive after the import. */
+  total: number;
+}
+
+// ---------------------------------------------------------------------------
 // Spotify import
 // ---------------------------------------------------------------------------
 

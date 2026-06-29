@@ -1,5 +1,6 @@
-import type { TimeMachineGroup } from "@resonarr/shared";
+import type { Track, TimeMachineGroup } from "@resonarr/shared";
 import type { PlexClient } from "../plex/client.ts";
+import { archiveBoundary, archiveTopTracksBetween } from "../history/service.ts";
 
 const WINDOW_DAYS = 14; // ±14 days around today's date
 const TRACKS_PER_YEAR = 30;
@@ -36,15 +37,47 @@ function yearBounds(year: number): [number, number] {
 }
 
 /**
- * "On this day" — one group per past year that has tracks. Queries each year
- * in parallel using Plex's lastViewedAt date-range filter, sorted by play
- * count so the most-listened tracks surface first.
+ * Tracks played within [from, to], most-played first.
+ *
+ * When the Tautulli archive is populated we count real play *events* in the
+ * window (so a track loved 3 years ago surfaces for that year), then hydrate the
+ * ids into full tracks via Plex. Without the archive we fall back to Plex's
+ * `lastViewedAt` range filter — which only knows each track's *last* play, so it
+ * can't really do "N years ago", but it keeps the feature working.
+ */
+async function tracksForWindow(
+  plex: PlexClient,
+  sectionKey: string,
+  from: number,
+  to: number,
+  limit: number,
+  useArchive: boolean,
+): Promise<Track[]> {
+  if (!useArchive) {
+    return plex.getTracksViewedBetween(sectionKey, from, to, limit).catch(() => []);
+  }
+  const ranked = archiveTopTracksBetween(from, to, limit);
+  if (ranked.length === 0) return [];
+  const tracks = await plex
+    .getTracksByRatingKeys(ranked.map((r) => r.trackId))
+    .catch(() => [] as Track[]);
+  const byId = new Map(tracks.map((t) => [t.id, t]));
+  // Preserve play-count order; drop ids Plex no longer has.
+  return ranked
+    .map((r) => byId.get(r.trackId))
+    .filter((t): t is Track => t !== undefined);
+}
+
+/**
+ * "On this day" — one group per past year that has tracks, most-played first.
+ * Years are queried in parallel.
  */
 export async function getOnThisDay(
   plex: PlexClient,
   sectionKey: string,
 ): Promise<{ label: string; groups: TimeMachineGroup[] }> {
   const currentYear = new Date().getUTCFullYear();
+  const useArchive = archiveBoundary() > 0;
 
   const years = Array.from(
     { length: LOOK_BACK_YEARS },
@@ -54,9 +87,14 @@ export async function getOnThisDay(
   const results = await Promise.all(
     years.map(async (year) => {
       const [from, to] = windowForYear(year);
-      const tracks = await plex
-        .getTracksViewedBetween(sectionKey, from, to, TRACKS_PER_YEAR)
-        .catch(() => []);
+      const tracks = await tracksForWindow(
+        plex,
+        sectionKey,
+        from,
+        to,
+        TRACKS_PER_YEAR,
+        useArchive,
+      );
       return { year, tracks };
     }),
   );
@@ -78,13 +116,15 @@ export async function getYearTracks(
   plex: PlexClient,
   sectionKey: string,
   year: number,
-): Promise<{ year: number; tracks: import("@resonarr/shared").Track[] }> {
+): Promise<{ year: number; tracks: Track[] }> {
   const [from, to] = yearBounds(year);
-  const tracks = await plex.getTracksViewedBetween(
+  const tracks = await tracksForWindow(
+    plex,
     sectionKey,
     from,
     to,
     YEAR_TRACKS_LIMIT,
+    archiveBoundary() > 0,
   );
   return { year, tracks };
 }

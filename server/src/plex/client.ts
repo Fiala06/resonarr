@@ -296,6 +296,28 @@ export class PlexClient {
   }
 
   /**
+   * Hydrate tracks by their ratingKeys. Plex accepts a comma-separated id list
+   * on `/library/metadata/{ids}`; results may come back in any order and miss
+   * ids that no longer exist, so callers should not assume 1:1 ordering. Batched
+   * to keep URLs sane.
+   */
+  async getTracksByRatingKeys(ratingKeys: string[]): Promise<Track[]> {
+    const unique = [...new Set(ratingKeys)].filter(Boolean);
+    if (unique.length === 0) return [];
+
+    const BATCH = 100;
+    const out: Track[] = [];
+    for (let i = 0; i < unique.length; i += BATCH) {
+      const ids = unique.slice(i, i + BATCH).join(",");
+      const data = await this.request<PlexContainer<PlexMetadata>>(
+        `/library/metadata/${ids}`,
+      ).catch(() => ({ MediaContainer: {} }) as PlexContainer<PlexMetadata>);
+      for (const m of data.MediaContainer.Metadata ?? []) out.push(toTrack(m));
+    }
+    return out;
+  }
+
+  /**
    * Full-text track search via Plex's hub search (the `/all?query=` param is
    * silently ignored, so we use `/hubs/search` and pull the track hub).
    */

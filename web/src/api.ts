@@ -38,6 +38,8 @@ import type {
   SpotifySync,
   StatsSummary,
   TasteProfile,
+  TautulliImportResult,
+  TautulliStatus,
   Track,
   YearInReviewResponse,
 } from "@resonarr/shared";
@@ -397,6 +399,16 @@ export async function getOnThisDay(): Promise<OnThisDayResponse> {
 
 export async function getYearInReview(year: number): Promise<YearInReviewResponse> {
   return asJson(await fetch(`/api/timemachine/year/${year}`));
+}
+
+// --- Tautulli play-history import --------------------------------------------
+
+export async function getTautulliStatus(): Promise<TautulliStatus> {
+  return asJson(await fetch("/api/tautulli/status"));
+}
+
+export async function importTautulli(): Promise<TautulliImportResult> {
+  return asJson(await fetch("/api/tautulli/import", { method: "POST" }));
 }
 
 export async function importSpotifyFile(

@@ -4,8 +4,16 @@ import type {
   AppSettings,
   LidarrOptions,
   LlmProvider,
+  TautulliStatus,
 } from "@resonarr/shared";
-import { getLidarrOptions, getSettings, importPlexRatings, putSettings } from "../api";
+import {
+  getLidarrOptions,
+  getSettings,
+  getTautulliStatus,
+  importPlexRatings,
+  importTautulli,
+  putSettings,
+} from "../api";
 import { reloadFeedback } from "../feedback";
 import { InfoHint } from "../components/InfoHint";
 import { colors, fx } from "../theme";
@@ -28,13 +36,35 @@ export function SettingsView() {
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [importMsg, setImportMsg] = useState<string | null>(null);
+  const [tautulli, setTautulli] = useState<TautulliStatus | null>(null);
+  const [tautImporting, setTautImporting] = useState(false);
+  const [tautMsg, setTautMsg] = useState<string | null>(null);
 
   useEffect(() => {
     getSettings().then(setForm).catch((e) => setLoadError(String(e)));
     getLidarrOptions()
       .then(setOptions)
       .catch((e) => setLidarrError(e instanceof Error ? e.message : String(e)));
+    getTautulliStatus().then(setTautulli).catch(() => setTautulli(null));
   }, []);
+
+  async function runTautulliImport() {
+    setTautImporting(true);
+    setTautMsg(null);
+    try {
+      const r = await importTautulli();
+      setTautMsg(
+        r.imported > 0
+          ? `Imported ${r.imported.toLocaleString()} new plays (${r.total.toLocaleString()} total).`
+          : `Up to date — no new plays (${r.total.toLocaleString()} total).`,
+      );
+      setTautulli(await getTautulliStatus());
+    } catch (e) {
+      setTautMsg(`Import failed: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setTautImporting(false);
+    }
+  }
 
   function patch<K extends keyof AppSettings>(key: K, value: AppSettings[K]) {
     setForm((prev) => (prev ? { ...prev, [key]: value } : prev));
@@ -247,6 +277,72 @@ export function SettingsView() {
         </Field>
       </Card>
 
+      <Card title="Play history (Tautulli)">
+        {!tautulli?.configured ? (
+          <p style={{ margin: 0, fontSize: 13, color: colors.muted }}>
+            Not configured. Set <code>TAUTULLI_URL</code> and{" "}
+            <code>TAUTULLI_API_KEY</code> (e.g. as Docker variables) to import
+            years of play history. Once set, resonarr merges Tautulli's archive
+            with Plex's own live history for richer stats, mixes, and Time
+            Machine.
+          </p>
+        ) : (
+          <Field
+            label="Import play history from Tautulli"
+            hint="Pulls your Plex play history that Tautulli has logged (often years' worth) into resonarr and merges it with Plex's own. Incremental — each run only fetches plays newer than the last import."
+          >
+            <div style={{ fontSize: 13, color: colors.muted, marginBottom: 6 }}>
+              {tautulli.total > 0 ? (
+                <>
+                  {tautulli.total.toLocaleString()} plays archived
+                  {tautulli.oldest && tautulli.newest && (
+                    <> · {fmtDate(tautulli.oldest)} – {fmtDate(tautulli.newest)}</>
+                  )}
+                  {tautulli.lastImport && (
+                    <> · last import {fmtDate(tautulli.lastImport)}</>
+                  )}
+                </>
+              ) : (
+                "Nothing imported yet."
+              )}
+            </div>
+            <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+              <button
+                onClick={runTautulliImport}
+                disabled={tautImporting}
+                className="rsn-btn"
+                style={{
+                  background: "transparent",
+                  color: colors.text,
+                  border: `1px solid ${colors.border}`,
+                  borderRadius: 8,
+                  padding: "9px 15px",
+                  fontWeight: 600,
+                  cursor: tautImporting ? "default" : "pointer",
+                  opacity: tautImporting ? 0.7 : 1,
+                }}
+              >
+                {tautImporting
+                  ? "Importing…"
+                  : tautulli.total > 0
+                    ? "Import new plays"
+                    : "Import history"}
+              </button>
+              {tautMsg && (
+                <span
+                  style={{
+                    fontSize: 13,
+                    color: tautMsg.startsWith("Import failed") ? colors.red : colors.green,
+                  }}
+                >
+                  {tautMsg}
+                </span>
+              )}
+            </div>
+          </Field>
+        )}
+      </Card>
+
       <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
         <button
           onClick={save}
@@ -279,6 +375,15 @@ export function SettingsView() {
       </div>
     </section>
   );
+}
+
+/** Epoch seconds → short local date (e.g. "Jun 28, 2026"). */
+function fmtDate(epochSeconds: number): string {
+  return new Date(epochSeconds * 1000).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 }
 
 function Card({ title, children }: { title: string; children: ReactNode }) {

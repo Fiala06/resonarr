@@ -1,6 +1,7 @@
 import { config } from "./config/env.ts";
 import { PlexClient } from "./plex/client.ts";
 import { LidarrClient } from "./lidarr/client.ts";
+import { TautulliClient } from "./tautulli/client.ts";
 import { SonicService } from "./sonic/cache.ts";
 
 /**
@@ -10,9 +11,11 @@ import { SonicService } from "./sonic/cache.ts";
  */
 const plex = config.plex ? new PlexClient(config.plex) : null;
 const lidarr = config.lidarr ? new LidarrClient(config.lidarr) : null;
+const tautulli = config.tautulli ? new TautulliClient(config.tautulli) : null;
 
 export const services = {
   plex,
   lidarr,
+  tautulli,
   sonic: plex ? new SonicService(plex) : null,
 };

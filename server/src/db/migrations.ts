@@ -221,6 +221,28 @@ const MIGRATIONS: Migration[] = [
     // rows show real cover art instead of a blank tint.
     up: `ALTER TABLE basket_items ADD COLUMN cover_url TEXT;`,
   },
+  {
+    version: 14,
+    // Persisted play-history archive (currently sourced from Tautulli). Plex's
+    // own history is short-lived and gets pruned; Tautulli often has years of
+    // it. We store events here once and merge them with Plex's live tail at read
+    // time. The composite PK makes re-imports idempotent (same play = same row).
+    up: `
+      CREATE TABLE IF NOT EXISTS play_history (
+        source      TEXT    NOT NULL,           -- 'tautulli'
+        track_id    TEXT    NOT NULL,           -- Plex ratingKey
+        artist      TEXT    NOT NULL DEFAULT '',
+        title       TEXT,
+        viewed_at   INTEGER NOT NULL,           -- epoch seconds of the play
+        account_id  INTEGER,                    -- Plex account that played it
+        imported_at INTEGER NOT NULL,           -- epoch seconds we stored it
+        PRIMARY KEY (source, track_id, viewed_at)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_play_history_viewed_at ON play_history (viewed_at);
+      CREATE INDEX IF NOT EXISTS idx_play_history_account   ON play_history (account_id);
+    `,
+  },
 ];
 
 export function runMigrations(db: DatabaseSync): void {

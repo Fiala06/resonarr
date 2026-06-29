@@ -29,6 +29,11 @@ export interface SpotifyConfig {
   clientSecret: string;
 }
 
+export interface TautulliConfig {
+  url: string;
+  apiKey: string;
+}
+
 export const config = {
   port: Number(optional("PORT") ?? "8080"),
 
@@ -85,6 +90,17 @@ export const config = {
     const clientId = optional("SPOTIFY_CLIENT_ID");
     const clientSecret = optional("SPOTIFY_CLIENT_SECRET");
     return clientId && clientSecret ? { clientId, clientSecret } : undefined;
+  })(),
+
+  /**
+   * Tautulli play-history archive (optional). When set, resonarr imports years
+   * of Plex play history Tautulli has logged and merges it with Plex's own
+   * (shorter, live) history. Present only when both URL and API key are set.
+   */
+  tautulli: ((): TautulliConfig | undefined => {
+    const url = optional("TAUTULLI_URL");
+    const apiKey = optional("TAUTULLI_API_KEY");
+    return url && apiKey ? { url, apiKey } : undefined;
   })(),
 } as const;
 

@@ -18,6 +18,7 @@ import { registerAutoPlaylistRoutes } from "./api/autoplaylists.ts";
 import { registerFeedbackRoutes } from "./api/feedback.ts";
 import { registerSpotifyRoutes } from "./api/spotify.ts";
 import { registerTimeMachineRoutes } from "./api/timemachine.ts";
+import { registerTautulliRoutes } from "./api/tautulli.ts";
 import { startScheduler } from "./autoplaylist/service.ts";
 import { startSpotifySyncScheduler } from "./spotify/sync.ts";
 import {
@@ -61,6 +62,11 @@ if (!config.plex) {
 if (!config.lidarr) {
   app.log.warn(
     "Lidarr not configured (LIDARR_URL/LIDARR_API_KEY) — requesting new music is unavailable.",
+  );
+}
+if (config.tautulli) {
+  app.log.info(
+    "Tautulli configured — play-history import available (Settings → Play history).",
   );
 }
 if (config.authPlex && !config.plex) {
@@ -126,6 +132,7 @@ registerAutoPlaylistRoutes(app);
 registerFeedbackRoutes(app);
 registerSpotifyRoutes(app);
 registerTimeMachineRoutes(app);
+registerTautulliRoutes(app);
 
 // --- Static web app (built SPA) ----------------------------------------------
 // Present in production / Docker; absent during `dev:web` (Vite serves it).
