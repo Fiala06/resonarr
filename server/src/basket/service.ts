@@ -48,19 +48,34 @@ function isStaleProxyCover(coverUrl: string | undefined): boolean {
   return typeof coverUrl === "string" && coverUrl.startsWith("/api/lidarr/art");
 }
 
+type CoverItem = { artist: string; album?: string; mbid?: string };
+
 /**
- * The cover for a basket item, as a browser-loadable URL:
- *   1. a Lidarr remote URL if its metadata has one, else
- *   2. the Plex thumbnail (served through our working /api/art proxy) — these
- *      items get downloaded into Plex, so once they land the library has the art.
+ * The cover for a basket item, as a browser-loadable URL, trying in order:
+ *   1. a Lidarr stored remote URL (rare on older Lidarr), else
+ *   2. the Plex thumbnail (served via /api/art) once the item is in the library, else
+ *   3. Lidarr's metadata *lookup* art (public remoteUrl) — works even before the
+ *      item lands in Plex.
+ * Returns the URL plus which source produced it, for diagnostic logging.
  */
 async function resolveCover(
-  item: { artist: string; album?: string; mbid?: string },
+  item: CoverItem,
   lidarrImages: unknown,
-): Promise<string | undefined> {
-  const remote = remoteCoverFromImages(lidarrImages);
-  if (remote) return remote;
+): Promise<{ url?: string; source: string }> {
+  const stored = remoteCoverFromImages(lidarrImages);
+  if (stored) return { url: stored, source: "lidarr-stored" };
 
+  const plexUrl = await plexThumbCover(item);
+  if (plexUrl) return { url: plexUrl, source: "plex" };
+
+  const lookupUrl = await lidarrLookupCover(item);
+  if (lookupUrl) return { url: lookupUrl, source: "lidarr-lookup" };
+
+  return { source: "none" };
+}
+
+/** A Plex track thumbnail for the item, via the working /api/art proxy. */
+async function plexThumbCover(item: CoverItem): Promise<string | undefined> {
   const plex = services.plex;
   if (!plex) return undefined;
   const query = item.album ? `${item.artist} ${item.album}` : item.artist;
@@ -77,6 +92,21 @@ async function resolveCover(
       tracks.find((t) => normalize(t.artist) === wantArtist) ??
       tracks[0];
     return hit?.thumb ? `/api/art?path=${encodeURIComponent(hit.thumb)}` : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Public art from Lidarr's metadata lookup (richer than stored-artist data). */
+async function lidarrLookupCover(item: CoverItem): Promise<string | undefined> {
+  const lidarr = services.lidarr;
+  if (!lidarr) return undefined;
+  try {
+    const hits = await lidarr.artistLookup(item.artist);
+    const hit =
+      (item.mbid ? hits.find((h) => h.foreignArtistId === item.mbid) : undefined) ??
+      hits[0];
+    return remoteCoverFromImages(hit?.images);
   } catch {
     return undefined;
   }
@@ -362,7 +392,9 @@ export async function refreshBasketStatuses(): Promise<BasketItem[]> {
   let covered = 0;
   for (const item of needsCover) {
     const artist = artistsByMbid.get(item.mbid as string);
-    const url = await resolveCover(item, artist?.images);
+    const { url, source } = await resolveCover(item, artist?.images);
+    const label = item.album ? `${item.artist} / ${item.album}` : item.artist;
+    log.info("basket", `cover "${label}": ${source}`);
     if (url && url !== item.coverUrl) {
       setCoverUrl(item.id, url);
       covered += 1;
