@@ -26,14 +26,12 @@ interface BasketRow {
 }
 
 /**
- * Turn a Lidarr images array into a browser-loadable cover URL.
- *
- * Prefer the public `remoteUrl` (Lidarr's metadata source): the local
- * `/MediaCover/...` route sits behind Lidarr's form auth, which doesn't accept
- * the API key on older Lidarr (3.x serves its login page instead of the image),
- * so the proxy is only a last resort.
+ * A public (http) cover URL from a Lidarr images array, if present. Lidarr's
+ * local `/MediaCover/...` route sits behind form auth that ignores the API key
+ * (older Lidarr serves its login page instead of the image), so we only use a
+ * genuine remote URL here; otherwise we fall back to Plex art (see resolveCover).
  */
-function coverFromImages(images: unknown): string | undefined {
+function remoteCoverFromImages(images: unknown): string | undefined {
   if (!Array.isArray(images)) return undefined;
   const imgs = images as LidarrImage[];
   const pick = imgs.find((i) => i?.coverType === "poster") ?? imgs[0];
@@ -42,15 +40,46 @@ function coverFromImages(images: unknown): string | undefined {
     return pick.remoteUrl;
   }
   if (typeof pick.url === "string" && /^https?:\/\//.test(pick.url)) return pick.url;
-  if (typeof pick.url === "string" && pick.url.startsWith("/MediaCover")) {
-    return `/api/lidarr/art?path=${encodeURIComponent(pick.url)}`;
-  }
   return undefined;
 }
 
-/** True for the old auth-walled proxy covers we want to re-resolve to a remoteUrl. */
+/** True for the old auth-walled proxy covers we want to re-resolve. */
 function isStaleProxyCover(coverUrl: string | undefined): boolean {
   return typeof coverUrl === "string" && coverUrl.startsWith("/api/lidarr/art");
+}
+
+/**
+ * The cover for a basket item, as a browser-loadable URL:
+ *   1. a Lidarr remote URL if its metadata has one, else
+ *   2. the Plex thumbnail (served through our working /api/art proxy) — these
+ *      items get downloaded into Plex, so once they land the library has the art.
+ */
+async function resolveCover(
+  item: { artist: string; album?: string; mbid?: string },
+  lidarrImages: unknown,
+): Promise<string | undefined> {
+  const remote = remoteCoverFromImages(lidarrImages);
+  if (remote) return remote;
+
+  const plex = services.plex;
+  if (!plex) return undefined;
+  const query = item.album ? `${item.artist} ${item.album}` : item.artist;
+  try {
+    const tracks = await plex.searchTracks(query, 10);
+    const wantArtist = normalize(item.artist);
+    const wantAlbum = item.album ? normalize(item.album) : null;
+    const hit =
+      tracks.find(
+        (t) =>
+          normalize(t.artist) === wantArtist &&
+          (!wantAlbum || normalize(t.album) === wantAlbum),
+      ) ??
+      tracks.find((t) => normalize(t.artist) === wantArtist) ??
+      tracks[0];
+    return hit?.thumb ? `/api/art?path=${encodeURIComponent(hit.thumb)}` : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 const KNOWN_SOURCES: BasketItemSource[] = [
@@ -128,7 +157,9 @@ export async function addToBasket(
     source: input.source ?? "manual",
     status: "pending",
     createdAt: new Date().toISOString(),
-    coverUrl: coverFromImages(match.images),
+    // At add time the item isn't in Plex yet, so only a Lidarr remote URL (if
+    // any) is available; Plex art is filled in later by the status refresh.
+    coverUrl: remoteCoverFromImages(match.images),
   };
 
   db.prepare(
@@ -326,24 +357,19 @@ export async function refreshBasketStatuses(): Promise<BasketItem[]> {
     (await lidarr.getArtists()).map((a) => [a.foreignArtistId, a]),
   );
 
-  // Backfill artwork for existing items (e.g. added before we captured covers,
-  // or whose proxy cover failed to load).
+  // Backfill artwork for existing items: Lidarr remote URL if present, else the
+  // Plex thumbnail once the item has landed in the library.
   let covered = 0;
   for (const item of needsCover) {
     const artist = artistsByMbid.get(item.mbid as string);
-    const url = coverFromImages(artist?.images);
+    const url = await resolveCover(item, artist?.images);
     if (url && url !== item.coverUrl) {
       setCoverUrl(item.id, url);
       covered += 1;
     }
   }
   if (needsCover.length > 0) {
-    log.info(
-      "basket",
-      `Cover backfill: ${covered}/${needsCover.length} resolved (matched ${
-        needsCover.filter((i) => artistsByMbid.has(i.mbid as string)).length
-      } in Lidarr)`,
-    );
+    log.info("basket", `Cover backfill: ${covered}/${needsCover.length} resolved`);
   }
 
   // Album lookups are per-artist; cache within this pass.
