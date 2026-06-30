@@ -21,6 +21,7 @@ import { registerTimeMachineRoutes } from "./api/timemachine.ts";
 import { registerTautulliRoutes } from "./api/tautulli.ts";
 import { startScheduler } from "./autoplaylist/service.ts";
 import { startSpotifySyncScheduler } from "./spotify/sync.ts";
+import { reconcileRunningJobs } from "./spotify/import-jobs.ts";
 import {
   authEnabled,
   getSession,
@@ -153,6 +154,8 @@ app
   .listen({ port: config.port, host: "0.0.0.0" })
   .then(() => {
     app.log.info(`Resonarr listening on 0.0.0.0:${config.port}`);
+    // Any import job left 'running' was cut off by a restart — mark it errored.
+    reconcileRunningJobs();
     // Background refresh of scheduled auto-playlists (Discover Weekly).
     startScheduler();
     // Background backfill of ongoing Spotify→Plex migrations.

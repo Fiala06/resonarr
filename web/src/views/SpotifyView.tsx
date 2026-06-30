@@ -1,11 +1,21 @@
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
-import type { SpotifyImportResult, SpotifySync, SpotifyTrack } from "@resonarr/shared";
+import type {
+  SpotifyImportJob,
+  SpotifyImportJobDetail,
+  SpotifyImportJobItem,
+  SpotifyImportResult,
+  SpotifySync,
+  SpotifyTrack,
+} from "@resonarr/shared";
 import {
+  deleteSpotifyImportJob,
   deleteSpotifySync,
-  importSpotifyFile,
+  getSpotifyImportJob,
+  getSpotifyImportJobs,
   listSpotifySyncs,
   runSpotifySync,
+  startSpotifyImport,
   updateSpotifySync,
 } from "../api";
 import { TrackRow } from "../components/TrackRow";
@@ -257,9 +267,13 @@ export function SpotifyView() {
   const [intervalDays, setIntervalDays] = useState(1);
   const [mergeOne, setMergeOne] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [results, setResults] = useState<SpotifyImportResult[] | null>(null);
+  const [job, setJob] = useState<SpotifyImportJobDetail | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [syncRefresh, setSyncRefresh] = useState(0);
+  const [historyRefresh, setHistoryRefresh] = useState(0);
+  // Lets an in-flight poll loop bail out when the user resets or unmounts.
+  const pollGen = useRef(0);
+  useEffect(() => () => void (pollGen.current += 1), []);
 
   // The full export holds many playlists; a single one acts like any playlist file.
   const parts = parsed?.parts;
@@ -269,7 +283,7 @@ export function SpotifyView() {
 
   function handleFile(text: string, filename: string) {
     setParseError(null);
-    setResults(null);
+    setJob(null);
     setImportError(null);
     setMergeOne(false);
     try {
@@ -285,43 +299,55 @@ export function SpotifyView() {
   }
 
   function reset() {
+    pollGen.current += 1; // stop any in-flight poll
     setParsed(null);
     setName("");
-    setResults(null);
+    setJob(null);
     setMergeOne(false);
+    setBusy(false);
   }
 
   async function handleImport() {
     if (!parsed) return;
     setBusy(true);
     setImportError(null);
-    setResults(null);
-    try {
-      // One job per playlist when splitting; otherwise a single merged job.
-      const jobs =
-        perPlaylist && parts
-          ? parts.map((p) => ({ tracks: p.tracks, name: p.name }))
-          : [{ tracks: parsed.tracks, name }];
+    setJob(null);
 
-      const out: SpotifyImportResult[] = [];
-      for (const job of jobs) {
-        out.push(
-          await importSpotifyFile({
-            tracks: job.tracks,
-            name: job.name,
-            // A sync needs a playlist to grow, so keepInSync implies saving one.
-            savePlaylist: savePlaylist || keepInSync,
-            keepInSync,
-            intervalDays,
-          }),
-        );
+    // One playlist per part when splitting; otherwise a single merged playlist.
+    const playlists =
+      perPlaylist && parts
+        ? parts.map((p) => ({ name: p.name, tracks: p.tracks }))
+        : [{ name, tracks: parsed.tracks }];
+
+    const gen = ++pollGen.current;
+    try {
+      const started = await startSpotifyImport({
+        playlists,
+        // A sync needs a playlist to grow, so keepInSync implies saving one.
+        savePlaylist: savePlaylist || keepInSync,
+        keepInSync,
+        intervalDays,
+      });
+      setHistoryRefresh((n) => n + 1); // show it in history right away
+
+      // Poll for progress until the server-side job finishes. If the user
+      // navigates away the loop stops, but the import keeps running server-side.
+      let detail = await getSpotifyImportJob(started.id);
+      if (pollGen.current === gen) setJob(detail);
+      while (detail.status === "running" && pollGen.current === gen) {
+        await new Promise((r) => setTimeout(r, 1500));
+        if (pollGen.current !== gen) return;
+        detail = await getSpotifyImportJob(started.id);
+        if (pollGen.current === gen) setJob(detail);
       }
-      setResults(out);
-      if (keepInSync) setSyncRefresh((n) => n + 1);
+      if (pollGen.current === gen) {
+        if (keepInSync) setSyncRefresh((n) => n + 1);
+        setHistoryRefresh((n) => n + 1);
+      }
     } catch (e) {
-      setImportError(e instanceof Error ? e.message : String(e));
+      if (pollGen.current === gen) setImportError(e instanceof Error ? e.message : String(e));
     } finally {
-      setBusy(false);
+      if (pollGen.current === gen) setBusy(false);
     }
   }
 
@@ -389,7 +415,7 @@ export function SpotifyView() {
       )}
 
       {/* File ready — import options */}
-      {parsed && !results && (
+      {parsed && !job && (
         <div
           style={{
             padding: "16px 20px",
@@ -580,10 +606,11 @@ export function SpotifyView() {
         </div>
       )}
 
-      {/* Results — one panel per imported playlist */}
-      {results?.map((r, idx) => (
-        <ImportResults key={idx} result={r} onReset={reset} />
-      ))}
+      {/* Live progress + results for the current job */}
+      {job && <JobView job={job} onReset={reset} />}
+
+      {/* Past imports */}
+      <ImportHistory refreshKey={historyRefresh} />
     </section>
   );
 }
@@ -727,28 +754,101 @@ function syncBtnStyle(disabled: boolean): CSSProperties {
   };
 }
 
-// ── results panel ─────────────────────────────────────────────────────────────
+// ── import job: live progress + results ───────────────────────────────────────
 
-function ImportResults({
-  result,
+const JOB_STATUS_COLOR: Record<SpotifyImportJobItem["status"], string> = {
+  pending: colors.faint,
+  running: colors.accentLight,
+  done: colors.green,
+  error: colors.red,
+};
+
+function StatusDot({ status }: { status: SpotifyImportJobItem["status"] }) {
+  return (
+    <span
+      style={{
+        width: 8,
+        height: 8,
+        borderRadius: "50%",
+        background: JOB_STATUS_COLOR[status],
+        flexShrink: 0,
+        ...(status === "running" ? { animation: "pulse 1s ease-in-out infinite" } : {}),
+      }}
+    />
+  );
+}
+
+/** Per-playlist outcome: finished items expand to full results; others show status. */
+function JobResults({ detail }: { detail: SpotifyImportJobDetail }) {
+  return (
+    <div style={{ display: "grid", gap: 18 }}>
+      {detail.items.map((item, idx) => {
+        const result = detail.results[idx];
+        if (item.status === "done" && result) {
+          return <ImportResults key={idx} result={result} />;
+        }
+        return (
+          <div
+            key={idx}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              padding: "10px 14px",
+              borderRadius: 10,
+              background: fx.rowBg,
+              border: `1px solid ${colors.border}`,
+              fontSize: 14,
+            }}
+          >
+            <StatusDot status={item.status} />
+            <span style={{ fontWeight: 600 }}>{item.name}</span>
+            <span style={{ marginLeft: "auto", fontSize: 12, color: colors.muted }}>
+              {item.status === "pending" && "Waiting…"}
+              {item.status === "running" && "Importing…"}
+              {item.status === "error" && (item.error ?? "Failed")}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** The active import: a progress header plus results as each playlist finishes. */
+function JobView({
+  job,
   onReset,
 }: {
-  result: SpotifyImportResult;
+  job: SpotifyImportJobDetail;
   onReset: () => void;
 }) {
-  const { sourceName, spotifyTotal, matched, misses, basketedArtists, plexPlaylist, sync } = result;
-  const [tab, setTab] = useState<"matched" | "misses">("matched");
+  const running = job.status === "running";
+  const headline = running
+    ? `Importing ${job.done}/${job.total}…`
+    : job.status === "error"
+      ? `Imported with errors (${job.done}/${job.total})`
+      : job.total === 1
+        ? "Import complete"
+        : `Imported ${job.total} playlists`;
 
   return (
-    <div style={{ display: "grid", gap: 16 }}>
-      {/* Summary */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
-        <span style={{ fontSize: 15, fontWeight: 600 }}>{sourceName}</span>
-        <Pill label="from Spotify" count={spotifyTotal} />
-        <Pill label="matched" count={matched.length} />
-        {misses.length > 0 && <Pill label="misses" count={misses.length} />}
-        {basketedArtists.length > 0 && (
-          <Pill label="added to wishlist" count={basketedArtists.length} />
+    <div
+      style={{
+        padding: "16px 20px",
+        borderRadius: 12,
+        background: colors.panel,
+        border: `1px solid ${colors.border}`,
+        display: "grid",
+        gap: 16,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <span style={{ fontWeight: 600, fontSize: 15 }}>{headline}</span>
+        {running && (
+          <span style={{ fontSize: 12, color: colors.faint }}>
+            Safe to leave — this keeps running on the server.
+          </span>
         )}
         <button
           onClick={onReset}
@@ -765,6 +865,176 @@ function ImportResults({
         >
           Import another
         </button>
+      </div>
+      <JobResults detail={job} />
+    </div>
+  );
+}
+
+// ── import history ────────────────────────────────────────────────────────────
+
+function ImportHistory({ refreshKey }: { refreshKey: number }) {
+  const [jobs, setJobs] = useState<SpotifyImportJob[]>([]);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [detail, setDetail] = useState<SpotifyImportJobDetail | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    void getSpotifyImportJobs()
+      .then((j) => live && setJobs(j))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [refreshKey]);
+
+  async function toggle(id: string) {
+    if (openId === id) {
+      setOpenId(null);
+      setDetail(null);
+      return;
+    }
+    setOpenId(id);
+    setDetail(null);
+    try {
+      setDetail(await getSpotifyImportJob(id));
+    } catch {
+      /* ignore */
+    }
+  }
+
+  async function remove(id: string) {
+    try {
+      await deleteSpotifyImportJob(id);
+      setJobs((prev) => prev.filter((j) => j.id !== id));
+      if (openId === id) {
+        setOpenId(null);
+        setDetail(null);
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  if (jobs.length === 0) return null;
+
+  return (
+    <div style={{ display: "grid", gap: 10 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.07em", color: colors.faint }}>
+        RECENT IMPORTS
+      </div>
+      {jobs.map((j) => {
+        const matched = j.items.reduce((n, it) => n + it.matchedCount, 0);
+        const isOpen = openId === j.id;
+        return (
+          <div
+            key={j.id}
+            style={{
+              borderRadius: 12,
+              background: colors.panel,
+              border: `1px solid ${colors.border}`,
+              overflow: "hidden",
+            }}
+          >
+            <div
+              onClick={() => void toggle(j.id)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                padding: "12px 16px",
+                cursor: "pointer",
+              }}
+            >
+              <StatusDot status={j.status === "running" ? "running" : j.status === "error" ? "error" : "done"} />
+              <span style={{ fontWeight: 600 }}>
+                {j.total === 1 ? j.items[0]?.name ?? "Import" : `${j.total} playlists`}
+              </span>
+              <span style={{ fontSize: 12, color: colors.muted }}>
+                {relTime(Date.parse(j.createdAt))}
+              </span>
+              <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
+                <Pill label="matched" count={matched} />
+                {j.status === "running" && (
+                  <span style={{ fontSize: 12, color: colors.accentLight }}>
+                    {j.done}/{j.total}
+                  </span>
+                )}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void remove(j.id);
+                  }}
+                  title="Remove from history"
+                  style={{
+                    border: "none",
+                    background: "transparent",
+                    color: colors.faint,
+                    fontSize: 16,
+                    cursor: "pointer",
+                    lineHeight: 1,
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+            {isOpen && (
+              <div style={{ padding: "0 16px 16px" }}>
+                {detail ? (
+                  <JobResults detail={detail} />
+                ) : (
+                  <p style={{ margin: 0, color: colors.muted, fontSize: 13 }}>Loading…</p>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── results panel ─────────────────────────────────────────────────────────────
+
+function ImportResults({
+  result,
+  onReset,
+}: {
+  result: SpotifyImportResult;
+  onReset?: () => void;
+}) {
+  const { sourceName, spotifyTotal, matched, misses, basketedArtists, plexPlaylist, sync } = result;
+  const [tab, setTab] = useState<"matched" | "misses">("matched");
+
+  return (
+    <div style={{ display: "grid", gap: 16 }}>
+      {/* Summary */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+        <span style={{ fontSize: 15, fontWeight: 600 }}>{sourceName}</span>
+        <Pill label="from Spotify" count={spotifyTotal} />
+        <Pill label="matched" count={matched.length} />
+        {misses.length > 0 && <Pill label="misses" count={misses.length} />}
+        {basketedArtists.length > 0 && (
+          <Pill label="added to wishlist" count={basketedArtists.length} />
+        )}
+        {onReset && (
+          <button
+            onClick={onReset}
+            style={{
+              marginLeft: "auto",
+              padding: "4px 14px",
+              borderRadius: 8,
+              border: `1px solid ${colors.border}`,
+              background: "transparent",
+              color: colors.muted,
+              fontSize: 12,
+              cursor: "pointer",
+            }}
+          >
+            Import another
+          </button>
+        )}
       </div>
 
       {/* Plex playlist confirmation */}

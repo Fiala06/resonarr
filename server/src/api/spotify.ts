@@ -1,10 +1,14 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import type {
+  SpotifyBatchImportRequest,
   SpotifyFileImportRequest,
+  SpotifyImportJob,
+  SpotifyImportJobDetail,
   SpotifyImportRequest,
   SpotifyImportResult,
   SpotifySync,
   SpotifyStatus,
+  SpotifyTrack,
 } from "@resonarr/shared";
 import { config } from "../config/env.ts";
 import {
@@ -28,6 +32,17 @@ import {
   updateSync,
 } from "../spotify/sync-store.ts";
 import { runSpotifySync } from "../spotify/sync.ts";
+import {
+  createImportJob,
+  deleteImportJob,
+  finishJob,
+  getImportJobDetail,
+  getImportJobOwner,
+  listImportJobsForViewer,
+  markItemRunning,
+  setItemError,
+  setItemResult,
+} from "../spotify/import-jobs.ts";
 import type { PlexClient } from "../plex/client.ts";
 import { services } from "../services.ts";
 import {
@@ -75,13 +90,29 @@ async function maybeSavePlaylist(
   }
 }
 
+/** The per-request bits finishImport needs, captured so it can run detached. */
+interface ImportDeps {
+  plex: PlexClient;
+  ownerId: string | null;
+  ownerToken: string | null;
+}
+
+async function importDepsFromReq(req: FastifyRequest): Promise<ImportDeps> {
+  return {
+    plex: userPlexClient(req),
+    ownerId: await currentUserId(req),
+    ownerToken: requestSession(req)?.token ?? null,
+  };
+}
+
 /**
- * Shared tail for both import routes: optionally save the matched tracks as a
+ * Shared tail for the import routes: optionally save the matched tracks as a
  * Plex playlist and, when keepInSync is set, register a background sync that
  * keeps adding the still-unmatched tracks as they arrive in the Plex library.
+ * Takes captured deps (not the request) so it can run after the HTTP response.
  */
-async function finishImport(
-  req: FastifyRequest,
+async function finishImportCore(
+  deps: ImportDeps,
   opts: {
     name: string;
     source: string;
@@ -93,12 +124,11 @@ async function finishImport(
 ): Promise<SpotifyImportResult> {
   const plexPlaylist =
     opts.savePlaylist || opts.keepInSync
-      ? await maybeSavePlaylist(userPlexClient(req), opts.name, result.matched.map((t) => t.id))
+      ? await maybeSavePlaylist(deps.plex, opts.name, result.matched.map((t) => t.id))
       : undefined;
 
   let sync: SpotifySync | undefined;
   if (opts.keepInSync) {
-    const ownerId = await currentUserId(req);
     sync = createSync(
       {
         name: opts.name,
@@ -108,7 +138,7 @@ async function finishImport(
         pending: result.misses,
         intervalDays: opts.intervalDays,
       },
-      { ownerId, ownerToken: requestSession(req)?.token ?? null },
+      { ownerId: deps.ownerId, ownerToken: deps.ownerToken },
     );
   }
 
@@ -121,6 +151,63 @@ async function finishImport(
     plexPlaylist,
     sync,
   };
+}
+
+async function finishImport(
+  req: FastifyRequest,
+  opts: {
+    name: string;
+    source: string;
+    savePlaylist: boolean;
+    keepInSync: boolean;
+    intervalDays?: number;
+  },
+  result: ImportResult,
+): Promise<SpotifyImportResult> {
+  return finishImportCore(await importDepsFromReq(req), opts, result);
+}
+
+/**
+ * Process a batch import detached from the HTTP request: each playlist is matched
+ * and saved in turn, with the job row updated after every one so the client can
+ * poll progress. Runs to completion regardless of whether the browser is open.
+ */
+async function processImportJob(
+  jobId: string,
+  deps: ImportDeps,
+  playlists: { name: string; tracks: SpotifyTrack[] }[],
+  opts: { savePlaylist: boolean; keepInSync: boolean; intervalDays?: number },
+): Promise<void> {
+  for (let i = 0; i < playlists.length; i++) {
+    const pl = playlists[i];
+    if (!pl) continue;
+    markItemRunning(jobId, i);
+    try {
+      const result = await runImport(pl.tracks, pl.name);
+      const finished = await finishImportCore(
+        deps,
+        { name: pl.name, source: "file", ...opts },
+        result,
+      );
+      setItemResult(jobId, i, finished);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      log.warn("spotify", `Import job ${jobId} playlist "${pl.name}" failed: ${msg}`);
+      setItemError(jobId, i, msg);
+    }
+  }
+  finishJob(jobId);
+}
+
+/** May the request's user see this import job? (Own it, or be the server owner.) */
+async function canViewJob(req: FastifyRequest, id: string): Promise<boolean> {
+  const owner = getImportJobOwner(id);
+  if (owner === undefined) return false; // no such job
+  if (!authEnabled()) return true;
+  const viewerId = await currentUserId(req);
+  if (!viewerId) return false;
+  if (viewerId === (await ownerAccountId())) return true;
+  return owner === viewerId;
 }
 
 /** May the request's user manage this sync? (Own it, or be the server owner.) */
@@ -269,6 +356,76 @@ export function registerSpotifyRoutes(app: FastifyInstance): void {
         { name, source: "file", savePlaylist, keepInSync, intervalDays },
         result,
       );
+    },
+  );
+
+  /**
+   * Import one or more playlists as a detached server-side job. Responds 202 with
+   * the job immediately; the work continues even if the browser is closed. Poll
+   * GET /api/spotify/import/jobs/:id for progress and results.
+   */
+  app.post<{ Body: SpotifyBatchImportRequest }>(
+    "/api/spotify/import/batch",
+    async (req, reply): Promise<SpotifyImportJob> => {
+      if (!services.plex)
+        return reply.code(503).send({ error: "Plex is not configured" }) as never;
+
+      const { playlists, savePlaylist = false, keepInSync = false, intervalDays } =
+        req.body ?? {};
+      const clean = (Array.isArray(playlists) ? playlists : []).filter(
+        (p) =>
+          p &&
+          typeof p.name === "string" &&
+          p.name &&
+          Array.isArray(p.tracks) &&
+          p.tracks.length > 0,
+      );
+      if (clean.length === 0) {
+        return reply
+          .code(400)
+          .send({ error: "playlists array is required and each must have tracks" }) as never;
+      }
+
+      const deps = await importDepsFromReq(req);
+      const job = createImportJob(clean.map((p) => p.name), deps.ownerId);
+
+      // Detached on purpose — closing the tab must not interrupt the import.
+      void processImportJob(job.id, deps, clean, { savePlaylist, keepInSync, intervalDays });
+
+      return reply.code(202).send(job) as never;
+    },
+  );
+
+  /** Recent import jobs visible to this user (history + in-progress). */
+  app.get("/api/spotify/import/jobs", async (req): Promise<SpotifyImportJob[]> => {
+    if (!authEnabled()) return listImportJobsForViewer(null, false);
+    const viewerId = await currentUserId(req);
+    const isOwner = viewerId !== null && viewerId === (await ownerAccountId());
+    return listImportJobsForViewer(viewerId, isOwner);
+  });
+
+  /** One import job with its full per-playlist results. */
+  app.get<{ Params: { id: string } }>(
+    "/api/spotify/import/jobs/:id",
+    async (req, reply): Promise<SpotifyImportJobDetail> => {
+      if (!(await canViewJob(req, req.params.id))) {
+        return reply.code(404).send({ error: "Not found" }) as never;
+      }
+      const detail = getImportJobDetail(req.params.id);
+      if (!detail) return reply.code(404).send({ error: "Not found" }) as never;
+      return detail;
+    },
+  );
+
+  /** Remove an import job from history. */
+  app.delete<{ Params: { id: string } }>(
+    "/api/spotify/import/jobs/:id",
+    async (req, reply): Promise<{ ok: true }> => {
+      if (!(await canViewJob(req, req.params.id))) {
+        return reply.code(404).send({ error: "Not found" }) as never;
+      }
+      deleteImportJob(req.params.id);
+      return { ok: true };
     },
   );
 

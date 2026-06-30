@@ -243,6 +243,29 @@ const MIGRATIONS: Migration[] = [
       CREATE INDEX IF NOT EXISTS idx_play_history_account   ON play_history (account_id);
     `,
   },
+  {
+    version: 15,
+    // Spotify file imports now run server-side as a detached job so closing the
+    // browser can't interrupt them. Each job covers one or more playlists and is
+    // kept as history. `summary` holds the light per-playlist counts; `results`
+    // holds the full matched/miss track lists for re-viewing a past import.
+    up: `
+      CREATE TABLE IF NOT EXISTS spotify_import_jobs (
+        id          TEXT PRIMARY KEY,
+        created_at  TEXT NOT NULL,
+        status      TEXT NOT NULL,        -- 'running' | 'done' | 'error'
+        total       INTEGER NOT NULL,
+        done        INTEGER NOT NULL DEFAULT 0,
+        summary     TEXT NOT NULL,        -- JSON: SpotifyImportJobItem[]
+        results     TEXT,                 -- JSON: (SpotifyImportResult | null)[]
+        owner_id    TEXT,
+        created_ms  INTEGER NOT NULL
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_spotify_import_jobs_owner
+        ON spotify_import_jobs (owner_id, created_ms DESC);
+    `,
+  },
 ];
 
 export function runMigrations(db: DatabaseSync): void {

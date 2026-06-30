@@ -30,7 +30,10 @@ import type {
   PlexPinStart,
   PlaylistSummary,
   RadioResponse,
+  SpotifyBatchImportRequest,
   SpotifyFileImportRequest,
+  SpotifyImportJob,
+  SpotifyImportJobDetail,
   SpotifyImportRequest,
   SpotifyImportResult,
   SpotifyPlaylistSummary,
@@ -419,6 +422,35 @@ export async function importSpotifyFile(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(req),
+    }),
+  );
+}
+
+/** Start a detached server-side import of one or more playlists; returns the job. */
+export async function startSpotifyImport(
+  req: SpotifyBatchImportRequest,
+): Promise<SpotifyImportJob> {
+  return asJson(
+    await fetch("/api/spotify/import/batch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(req),
+    }),
+  );
+}
+
+export async function getSpotifyImportJobs(): Promise<SpotifyImportJob[]> {
+  return asJson(await fetch("/api/spotify/import/jobs"));
+}
+
+export async function getSpotifyImportJob(id: string): Promise<SpotifyImportJobDetail> {
+  return asJson(await fetch(`/api/spotify/import/jobs/${encodeURIComponent(id)}`));
+}
+
+export async function deleteSpotifyImportJob(id: string): Promise<void> {
+  await asJson<{ ok: true }>(
+    await fetch(`/api/spotify/import/jobs/${encodeURIComponent(id)}`, {
+      method: "DELETE",
     }),
   );
 }

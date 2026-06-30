@@ -233,10 +233,11 @@ async function autoSubmit(ids: string[]): Promise<BasketItem | undefined> {
       error: err instanceof Error ? err.message : String(err),
     });
   }
-  const db = getDb();
-  const row = db
+  const id = ids[0];
+  if (!id) return undefined;
+  const row = getDb()
     .prepare("SELECT * FROM basket_items WHERE id = ?")
-    .get(ids[0]) as unknown as BasketRow | undefined;
+    .get(id) as unknown as BasketRow | undefined;
   return row ? rowToItem(row) : undefined;
 }
 

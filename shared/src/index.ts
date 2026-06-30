@@ -600,6 +600,44 @@ export interface SpotifyImportResult {
   sync?: SpotifySync;
 }
 
+/** Import a batch of playlists in one server-side job (survives the browser). */
+export interface SpotifyBatchImportRequest {
+  playlists: { name: string; tracks: SpotifyTrack[] }[];
+  savePlaylist?: boolean;
+  keepInSync?: boolean;
+  intervalDays?: number;
+}
+
+/** One playlist's outcome within an import job (light summary, no track lists). */
+export interface SpotifyImportJobItem {
+  name: string;
+  status: "pending" | "running" | "done" | "error";
+  spotifyTotal: number;
+  matchedCount: number;
+  missCount: number;
+  basketedCount: number;
+  plexPlaylist?: { id: string; name: string; trackCount: number };
+  error?: string;
+}
+
+/** A server-side import run of one or more playlists. Persisted as history. */
+export interface SpotifyImportJob {
+  id: string;
+  createdAt: string;
+  status: "running" | "done" | "error";
+  /** Number of playlists in the job. */
+  total: number;
+  /** Playlists processed so far. */
+  done: number;
+  items: SpotifyImportJobItem[];
+}
+
+/** A job plus the full per-playlist results (matched/miss track lists). */
+export interface SpotifyImportJobDetail extends SpotifyImportJob {
+  /** Full result per item, aligned by index; null while pending/failed. */
+  results: (SpotifyImportResult | null)[];
+}
+
 /**
  * An ongoing Spotify→Plex migration. Its playlist keeps filling in as the
  * still-unmatched ("pending") tracks become available in the Plex library.
