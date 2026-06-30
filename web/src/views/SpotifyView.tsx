@@ -17,6 +17,20 @@ import { colors, fx } from "../theme";
 interface ParsedFile {
   name: string;
   tracks: SpotifyTrack[];
+  // When the source held multiple playlists, these are the individual ones.
+  // `tracks`/`name` above are the merged-and-deduped view of them.
+  parts?: ParsedFile[];
+}
+
+function dedupeTracks(input: SpotifyTrack[], seen = new Set<string>()): SpotifyTrack[] {
+  const out: SpotifyTrack[] = [];
+  for (const t of input) {
+    const key = `${t.title} ${t.artist}`.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(t);
+  }
+  return out;
 }
 
 // Spotify playlist items: [{ track: { trackName, artistName, albumName } }]
@@ -96,26 +110,28 @@ function parseSpotifyExport(raw: unknown): ParsedFile {
 
   // Playlist1.json (full export) — { playlists: [{ name, items: [...] }, ...] }
   if (Array.isArray(obj["playlists"])) {
-    const playlists = obj["playlists"] as Record<string, unknown>[];
-    const seen = new Set<string>();
-    const tracks: SpotifyTrack[] = [];
-    for (const pl of playlists) {
+    // Each non-empty playlist becomes its own part (deduped within itself).
+    const parts: ParsedFile[] = [];
+    for (const pl of obj["playlists"] as Record<string, unknown>[]) {
       if (!Array.isArray(pl?.["items"])) continue;
-      for (const t of tracksFromItems(pl["items"] as unknown[])) {
-        const key = `${t.title} ${t.artist}`.toLowerCase();
-        if (seen.has(key)) continue;
-        seen.add(key);
-        tracks.push(t);
-      }
+      const tracks = dedupeTracks(tracksFromItems(pl["items"] as unknown[]));
+      if (tracks.length === 0) continue;
+      const plName =
+        typeof pl["name"] === "string" && pl["name"]
+          ? (pl["name"] as string)
+          : "Spotify Playlist";
+      parts.push({ name: plName, tracks });
     }
 
-    if (tracks.length === 0) throw new Error("No tracks found in this export file");
-    const first = playlists[0];
-    const name =
-      playlists.length === 1 && typeof first?.["name"] === "string" && first["name"]
-        ? (first["name"] as string)
-        : "Spotify Playlists";
-    return { name, tracks };
+    if (parts.length === 0) throw new Error("No tracks found in this export file");
+
+    // A single playlist behaves like any other Playlist*.json.
+    const first = parts[0];
+    if (parts.length === 1 && first) return { name: first.name, tracks: first.tracks };
+
+    // Otherwise expose both: the merged view and the individual parts.
+    const merged = dedupeTracks(parts.flatMap((p) => p.tracks));
+    return { name: "Spotify Playlists", tracks: merged, parts };
   }
 
   // Playlist*.json — { name, items: [{ track: { trackName, artistName, albumName } }] }
@@ -239,15 +255,23 @@ export function SpotifyView() {
   const [savePlaylist, setSavePlaylist] = useState(true);
   const [keepInSync, setKeepInSync] = useState(true);
   const [intervalDays, setIntervalDays] = useState(1);
+  const [mergeOne, setMergeOne] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [result, setResult] = useState<SpotifyImportResult | null>(null);
+  const [results, setResults] = useState<SpotifyImportResult[] | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [syncRefresh, setSyncRefresh] = useState(0);
 
+  // The full export holds many playlists; a single one acts like any playlist file.
+  const parts = parsed?.parts;
+  const isMulti = (parts?.length ?? 0) > 1;
+  // Import each playlist on its own unless the user asks to merge them.
+  const perPlaylist = isMulti && !mergeOne;
+
   function handleFile(text: string, filename: string) {
     setParseError(null);
-    setResult(null);
+    setResults(null);
     setImportError(null);
+    setMergeOne(false);
     try {
       const p = parseSpotifyExport(JSON.parse(text));
       setParsed(p);
@@ -260,21 +284,39 @@ export function SpotifyView() {
     }
   }
 
+  function reset() {
+    setParsed(null);
+    setName("");
+    setResults(null);
+    setMergeOne(false);
+  }
+
   async function handleImport() {
     if (!parsed) return;
     setBusy(true);
     setImportError(null);
-    setResult(null);
+    setResults(null);
     try {
-      const res = await importSpotifyFile({
-        tracks: parsed.tracks,
-        name,
-        // A sync needs a playlist to grow, so keepInSync implies saving one.
-        savePlaylist: savePlaylist || keepInSync,
-        keepInSync,
-        intervalDays,
-      });
-      setResult(res);
+      // One job per playlist when splitting; otherwise a single merged job.
+      const jobs =
+        perPlaylist && parts
+          ? parts.map((p) => ({ tracks: p.tracks, name: p.name }))
+          : [{ tracks: parsed.tracks, name }];
+
+      const out: SpotifyImportResult[] = [];
+      for (const job of jobs) {
+        out.push(
+          await importSpotifyFile({
+            tracks: job.tracks,
+            name: job.name,
+            // A sync needs a playlist to grow, so keepInSync implies saving one.
+            savePlaylist: savePlaylist || keepInSync,
+            keepInSync,
+            intervalDays,
+          }),
+        );
+      }
+      setResults(out);
       if (keepInSync) setSyncRefresh((n) => n + 1);
     } catch (e) {
       setImportError(e instanceof Error ? e.message : String(e));
@@ -347,7 +389,7 @@ export function SpotifyView() {
       )}
 
       {/* File ready — import options */}
-      {parsed && !result && (
+      {parsed && !results && (
         <div
           style={{
             padding: "16px 20px",
@@ -360,28 +402,57 @@ export function SpotifyView() {
         >
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <span style={{ fontSize: 20 }}>✓</span>
-            <span style={{ fontWeight: 600 }}>{parsed.tracks.length} tracks found</span>
+            <span style={{ fontWeight: 600 }}>
+              {perPlaylist
+                ? `${parts?.length} playlists · ${parts?.reduce((n, p) => n + p.tracks.length, 0)} tracks`
+                : `${parsed.tracks.length} tracks found`}
+            </span>
           </div>
 
-          {/* Name field */}
-          <label style={{ display: "grid", gap: 6 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: colors.muted, letterSpacing: "0.05em" }}>
-              PLAYLIST NAME
-            </span>
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+          {/* Merge toggle (only when the file held several playlists) */}
+          {isMulti && (
+            <label
               style={{
-                padding: "9px 12px",
-                borderRadius: 8,
-                border: `1px solid ${colors.border}`,
-                background: colors.panel2,
-                color: colors.text,
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
                 fontSize: 14,
-                outline: "none",
+                color: colors.muted,
+                cursor: "pointer",
+                userSelect: "none",
               }}
-            />
-          </label>
+            >
+              <input
+                type="checkbox"
+                checked={mergeOne}
+                onChange={(e) => setMergeOne(e.target.checked)}
+                style={{ accentColor: colors.accent, width: 15, height: 15 }}
+              />
+              Merge into one playlist
+            </label>
+          )}
+
+          {/* Name field — per-playlist split keeps each playlist's own name */}
+          {!perPlaylist && (
+            <label style={{ display: "grid", gap: 6 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: colors.muted, letterSpacing: "0.05em" }}>
+                PLAYLIST NAME
+              </span>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                style={{
+                  padding: "9px 12px",
+                  borderRadius: 8,
+                  border: `1px solid ${colors.border}`,
+                  background: colors.panel2,
+                  color: colors.text,
+                  fontSize: 14,
+                  outline: "none",
+                }}
+              />
+            </label>
+          )}
 
           {/* Save playlist toggle */}
           <label
@@ -459,26 +530,35 @@ export function SpotifyView() {
           )}
 
           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            {(() => {
+              const disabled = busy || (!perPlaylist && !name.trim());
+              return (
+                <button
+                  onClick={() => void handleImport()}
+                  disabled={disabled}
+                  style={{
+                    padding: "10px 26px",
+                    borderRadius: 9,
+                    border: "none",
+                    background: disabled ? colors.panel2 : fx.btnBg,
+                    color: disabled ? colors.faint : "#fff",
+                    fontWeight: 700,
+                    fontSize: 14,
+                    cursor: disabled ? "not-allowed" : "pointer",
+                    boxShadow: disabled ? "none" : fx.btnGlow,
+                    transition: "background .2s, color .2s, box-shadow .2s",
+                  }}
+                >
+                  {busy
+                    ? "Importing…"
+                    : perPlaylist
+                      ? `Import ${parts?.length} playlists`
+                      : "Import"}
+                </button>
+              );
+            })()}
             <button
-              onClick={() => void handleImport()}
-              disabled={busy || !name.trim()}
-              style={{
-                padding: "10px 26px",
-                borderRadius: 9,
-                border: "none",
-                background: busy || !name.trim() ? colors.panel2 : fx.btnBg,
-                color: busy || !name.trim() ? colors.faint : "#fff",
-                fontWeight: 700,
-                fontSize: 14,
-                cursor: busy || !name.trim() ? "not-allowed" : "pointer",
-                boxShadow: busy || !name.trim() ? "none" : fx.btnGlow,
-                transition: "background .2s, color .2s, box-shadow .2s",
-              }}
-            >
-              {busy ? "Importing…" : "Import"}
-            </button>
-            <button
-              onClick={() => { setParsed(null); setName(""); }}
+              onClick={reset}
               disabled={busy}
               style={{
                 padding: "10px 16px",
@@ -500,8 +580,10 @@ export function SpotifyView() {
         </div>
       )}
 
-      {/* Results */}
-      {result && <ImportResults result={result} onReset={() => { setParsed(null); setName(""); setResult(null); }} />}
+      {/* Results — one panel per imported playlist */}
+      {results?.map((r, idx) => (
+        <ImportResults key={idx} result={r} onReset={reset} />
+      ))}
     </section>
   );
 }
