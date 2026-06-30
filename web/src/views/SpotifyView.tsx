@@ -19,8 +19,61 @@ interface ParsedFile {
   tracks: SpotifyTrack[];
 }
 
+// Spotify playlist items: [{ track: { trackName, artistName, albumName } }]
+function tracksFromItems(items: unknown[]): SpotifyTrack[] {
+  return items
+    .map((item) => {
+      const t = (item as Record<string, unknown>)?.["track"] as
+        | Record<string, string>
+        | undefined;
+      if (!t?.["trackName"]) return null;
+      return {
+        title: t["trackName"] ?? "",
+        artist: t["artistName"] ?? "",
+        album: t["albumName"] ?? "",
+      };
+    })
+    .filter((t): t is SpotifyTrack => !!t && !!t.title && !!t.artist);
+}
+
+// StreamingHistory*.json — [{ endTime, artistName, trackName, msPlayed }]
+// Count plays of >=30s (the threshold that counts as a real stream), keep only
+// tracks played enough times to count as "stuff I actually like", then order by
+// play count so the most-listened tracks come first.
+const STREAM_MS_THRESHOLD = 30_000;
+const STREAM_MIN_PLAYS = 3;
+function tracksFromStreamingHistory(rows: unknown[]): SpotifyTrack[] {
+  const counts = new Map<string, { track: SpotifyTrack; plays: number }>();
+  for (const row of rows) {
+    const r = row as Record<string, unknown>;
+    const title = typeof r?.["trackName"] === "string" ? (r["trackName"] as string) : "";
+    const artist = typeof r?.["artistName"] === "string" ? (r["artistName"] as string) : "";
+    const ms = typeof r?.["msPlayed"] === "number" ? (r["msPlayed"] as number) : 0;
+    if (!title || !artist || ms < STREAM_MS_THRESHOLD) continue;
+    const key = `${title} ${artist}`.toLowerCase();
+    const existing = counts.get(key);
+    if (existing) existing.plays++;
+    else counts.set(key, { track: { title, artist, album: "" }, plays: 1 });
+  }
+  return [...counts.values()]
+    .filter((c) => c.plays >= STREAM_MIN_PLAYS)
+    .sort((a, b) => b.plays - a.plays)
+    .map((c) => c.track);
+}
+
 function parseSpotifyExport(raw: unknown): ParsedFile {
   if (!raw || typeof raw !== "object") throw new Error("Not a valid JSON file");
+
+  // StreamingHistory*.json is a bare array of play events.
+  if (Array.isArray(raw)) {
+    const tracks = tracksFromStreamingHistory(raw);
+    if (tracks.length === 0)
+      throw new Error(
+        `No tracks reached ${STREAM_MIN_PLAYS} full plays in this history file`,
+      );
+    return { name: "Streaming History", tracks };
+  }
+
   const obj = raw as Record<string, unknown>;
 
   // YourLibrary.json — { tracks: [{ artist, album, track, uri }] }
@@ -41,23 +94,35 @@ function parseSpotifyExport(raw: unknown): ParsedFile {
     return { name: "Liked Songs", tracks };
   }
 
+  // Playlist1.json (full export) — { playlists: [{ name, items: [...] }, ...] }
+  if (Array.isArray(obj["playlists"])) {
+    const playlists = obj["playlists"] as Record<string, unknown>[];
+    const seen = new Set<string>();
+    const tracks: SpotifyTrack[] = [];
+    for (const pl of playlists) {
+      if (!Array.isArray(pl?.["items"])) continue;
+      for (const t of tracksFromItems(pl["items"] as unknown[])) {
+        const key = `${t.title} ${t.artist}`.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        tracks.push(t);
+      }
+    }
+
+    if (tracks.length === 0) throw new Error("No tracks found in this export file");
+    const first = playlists[0];
+    const name =
+      playlists.length === 1 && typeof first?.["name"] === "string" && first["name"]
+        ? (first["name"] as string)
+        : "Spotify Playlists";
+    return { name, tracks };
+  }
+
   // Playlist*.json — { name, items: [{ track: { trackName, artistName, albumName } }] }
   if (Array.isArray(obj["items"])) {
     const name =
       typeof obj["name"] === "string" && obj["name"] ? obj["name"] : "Spotify Playlist";
-    const tracks: SpotifyTrack[] = (obj["items"] as unknown[])
-      .map((item) => {
-        const t = (item as Record<string, unknown>)?.["track"] as
-          | Record<string, string>
-          | undefined;
-        if (!t?.["trackName"]) return null;
-        return {
-          title: t["trackName"] ?? "",
-          artist: t["artistName"] ?? "",
-          album: t["albumName"] ?? "",
-        };
-      })
-      .filter((t): t is SpotifyTrack => !!t && !!t.title && !!t.artist);
+    const tracks = tracksFromItems(obj["items"] as unknown[]);
 
     if (tracks.length === 0) throw new Error("No tracks found in this playlist file");
     return { name, tracks };
@@ -157,8 +222,9 @@ function FileDropZone({ onFile }: { onFile: (text: string, filename: string) => 
       </div>
       <div style={{ fontSize: 13, color: colors.muted }}>
         or click to browse — supports{" "}
-        <code style={{ color: colors.accentLight }}>YourLibrary.json</code> and{" "}
-        <code style={{ color: colors.accentLight }}>Playlist*.json</code>
+        <code style={{ color: colors.accentLight }}>YourLibrary.json</code>,{" "}
+        <code style={{ color: colors.accentLight }}>Playlist*.json</code> and{" "}
+        <code style={{ color: colors.accentLight }}>StreamingHistory*.json</code>
       </div>
     </div>
   );
@@ -263,8 +329,9 @@ export function SpotifyView() {
         <div>
           <strong style={{ color: colors.text }}>3.</strong> Drop{" "}
           <code style={{ color: colors.accentLight }}>YourLibrary.json</code> (Liked
-          Songs) or any{" "}
-          <code style={{ color: colors.accentLight }}>Playlist*.json</code> file
+          Songs), any{" "}
+          <code style={{ color: colors.accentLight }}>Playlist*.json</code>, or a{" "}
+          <code style={{ color: colors.accentLight }}>StreamingHistory*.json</code> file
           below.
         </div>
       </div>
