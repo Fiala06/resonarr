@@ -57,6 +57,8 @@ export function Onboarding({ onClose }: { onClose: () => void }) {
     onClose();
   }
 
+  if (!step) return null;
+
   return (
     <div style={backdrop} onClick={finish}>
       <div style={card} onClick={(e) => e.stopPropagation()}>

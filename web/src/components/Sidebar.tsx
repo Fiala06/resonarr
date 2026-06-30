@@ -227,7 +227,7 @@ export function hubForTab(tab: Tab): Hub | null {
 
 /** The tab to open when a hub is clicked: keep the current one if it's already inside. */
 function defaultTabFor(hub: { tabs: Tab[] }, active: Tab): Tab {
-  return hub.tabs.includes(active) ? active : hub.tabs[0];
+  return hub.tabs.includes(active) ? active : hub.tabs[0] ?? active;
 }
 
 // "38,412" -> "38.4k" for the compact footer label.
