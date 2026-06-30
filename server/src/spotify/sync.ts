@@ -18,15 +18,30 @@ const BATCH = 8; // concurrent Plex searches, matching the import path
 const TICK_MS = 5 * 60 * 1000; // scheduler poll interval
 const BOOT_DELAY_MS = 20_000; // first catch-up tick after startup
 
+/** Syncs with a backfill in flight, so manual runs don't pile up or double-add. */
+const running = new Set<string>();
+
+/** Whether a backfill for this sync is currently in progress. */
+export function isSyncRunning(id: string): boolean {
+  return running.has(id);
+}
+
 /**
  * Re-check a sync's still-unmatched tracks against the Plex library and add any
  * that have since arrived to its playlist. Never throws — failures are recorded
- * as the sync's last status and surfaced in the log.
+ * as the sync's last status and surfaced in the log. Re-checking a large pending
+ * list hits Plex once per track, so this can take a while; callers that don't
+ * need the result should fire it detached.
  */
 export async function runSpotifySync(id: string): Promise<SpotifySync> {
   const sync = getSync(id);
   if (!sync) throw new Error("Sync not found");
   if (!config.plex || !services.plex) throw new Error("Plex is not configured");
+
+  // Already running (scheduler + a manual click, or a double-click) — don't
+  // scan twice; return the current state.
+  if (running.has(id)) return sync;
+  running.add(id);
 
   // Write the playlist as the user who created the sync, so it lands on THEIR
   // Plex account — falling back to the owner token for legacy/single-user rows.
@@ -105,6 +120,8 @@ export async function runSpotifySync(id: string): Promise<SpotifySync> {
     // Advance the schedule anyway so a persistent failure doesn't hot-loop.
     markSyncRun(id, { lastStatus: `Failed: ${msg}`, nextRunAt });
     log.error("spotify-sync", `${sync.name} failed: ${msg}`);
+  } finally {
+    running.delete(id);
   }
   return getSync(id)!;
 }

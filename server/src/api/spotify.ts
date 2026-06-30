@@ -31,7 +31,7 @@ import {
   listSyncsForViewer,
   updateSync,
 } from "../spotify/sync-store.ts";
-import { runSpotifySync } from "../spotify/sync.ts";
+import { isSyncRunning, runSpotifySync } from "../spotify/sync.ts";
 import {
   createImportJob,
   deleteImportJob,
@@ -464,17 +464,31 @@ export function registerSpotifyRoutes(app: FastifyInstance): void {
     },
   );
 
-  /** Run a backfill now (check the library for newly-available tracks). */
+  /**
+   * Kick off a backfill now and return immediately. Re-checking a large pending
+   * list against Plex can take a while, so we run it detached (it records its own
+   * outcome) rather than hold the request open — the client polls the sync list
+   * for the updated status. Idempotent while a run is already in flight.
+   */
   app.post<{ Params: { id: string } }>(
     "/api/spotify/syncs/:id/run",
     async (req, reply): Promise<SpotifySync> => {
-      if (!(await canManageSync(req, req.params.id))) {
+      const id = req.params.id;
+      if (!(await canManageSync(req, id))) {
         return reply.code(404).send({ error: "Not found" }) as never;
       }
       if (!services.plex) {
         return reply.code(503).send({ error: "Plex is not configured" }) as never;
       }
-      return runSpotifySync(req.params.id);
+      if (!isSyncRunning(id)) {
+        // Detached on purpose — closing the tab must not interrupt the backfill.
+        void runSpotifySync(id).catch(() => {
+          /* runSpotifySync records its own failures as the sync's last status */
+        });
+      }
+      const sync = getSync(id);
+      if (!sync) return reply.code(404).send({ error: "Not found" }) as never;
+      return sync;
     },
   );
 }

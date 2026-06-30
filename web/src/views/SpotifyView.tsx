@@ -631,10 +631,14 @@ function relTime(ms?: number): string {
 function SyncList({ refreshKey }: { refreshKey: number }) {
   const [syncs, setSyncs] = useState<SpotifySync[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const mounted = useRef(true);
+  useEffect(() => () => void (mounted.current = false), []);
 
   async function reload() {
     try {
-      setSyncs(await listSpotifySyncs());
+      const fresh = await listSpotifySyncs();
+      if (mounted.current) setSyncs(fresh);
     } catch {
       /* leave the list as-is on a transient failure */
     }
@@ -645,12 +649,42 @@ function SyncList({ refreshKey }: { refreshKey: number }) {
   }, [refreshKey]);
 
   async function withBusy(id: string, fn: () => Promise<unknown>) {
+    setError(null);
     setBusyId(id);
     try {
       await fn();
       await reload();
+    } catch (e) {
+      if (mounted.current) setError(e instanceof Error ? e.message : String(e));
     } finally {
-      setBusyId(null);
+      if (mounted.current) setBusyId(null);
+    }
+  }
+
+  /**
+   * Re-check now. The server runs the backfill detached (it can take minutes for
+   * a big pending list), so we trigger it and then poll the list until this
+   * sync's last-run time advances, keeping "Checking…" up the whole time.
+   */
+  async function checkNow(s: SpotifySync) {
+    const before = s.lastRunAt ?? 0;
+    setError(null);
+    setBusyId(s.id);
+    try {
+      await runSpotifySync(s.id);
+      for (let i = 0; i < 150 && mounted.current; i++) {
+        await new Promise((r) => setTimeout(r, 2000));
+        if (!mounted.current) return;
+        const fresh = await listSpotifySyncs();
+        if (!mounted.current) return;
+        setSyncs(fresh);
+        const cur = fresh.find((x) => x.id === s.id);
+        if (!cur || (cur.lastRunAt ?? 0) > before) break;
+      }
+    } catch (e) {
+      if (mounted.current) setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      if (mounted.current) setBusyId(null);
     }
   }
 
@@ -661,6 +695,9 @@ function SyncList({ refreshKey }: { refreshKey: number }) {
       <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.07em", color: colors.faint }}>
         ONGOING SYNCS
       </div>
+      {error && (
+        <p style={{ margin: 0, color: colors.red, fontSize: 13 }}>{error}</p>
+      )}
       {syncs.map((s) => (
         <div
           key={s.id}
@@ -716,7 +753,7 @@ function SyncList({ refreshKey }: { refreshKey: number }) {
           </select>
 
           <button
-            onClick={() => void withBusy(s.id, () => runSpotifySync(s.id))}
+            onClick={() => void checkNow(s)}
             disabled={busyId === s.id || !s.enabled}
             style={syncBtnStyle(busyId === s.id || !s.enabled)}
           >
